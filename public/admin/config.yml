@@ -1,15 +1,20 @@
 backend:
-  name: git-gateway   # NetlifyでIdentity+Git GatewayをEnableする
+  name: github
+  repo: <GitHubユーザー名>/<リポ名>
   branch: main
+  base_url: https://<あなたのOAuthプロキシのホスト>   # ← 後で作るやつ
+  # auth_endpoint: /auth   # 使うプロキシ次第。要るなら有効化
 
 media_folder: "public/uploads"
 public_folder: "/uploads"
+
+local_backend: false  # ← 最初はfalseでOK（あとでローカル運用したければtrue+decap-serverでも可）
 
 collections:
   - name: "diary"
     label: "日記"
     folder: "src/content/diary"
-    extension: "mdx"          # MDXで保存
+    extension: "mdx"
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     format: "frontmatter"
