@@ -1,0 +1,21 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('diary');
+  return posts.map(p => ({ params: { slug: p.slug }, props: { post: p } }));
+}
+
+const { post } = Astro.props;
+const d = post.data.date.toISOString().slice(0,10);
+---
+
+<Base title={post.data.title}>
+  <article style="max-width:70ch; line-height:1.85;">
+    <h1 style="font-size:1.6rem; font-weight:800; margin:.25rem 0;">{post.data.title}</h1>
+    <div style="opacity:.75; font-size:.9rem;">{d} ・ {post.data.author}</div>
+    {post.data.cover && <img src={post.data.cover} alt="" style="margin:12px 0; max-width:100%;"/>}
+    <Fragment set:html={post.body} />
+  </article>
+</Base>

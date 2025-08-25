@@ -1,0 +1,41 @@
+---
+import "../styles/theme.css";
+const { title = "Unit Site" } = Astro.props;
+---
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Google Fonts（見出し=Spectral / 本文=Figtree） -->
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Spectral:wght@700;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <a class="brand" href="/">
+          <span class="brand-badge" aria-hidden="true"></span>
+          <span>PR0P0SE</span>
+        </a>
+        <nav class="nav">
+          <a href="/diary/">日記</a>
+          <a href="/profile">プロフィール</a>
+          <a href="/live">ライブ</a>
+        </nav>
+      </header>
+
+      <main class="main">
+        <slot />
+      </main>
+
+      <footer class="footer">
+        © {new Date().getFullYear()} PR0P0SE — designed with a Wes-ish palette
+      </footer>
+    </div>
+  </body>
+</html>
