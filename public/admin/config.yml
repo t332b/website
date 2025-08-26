@@ -1,8 +1,8 @@
 backend:
   name: github
-  repo: <GitHubユーザー>/<リポ名>
+  repo: t332-b/website
   branch: main
-  base_url: https://<あなたのpagesドメイン>.pages.dev
+  base_url: https://cms-login-proxy.pages.dev
   auth_endpoint: /auth
 
 media_folder: "public/uploads"
