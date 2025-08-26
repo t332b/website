@@ -1,16 +1,27 @@
 backend:
   name: github
-  repo: <GitHubユーザー名>/<リポ名>
+  repo: <GitHubユーザー>/<リポ名>
   branch: main
-  base_url: https://<あなたのOAuthプロキシのホスト>   # ← 後で作るやつ
-  # auth_endpoint: /auth   # 使うプロキシ次第。要るなら有効化
+  base_url: https://<あなたのpagesドメイン>.pages.dev
+  auth_endpoint: /auth
 
 media_folder: "public/uploads"
 public_folder: "/uploads"
 
-local_backend: false  # ← 最初はfalseでOK（あとでローカル運用したければtrue+decap-serverでも可）
-
 collections:
+  - name: "authors"
+    label: "著者"
+    folder: "src/content/authors"
+    extension: "mdx"
+    create: false         # メンバー固定なら false（2人分だけ用意）
+    slug: "{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "ID", name: "id", widget: "string" }                # 例: "A" / "B"
+      - { label: "表示名", name: "name", widget: "string" }          # 例: アーティスト名
+      - { label: "GitHubユーザー名", name: "github", widget: "string", required: false }
+      - { label: "アイコン画像", name: "avatar", widget: "image", required: false }  # 画像アップ型
+
   - name: "diary"
     label: "日記"
     folder: "src/content/diary"
@@ -21,7 +32,6 @@ collections:
     fields:
       - { label: "タイトル", name: "title", widget: "string" }
       - { label: "日付", name: "date", widget: "datetime", format: "YYYY-MM-DD" }
-      - { label: "著者", name: "author", widget: "select", options: ["A","B"], default: "A" }
+      - { label: "著者", name: "author", widget: "relation", collection: "authors", search_fields: ["name","id","github"], value_field: "id", display_fields: ["name"], multiple: false }
       - { label: "タグ", name: "tags", widget: "list", required: false }
-      - { label: "画像", name: "cover", widget: "image", required: false }
       - { label: "本文", name: "body", widget: "markdown" }

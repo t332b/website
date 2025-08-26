@@ -1,15 +1,23 @@
-// src/content/config.ts
-import { defineCollection, z } from 'astro:content';
+import { defineCollection, z } from "astro:content";
 
 export const collections = {
+  authors: defineCollection({
+    type: "content",
+    schema: z.object({
+      id: z.string(),              // "A" / "B"
+      name: z.string(),            // 表示名
+      github: z.string().optional(),
+      avatar: z.string().optional()// /uploads/... or 外部URL
+    }),
+  }),
+
   diary: defineCollection({
-    type: 'content',
+    type: "content",
     schema: z.object({
       title: z.string(),
-      date: z.date(),                      // ← 日付でソート＆絞り込みに使う
-      author: z.enum(['A','B']),           // ← 著者をA/Bで保持（あとで名前にしてもOK）
+      date: z.date(),
+      author: z.string(),          // authors.id を入れる
       tags: z.array(z.string()).optional(),
-      cover: z.string().optional(),
     }),
   }),
 };

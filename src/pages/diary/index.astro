@@ -1,0 +1,40 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+const BASE = import.meta.env.BASE_URL;
+
+const posts = (await getCollection("diary"))
+  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime());
+
+const authors = await getCollection("authors");
+const map = new Map(authors.map(a => [a.data.id, a.data]));
+function avatarUrl(a: { avatar?: string; github?: string } | undefined){
+  // avatar(画像) > github.png > デフォルト
+  if (a?.avatar) return BASE + a.avatar.replace(/^\//,'');
+  if (a?.github) return `https://github.com/${a.github}.png?size=64`;
+  return BASE + "uploads/default-avatar.png";
+}
+---
+<Base title="日記">
+  <h1>日記</h1>
+  <div class="grid">
+    {posts.map(p => {
+      const a = map.get(p.data.author);
+      const d = p.data.date.toISOString().slice(0,10);
+      return (
+        <article class="card item" data-author={p.data.author} data-date={d} data-title={p.data.title.toLowerCase()}>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <img src={avatarUrl(a)} alt="" width="36" height="36" style="border-radius:999px; border:2px solid var(--wa-cream);" />
+            <div>
+              <h3 style="margin:0">
+                <a href={`${BASE}diary/${p.slug}/`} style="color:var(--accent); text-decoration:none;">{p.data.title}</a>
+              </h3>
+              <div class="meta">{d} ・ {a?.name ?? p.data.author}</div>
+            </div>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+  <!-- 絞り込みJSは前回のままでOK -->
+</Base>
