@@ -1,7 +1,56 @@
 <!doctype html>
-<html>
-  <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>CMS</title></head>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>CMS</title>
+    <!-- 先にフラグを立てる：自動初期化を止める -->
+    <script>window.CMS_MANUAL_INIT = true;</script>
+  </head>
   <body>
+    <!-- 次に本体を読み込む -->
     <script src="https://unpkg.com/decap-cms@^3.0.0/dist/decap-cms.js"></script>
+    <!-- そして一度だけ init -->
+    <script>
+      CMS.init({
+        config: {
+          backend: {
+            name: "github",
+            repo: "t332-b/website",
+            branch: "main",
+            base_url: "https://cms-login-proxy.pages.dev",
+            auth_endpoint: "/auth",
+          },
+          media_folder: "public/uploads",
+          public_folder: "/uploads",
+          collections: [
+            {
+              name: "authors", label: "著者",
+              folder: "src/content/authors", extension: "mdx", create: true,
+              slug: "{{slug}}", format: "frontmatter",
+              fields: [
+                {label:"ID", name:"id", widget:"string"},
+                {label:"表示名", name:"name", widget:"string"},
+                {label:"GitHubユーザー名", name:"github", widget:"string", required:false},
+                {label:"アイコン画像", name:"avatar", widget:"image", required:false},
+              ],
+            },
+            {
+              name: "diary", label: "日記",
+              folder: "src/content/diary", extension: "mdx", create: true,
+              slug: "{{year}}-{{month}}-{{day}}-{{slug}}", format: "frontmatter",
+              fields: [
+                {label:"タイトル", name:"title", widget:"string"},
+                {label:"日付", name:"date", widget:"datetime", format:"YYYY-MM-DD"},
+                {label:"著者", name:"author", widget:"relation", collection:"authors",
+                 search_fields:["name","id","github"], value_field:"id", display_fields:["name"], multiple:false},
+                {label:"タグ", name:"tags", widget:"list", required:false},
+                {label:"本文", name:"body", widget:"markdown"},
+              ],
+            },
+          ],
+        }
+      });
+    </script>
   </body>
 </html>
