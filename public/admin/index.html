@@ -5,21 +5,35 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>CMS</title>
 
-    <!-- 自動初期化ストップを最優先で立てる -->
+    <!-- 自動初期化オフ -->
     <script>window.CMS_MANUAL_INIT = true;</script>
 
-    <!-- decap 本体は「確実に後で」実行されるよう defer。バージョンは固定推奨 -->
-    <script defer src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script>
+    <!-- ★ jsDelivr に変更。バージョン固定 -->
+    <link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/decap-cms@3.8.3/dist/decap-cms.css"
+      referrerpolicy="no-referrer" crossorigin="anonymous" />
+    <script defer
+      src="https://cdn.jsdelivr.net/npm/decap-cms@3.8.3/dist/decap-cms.js"
+      referrerpolicy="no-referrer" crossorigin="anonymous"></script>
   </head>
   <body>
-    <!-- 本体ロード完了後に一度だけ init -->
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // 念のため二重防止
-        if (typeof CMS === 'undefined') return;
+    <div id="nc-root"></div>
 
+    <script>
+      // 受信ログ（デバッグ用。あとで消してOK）
+      window.addEventListener('message', (e) => {
+        console.log('[postMessage]', e.origin, e.data);
+      });
+
+      document.addEventListener('DOMContentLoaded', () => {
+        if (typeof CMS === 'undefined') {
+          console.error('CMS not loaded');
+          return;
+        }
         CMS.init({
           config: {
+            load_config_file: false,  // ★YAML読まない
+
             backend: {
               name: "github",
               repo: "t332-b/website",
@@ -27,31 +41,23 @@
               base_url: "https://cms-login-proxy.pages.dev",
               auth_endpoint: "/auth",
             },
+
             media_folder: "public/uploads",
             public_folder: "/uploads",
+
             collections: [
-              {
-                name: "authors", label: "著者",
-                folder: "src/content/authors", extension: "mdx", create: true,
-                slug: "{{slug}}", format: "frontmatter",
-                fields: [
-                  {label:"ID", name:"id", widget:"string"},
-                  {label:"表示名", name:"name", widget:"string"},
-                  {label:"GitHubユーザー名", name:"github", widget:"string", required:false},
-                  {label:"アイコン画像", name:"avatar", widget:"image", required:false},
-                ],
-              },
+              // まず最小で映す
               {
                 name: "diary", label: "日記",
-                folder: "src/content/diary", extension: "mdx", create: true,
-                slug: "{{year}}-{{month}}-{{day}}-{{slug}}", format: "frontmatter",
+                folder: "src/content/diary",
+                extension: "mdx",
+                create: true,
+                slug: "{{year}}-{{month}}-{{day}}-{{slug}}",
+                format: "frontmatter",
                 fields: [
-                  {label:"タイトル", name:"title", widget:"string"},
-                  {label:"日付", name:"date", widget:"datetime", format:"YYYY-MM-DD"},
-                  {label:"著者", name:"author", widget:"relation", collection:"authors",
-                   search_fields:["name","id","github"], value_field:"id", display_fields:["name"], multiple:false},
-                  {label:"タグ", name:"tags", widget:"list", required:false},
-                  {label:"本文", name:"body", widget:"markdown"},
+                  { label: "タイトル", name: "title", widget: "string" },
+                  { label: "日付",    name: "date",  widget: "datetime", format: "YYYY-MM-DD" },
+                  { label: "本文",    name: "body",  widget: "markdown" }
                 ],
               },
             ],
