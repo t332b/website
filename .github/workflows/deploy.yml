@@ -53,7 +53,6 @@ jobs:
           port: 21
           local-dir: dist/
           server-dir: ${{ secrets.FTP_REMOTE_DIR }}
-          dangerous-clean-slate: true # server-dir配下を一旦掃除→distで置き換え
           timeout: 120000
           # セキュリティ向上のための追加設定
           exclude: |
@@ -63,3 +62,4 @@ jobs:
             **/README.md
             **/.env*
             **/.github/**
+            **/admin/vendor/**
