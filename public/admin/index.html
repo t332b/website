@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>CMS</title>
 
-    <!-- config.yml を参照 -->
+    <!-- config.yml はそのまま -->
     <link rel="cms-config-url" type="text/yaml" href="config.yml" />
 
-    <!-- Decap CMS本体 -->
-    <link rel="stylesheet" href="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.css">
-    <script src="https://unpkg.com/decap-cms@3.8.3/dist/decap-cms.js"></script>
+    <!-- ★ CDNやめて同一オリジンから配信 -->
+    <link rel="stylesheet" href="/admin/vendor/decap/decap-cms.css">
+    <script src="/admin/vendor/decap/decap-cms.js"></script>
   </head>
   <body></body>
 </html>
