@@ -5,6 +5,8 @@ backend:
   # ← ローカル開発中だけ有効。本番では消す or false にする
 # local_backend: true
 
+# ae
+
 # 静的認証用の設定
 auth_scope: public_repo
 base_url: https://pr0p0se.com
