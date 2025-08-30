@@ -1,23 +1,15 @@
 // @ts-check
-import { defineConfig } from 'astro/config';
+
 import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
+import { defineConfig } from 'astro/config';
+import decapCmsOauth from 'astro-decap-cms-oauth';
+import vercel from '@astrojs/vercel/static';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [mdx()],
-  build: {
-    assets: '_assets',
-  },
-  vite: {
-    build: {
-      rollupOptions: {
-        output: {
-          assetFileNames: 'assets/[name].[hash][extname]',
-          chunkFileNames: 'assets/[name].[hash].js',
-          entryFileNames: 'assets/[name].[hash].js',
-        },
-      },
-    },
-  },
+	site: 'https://example.com',
+	output: 'static',
+	integrations: [mdx(), sitemap(), decapCmsOauth()],
+	adapter: vercel(),
 });
-

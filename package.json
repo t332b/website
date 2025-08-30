@@ -9,7 +9,10 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^5.13.3"
+    "@astrojs/sitemap": "^3.5.1",
+    "@astrojs/vercel": "^8.2.7",
+    "astro": "^5.13.3",
+    "astro-decap-cms-oauth": "^0.5.1"
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.4"

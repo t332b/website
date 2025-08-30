@@ -1,40 +1,186 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getCollection } from "astro:content";
-const BASE = import.meta.env.BASE_URL;
+import { getCollection } from 'astro:content';
 
-const posts = (await getCollection("diary"))
-  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime());
+const posts = (await getCollection('diary'))
+  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
 
-const authors = await getCollection("authors");
-const map = new Map(authors.map(a => [a.data.id, a.data]));
-function avatarUrl(a: { avatar?: string; github?: string } | undefined){
-  // avatar(画像) > github.png > デフォルト
-  if (a?.avatar) return BASE + a.avatar.replace(/^\//,'');
-  if (a?.github) return `https://github.com/${a.github}.png?size=64`;
-  return BASE + "uploads/default-avatar.png";
+// 著者情報を取得
+const authors = await getCollection('authors');
+const authorMap = new Map(authors.map(a => [a.data.id, a.data]));
+
+// アバター画像のURLを生成する関数
+function getAvatarUrl(author: any) {
+  if (author?.avatar) {
+    return author.avatar.startsWith('/') ? author.avatar : `/${author.avatar}`;
+  }
+  if (author?.github) {
+    return `https://github.com/${author.github}.png?size=64`;
+  }
+  return '/images/uploads/default-avatar.png'; // デフォルトアバター
 }
 ---
+
 <Base title="日記">
-  <h1>日記</h1>
-  <div class="grid">
+  <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:1rem;">日記</h1>
+
+  <!-- 絞り込みUI -->
+  <div id="filters" style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <div>
+      <button class="author-btn" data-author="ALL">ALL</button>
+      {authors.map(author => (
+        <button class="author-btn" data-author={author.data.id}>{author.data.name}</button>
+      ))}
+    </div>
+    <div style="display:flex; gap:.5rem; align-items:center;">
+      <label>From: <input type="date" id="fromDate"></label>
+      <label>To: <input type="date" id="toDate"></label>
+      <button id="clearDates">日付クリア</button>
+    </div>
+    <div style="display:flex; gap:.5rem; align-items:center;">
+      <input type="text" id="q" placeholder="キーワード（タイトル/タグ）" />
+      <button id="clearQ">クリア</button>
+    </div>
+  </div>
+
+  <!-- 一覧（ツイッター風レイアウト） -->
+  <div id="list" style="display:grid; gap:16px;">
     {posts.map(p => {
-      const a = map.get(p.data.author);
-      const d = p.data.date.toISOString().slice(0,10);
+      const d = p.data.date.toISOString().slice(0,10); // YYYY-MM-DD
+      const tags = (p.data.tags ?? []).join(',');
+      const author = authorMap.get(p.data.author);
+      const avatarUrl = getAvatarUrl(author);
+      
       return (
-        <article class="card item" data-author={p.data.author} data-date={d} data-title={p.data.title.toLowerCase()}>
-          <div style="display:flex; gap:10px; align-items:center;">
-            <img src={avatarUrl(a)} alt="" width="36" height="36" style="border-radius:999px; border:2px solid var(--wa-cream);" />
-            <div>
-              <h3 style="margin:0">
-                <a href={`${BASE}diary/${p.slug}/`} style="color:var(--accent); text-decoration:none;">{p.data.title}</a>
-              </h3>
-              <div class="meta">{d} ・ {a?.name ?? p.data.author}</div>
+        <article class="item tweet-card"
+            data-author={p.data.author}
+            data-date={d}
+            data-title={p.data.title.toLowerCase()}
+            data-tags={tags.toLowerCase()}
+            style="background: white; border: 1px solid #e1e8ed; border-radius: 16px; padding: 20px; transition: all 0.2s ease; hover:border-color: #1da1f2; hover:box-shadow: 0 4px 12px rgba(29, 161, 242, 0.1);">
+          
+          <!-- ヘッダー（著者情報） -->
+          <div style="display: flex; align-items: center; margin-bottom: 16px;">
+            <img src={avatarUrl} alt="" width="48" height="48" 
+                 style="border-radius: 50%; border: 2px solid #e1e8ed; margin-right: 12px;" />
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #14171a; margin-bottom: 2px;">
+                {author?.name || p.data.author}
+              </div>
+              <div style="font-size: 0.9rem; color: #657786;">
+                {d}
+              </div>
             </div>
           </div>
+          
+          <!-- 本文 -->
+          <div style="margin-bottom: 16px;">
+            <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; line-height: 1.4;">
+              <a href={`/diary/${p.slug}/`} 
+                 style="color: #14171a; text-decoration: none; font-weight: 600; hover:color: #1da1f2;">
+                {p.data.title}
+              </a>
+            </h3>
+            {p.data.tags && p.data.tags.length > 0 && (
+              <div style="font-size: 0.85rem; color: #1da1f2; margin-top: 8px;">
+                {p.data.tags.map((tag: string) => (
+                  <span style="background: #e8f5fd; padding: 4px 8px; border-radius: 12px; margin-right: 6px;">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </article>
-      );
+      )
     })}
   </div>
-  <!-- 絞り込みJSは前回のままでOK -->
+
+  <script>
+    // シンプルなバニラJS絞り込み
+    const list = document.getElementById('list');
+    if (!list) return;
+    
+    const items = Array.from(list.querySelectorAll('.item'));
+
+    const authorBtns = document.querySelectorAll('.author-btn');
+    const fromInput = document.getElementById('fromDate') as HTMLInputElement;
+    const toInput = document.getElementById('toDate') as HTMLInputElement;
+    const clearDates = document.getElementById('clearDates');
+    const q = document.getElementById('q') as HTMLInputElement;
+    const clearQ = document.getElementById('clearQ');
+
+    let author = 'ALL';
+
+    authorBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        author = (btn as HTMLElement).dataset.author || 'ALL';
+        authorBtns.forEach(b => (b as HTMLElement).style.fontWeight = (b===btn? '700':'400'));
+        applyFilters();
+      });
+    });
+
+    fromInput.addEventListener('change', applyFilters);
+    toInput.addEventListener('change', applyFilters);
+    clearDates?.addEventListener('click', () => {
+      fromInput.value = '';
+      toInput.value = '';
+      applyFilters();
+    });
+
+    q.addEventListener('input', applyFilters);
+    clearQ?.addEventListener('click', () => {
+      q.value = '';
+      applyFilters();
+    });
+
+    function applyFilters() {
+      const from = fromInput.value ? new Date(fromInput.value) : null;
+      const to = toInput.value ? new Date(toInput.value) : null;
+      const query = q.value.trim().toLowerCase();
+
+      items.forEach(el => {
+        const a = (el as HTMLElement).dataset.author;
+        const d = new Date((el as HTMLElement).dataset.date || '');
+        const text = ((el as HTMLElement).dataset.title + ' ' + (el as HTMLElement).dataset.tags).toLowerCase();
+
+        let ok = true;
+
+        if (author !== 'ALL' && a !== author) ok = false;
+        if (from && d < from) ok = false;
+        if (to && d > to) ok = false;
+        if (query && !text.includes(query)) ok = false;
+
+        (el as HTMLElement).style.display = ok ? '' : 'none';
+      });
+    }
+
+    // 初期選択
+    if (authorBtns[0]) {
+      (authorBtns[0] as HTMLElement).style.fontWeight = '700'; // ALL
+    }
+    applyFilters();
+  </script>
+
+  <style>
+    .tweet-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+      .tweet-card {
+        padding: 16px;
+        margin: 0 8px;
+      }
+      
+      #filters {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      #filters > div {
+        justify-content: center;
+      }
+    }
+  </style>
 </Base>

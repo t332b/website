@@ -1,0 +1,58 @@
+backend:
+  name: github
+  repo: t332-b/website
+  branch: main
+  # ← ローカル開発中だけ有効。本番では消す or false にする
+# local_backend: true
+
+site_url: http://localhost:4321
+display_url: http://localhost:4321
+
+# 画像アップ先（リポ内）
+media_folder: "public/images/uploads"
+public_folder: "/images/uploads"
+
+collections:
+  # ★ 著者マスタ
+  - name: "authors"
+    label: "著者"
+    folder: "src/content/authors"
+    extension: "mdx"
+    create: true         # まずはUIから作れるように true 推奨
+    slug: "{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "ID（英数字）", name: "id", widget: "string", hint: "例: thames / wisp" }
+      - { label: "表示名", name: "name", widget: "string" }
+      - { label: "プロフィール", name: "bio", widget: "text", required: false }
+      - { label: "GitHub", name: "github", widget: "string", required: false }
+      - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
+      - { label: "アイコン画像", name: "avatar", widget: "image", required: false }
+
+  # ★ 日記
+  - name: "diary"
+    label: "日記記事"
+    folder: "src/content/diary"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "レイアウト", name: "layout", widget: "hidden", default: "diary" }
+      - { label: "タイトル", name: "title", widget: "string", required: true }
+      - {
+          label: "公開日", name: "date", widget: "datetime",
+          format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true,
+          default: "{{now}}"
+        }
+      # ★ relation で authors に紐づける（valueは author.id）
+      - {
+          label: "著者", name: "author", widget: "relation", required: true,
+          collection: "authors",
+          search_fields: ["name","id","github"],
+          value_field: "id",
+          display_fields: ["name"],
+          multiple: false
+        }
+      - { label: "タグ", name: "tags", widget: "list", required: false }
+      - { label: "本文", name: "body", widget: "markdown", required: true }

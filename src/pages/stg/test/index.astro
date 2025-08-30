@@ -1,0 +1,114 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { getCollection } from 'astro:content';
+
+// 最新の日記記事を3件取得
+const latestPosts = (await getCollection('diary'))
+  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 3);
+---
+
+<Base title="ホーム">
+  <div style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+    <section style="text-align: center; margin-bottom: 3rem;">
+      <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--accent, #333);">
+        ようこそ
+      </h1>
+      <p style="font-size: 1.2rem; color: #666; line-height: 1.6;">
+        私たちの日常と想いを綴る日記サイトです。<br>
+        日々の出来事、考えたこと、感じたことを共有しています。
+      </p>
+    </section>
+
+    <section style="margin-bottom: 3rem;">
+      <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--accent, #333);">
+        サイト内を探索
+      </h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+        <a href="/diary/" style="text-decoration: none; color: inherit;">
+          <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: var(--accent, #007bff); hover:transform: translateY(-2px);">
+            <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: var(--accent, #333);">
+              📝 日記一覧
+            </h3>
+            <p style="margin: 0; color: #666; line-height: 1.5;">
+              すべての日記記事を閲覧できます。絞り込み機能でお好みの記事を見つけましょう。
+            </p>
+          </div>
+        </a>
+        
+        <a href="/admin/" style="text-decoration: none; color: inherit;">
+          <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: var(--accent, #007bff); hover:transform: translateY(-2px);">
+            <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: var(--accent, #333);">
+              ⚙️ 管理画面
+            </h3>
+            <p style="margin: 0; color: #666; line-height: 1.5;">
+              新しい記事の作成や既存記事の編集を行えます。
+            </p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+
+    <section style="margin-bottom: 3rem;">
+      <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: var(--accent, #333);">
+        最新の記事
+      </h2>
+      <div style="display: grid; gap: 1rem;">
+        {latestPosts.map(post => {
+          const date = post.data.date.toISOString().slice(0, 10);
+          return (
+            <article style="background: #fff; border: 1px solid #e9ecef; border-radius: 8px; padding: 1rem; transition: all 0.3s ease; hover:border-color: var(--accent, #007bff); hover:box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+              <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">
+                <a href={`/diary/${post.slug}/`} style="color: var(--accent, #007bff); text-decoration: none; font-weight: 600;">
+                  {post.data.title}
+                </a>
+              </h3>
+              <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
+                {date} ・ {post.data.author}
+                {post.data.tags && post.data.tags.length > 0 && (
+                  <span> ・ {post.data.tags.join(', ')}</span>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+      {latestPosts.length > 0 && (
+        <div style="text-align: center; margin-top: 1.5rem;">
+          <a href="/diary/" style="display: inline-block; background: var(--accent, #007bff); color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 600; transition: background 0.3s ease; hover:background: var(--accent-hover, #0056b3);">
+            すべての記事を見る
+          </a>
+        </div>
+      )}
+    </section>
+
+    <!-- サイト情報 -->
+    <section style="background: #f8f9fa; border-radius: 12px; padding: 2rem; text-align: center;">
+      <h2 style="font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; color: var(--accent, #333);">
+        このサイトについて
+      </h2>
+      <p style="margin: 0; color: #666; line-height: 1.6;">
+        私たちは日々の生活の中で感じたこと、考えたこと、経験したことを記録し、<br>
+        共有することで、より豊かな人生を送ることを目指しています。<br>
+        あなたも一緒に、この旅に参加しませんか？
+      </p>
+    </section>
+  </div>
+
+  <style>
+    @media (max-width: 768px) {
+      div[style*="max-width: 800px"] {
+        padding: 1rem 0.5rem;
+      }
+      
+      h1[style*="font-size: 2.5rem"] {
+        font-size: 2rem !important;
+      }
+      
+      div[style*="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr))"] {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</Base>
