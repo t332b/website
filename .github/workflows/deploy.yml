@@ -54,7 +54,6 @@ jobs:
           local-dir: dist/
           server-dir: ${{ secrets.FTP_REMOTE_DIR }}
           dangerous-clean-slate: true # server-dir配下を一旦掃除→distで置き換え
-          passive: true
           timeout: 120000
           # セキュリティ向上のための追加設定
           exclude: |

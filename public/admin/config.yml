@@ -2,41 +2,31 @@ backend:
   name: github
   repo: t332-b/website
   branch: main
-  # ← ローカル開発中だけ有効。本番では消す or false にする
-# local_backend: true
-
-# ae
-
-# 静的認証用の設定
-auth_scope: public_repo
-base_url: https://pr0p0se.com
-auth_endpoint: https://pr0p0se-cms.pages.dev/auth
+  base_url: https://pr0p0se-cms.pages.dev   # ← Cloudflare Pages(プロキシ)のURL
+  auth_endpoint: /auth                      # ← フルURLじゃなく相対
 
 site_url: https://pr0p0se.com
-display_url: https://pr0p0re.com
+display_url: https://pr0p0se.com
 
-# 画像アップ先（リポ内）
 media_folder: "public/images/uploads"
 public_folder: "/images/uploads"
 
 collections:
-  # ★ 著者マスタ
   - name: "authors"
     label: "著者"
     folder: "src/content/authors"
     extension: "mdx"
-    create: true         # まずはUIから作れるように true 推奨
+    create: true
     slug: "{{slug}}"
     format: "frontmatter"
     fields:
-      - { label: "ID（英数字）", name: "id", widget: "string", hint: "例: thames / wisp" }
+      - { label: "ID（英数字）", name: "id", widget: "string" }
       - { label: "表示名", name: "name", widget: "string" }
       - { label: "プロフィール", name: "bio", widget: "text", required: false }
       - { label: "GitHub", name: "github", widget: "string", required: false }
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - { label: "アイコン画像", name: "avatar", widget: "image", required: false }
 
-  # ★ ブログ記事
   - name: "blog"
     label: "ブログ記事"
     folder: "src/content/blog"
@@ -47,19 +37,7 @@ collections:
     fields:
       - { label: "レイアウト", name: "layout", widget: "hidden", default: "blog" }
       - { label: "タイトル", name: "title", widget: "string", required: true }
-      - {
-          label: "公開日", name: "date", widget: "datetime",
-          format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true,
-          default: "{{now}}"
-        }
-      # ★ relation で authors に紐づける（valueは author.id）
-      - {
-          label: "著者", name: "author", widget: "relation", required: true,
-          collection: "authors",
-          search_fields: ["name","id","github"],
-          value_field: "id",
-          display_fields: ["name"],
-          multiple: false
-        }
+      - { label: "公開日", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true, default: "{{now}}" }
+      - { label: "著者", name: "author", widget: "relation", collection: "authors", search_fields: ["name","id","github"], value_field: "id", display_fields: ["name"], multiple: false, required: true }
       - { label: "タグ", name: "tags", widget: "list", required: false }
       - { label: "本文", name: "body", widget: "markdown", required: true }
