@@ -27,6 +27,12 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # 本番環境用の環境変数を設定
+          NODE_ENV: production
+          # 必要に応じて他の環境変数も設定
+          # SITE_URL: https://yourdomain.com
+          # API_KEY: ${{ secrets.API_KEY }}
         # ビルドが成功した場合のみ次のステップに進む
 
       - name: Verify build output

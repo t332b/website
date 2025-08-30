@@ -5,8 +5,13 @@ backend:
   # ← ローカル開発中だけ有効。本番では消す or false にする
 # local_backend: true
 
-site_url: http://pr0p0se.com
-display_url: http://pr0p0se.com
+# 静的認証用の設定
+auth_scope: public_repo
+base_url: https://pr0p0se.com
+auth_endpoint: https://pr0p0se-cms.pages.dev/auth
+
+site_url: https://pr0p0se.com
+display_url: https://pr0p0re.com
 
 # 画像アップ先（リポ内）
 media_folder: "public/images/uploads"
