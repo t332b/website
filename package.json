@@ -14,6 +14,6 @@
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.4",
-    "decap-cms": "^3.8.3"
+    "decap-cms": "^3.6.2"
   }
 }
