@@ -9,7 +9,7 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy-stg
+      group: deploy-prod
       cancel-in-progress: true
 
     steps:
@@ -27,6 +27,15 @@ jobs:
 
       - name: Build
         run: npm run build
+        # ビルドが成功した場合のみ次のステップに進む
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build output directory 'dist' not found!"
+            exit 1
+          fi
+          echo "Build verification successful"
 
       - name: FTP Deploy to Lolipop
         uses: SamKirkland/FTP-Deploy-Action@v4
@@ -41,3 +50,11 @@ jobs:
           dangerous-clean-slate: true # server-dir配下を一旦掃除→distで置き換え
           passive: true
           timeout: 120000
+          # セキュリティ向上のための追加設定
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/README.md
+            **/.env*
+            **/.github/**
