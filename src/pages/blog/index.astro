@@ -2,7 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
-const posts = (await getCollection('diary'))
+const posts = (await getCollection('blog'))
   .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
 
 // 著者情報を取得
@@ -76,7 +76,7 @@ function getAvatarUrl(author: any) {
           <!-- 本文 -->
           <div style="margin-bottom: 16px;">
             <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; line-height: 1.4;">
-              <a href={`/diary/${p.slug}/`} 
+              <a href={`/blog/${p.slug}/`} 
                  style="color: #14171a; text-decoration: none; font-weight: 600; hover:color: #1da1f2;">
                 {p.data.title}
               </a>
@@ -99,67 +99,69 @@ function getAvatarUrl(author: any) {
   <script>
     // シンプルなバニラJS絞り込み
     const list = document.getElementById('list');
-    if (!list) return;
-    
-    const items = Array.from(list.querySelectorAll('.item'));
+    if (!list) {
+      console.error('List element not found');
+    } else {
+      const items = Array.from(list.querySelectorAll('.item'));
 
-    const authorBtns = document.querySelectorAll('.author-btn');
-    const fromInput = document.getElementById('fromDate') as HTMLInputElement;
-    const toInput = document.getElementById('toDate') as HTMLInputElement;
-    const clearDates = document.getElementById('clearDates');
-    const q = document.getElementById('q') as HTMLInputElement;
-    const clearQ = document.getElementById('clearQ');
+      const authorBtns = document.querySelectorAll('.author-btn');
+      const fromInput = document.getElementById('fromDate') as HTMLInputElement;
+      const toInput = document.getElementById('toDate') as HTMLInputElement;
+      const clearDates = document.getElementById('clearDates');
+      const q = document.getElementById('q') as HTMLInputElement;
+      const clearQ = document.getElementById('clearQ');
 
-    let author = 'ALL';
+      let author = 'ALL';
 
-    authorBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        author = (btn as HTMLElement).dataset.author || 'ALL';
-        authorBtns.forEach(b => (b as HTMLElement).style.fontWeight = (b===btn? '700':'400'));
+      authorBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          author = (btn as HTMLElement).dataset.author || 'ALL';
+          authorBtns.forEach(b => (b as HTMLElement).style.fontWeight = (b===btn? '700':'400'));
+          applyFilters();
+        });
+      });
+
+      fromInput.addEventListener('change', applyFilters);
+      toInput.addEventListener('change', applyFilters);
+      clearDates?.addEventListener('click', () => {
+        fromInput.value = '';
+        toInput.value = '';
         applyFilters();
       });
-    });
 
-    fromInput.addEventListener('change', applyFilters);
-    toInput.addEventListener('change', applyFilters);
-    clearDates?.addEventListener('click', () => {
-      fromInput.value = '';
-      toInput.value = '';
-      applyFilters();
-    });
-
-    q.addEventListener('input', applyFilters);
-    clearQ?.addEventListener('click', () => {
-      q.value = '';
-      applyFilters();
-    });
-
-    function applyFilters() {
-      const from = fromInput.value ? new Date(fromInput.value) : null;
-      const to = toInput.value ? new Date(toInput.value) : null;
-      const query = q.value.trim().toLowerCase();
-
-      items.forEach(el => {
-        const a = (el as HTMLElement).dataset.author;
-        const d = new Date((el as HTMLElement).dataset.date || '');
-        const text = ((el as HTMLElement).dataset.title + ' ' + (el as HTMLElement).dataset.tags).toLowerCase();
-
-        let ok = true;
-
-        if (author !== 'ALL' && a !== author) ok = false;
-        if (from && d < from) ok = false;
-        if (to && d > to) ok = false;
-        if (query && !text.includes(query)) ok = false;
-
-        (el as HTMLElement).style.display = ok ? '' : 'none';
+      q.addEventListener('input', applyFilters);
+      clearQ?.addEventListener('click', () => {
+        q.value = '';
+        applyFilters();
       });
-    }
 
-    // 初期選択
-    if (authorBtns[0]) {
-      (authorBtns[0] as HTMLElement).style.fontWeight = '700'; // ALL
+      function applyFilters() {
+        const from = fromInput.value ? new Date(fromInput.value) : null;
+        const to = toInput.value ? new Date(toInput.value) : null;
+        const query = q.value.trim().toLowerCase();
+
+        items.forEach(el => {
+          const a = (el as HTMLElement).dataset.author;
+          const d = new Date((el as HTMLElement).dataset.date || '');
+          const text = ((el as HTMLElement).dataset.title + ' ' + (el as HTMLElement).dataset.tags).toLowerCase();
+
+          let ok = true;
+
+          if (author !== 'ALL' && a !== author) ok = false;
+          if (from && d < from) ok = false;
+          if (to && d > to) ok = false;
+          if (query && !text.includes(query)) ok = false;
+
+          (el as HTMLElement).style.display = ok ? '' : 'none';
+        });
+      }
+
+      // 初期選択
+      if (authorBtns[0]) {
+        (authorBtns[0] as HTMLElement).style.fontWeight = '700'; // ALL
+      }
+      applyFilters();
     }
-    applyFilters();
   </script>
 
   <style>
