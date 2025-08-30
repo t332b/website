@@ -1,0 +1,43 @@
+name: Build & FTP deploy (Lolipop)
+
+on:
+  push:
+    branches: [ "main" ]   # ← main に入ったら自動デプロイ
+  workflow_dispatch:        # ← 手動実行ボタンも出す
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-stg
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: FTP Deploy to Lolipop
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps             # うまくいかんかったら ftp に変更
+          port: 21
+          local-dir: dist/
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          dangerous-clean-slate: true # server-dir配下を一旦掃除→distで置き換え
+          passive: true
+          timeout: 120000

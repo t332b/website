@@ -8,7 +8,7 @@ import vercel from '@astrojs/vercel/static';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://example.com',
+	site: 'https://pr0p0se.com',
 	output: 'static',
 	integrations: [mdx(), sitemap(), decapCmsOauth()],
 	adapter: vercel(),
