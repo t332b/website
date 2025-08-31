@@ -12,9 +12,9 @@ media_folder: "public/images/uploads"
 public_folder: "/images/uploads"
 
 collections:
-  - name: "authors"
-    label: "著者"
-    folder: "src/content/authors"
+  - name: "member"
+    label: "メンバー"
+    folder: "src/content/member"
     extension: "mdx"
     create: true
     slug: "{{slug}}"
@@ -28,7 +28,7 @@ collections:
       - { label: "アイコン画像", name: "avatar", widget: "image", required: false }
 
   - name: "blog"
-    label: "ブログ記事"
+    label: "ブログ"
     folder: "src/content/blog"
     extension: "mdx"
     create: true
@@ -38,6 +38,6 @@ collections:
       - { label: "レイアウト", name: "layout", widget: "hidden", default: "blog" }
       - { label: "タイトル", name: "title", widget: "string", required: true }
       - { label: "公開日", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true, default: "{{now}}" }
-      - { label: "著者", name: "author", widget: "relation", collection: "authors", search_fields: ["name","id","github"], value_field: "id", display_fields: ["name"], multiple: false, required: true }
+      - { label: "著者", name: "author", widget: "relation", collection: "member", search_fields: ["name","id","github"], value_field: "id", display_fields: ["name"], multiple: false, required: true }
       - { label: "タグ", name: "tags", widget: "list", required: false }
       - { label: "本文", name: "body", widget: "markdown", required: true }
