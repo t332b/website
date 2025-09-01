@@ -1,21 +1,81 @@
 ---
-import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
 
-export async function getStaticPaths() {
-  const posts = await getCollection('diary');
-  return posts.map(p => ({ params: { slug: p.slug }, props: { post: p } }));
-}
+// すべてのブログ記事を取得
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await getCollection('blog');
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+};
 
+// ページのプロパティ
 const { post } = Astro.props;
-const d = post.data.date.toISOString().slice(0,10);
+const { Content } = await post.render();
+
+// メンバー情報を取得
+const members = await getCollection('member');
+const member = members.find(m => m.data.id === post.data.author);
 ---
 
-<Base title={post.data.title}>
-  <article style="max-width:70ch; line-height:1.85;">
-    <h1 style="font-size:1.6rem; font-weight:800; margin:.25rem 0;">{post.data.title}</h1>
-    <div style="opacity:.75; font-size:.9rem;">{d} ・ {post.data.author}</div>
-    {post.data.cover && <img src={post.data.cover} alt="" style="margin:12px 0; max-width:100%;"/>}
-    <Fragment set:html={post.body} />
-  </article>
-</Base>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{post.data.title}</title>
+    <meta name="description" content={post.data.title} />
+  </head>
+  <body>
+    <article style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+      <!-- ヘッダー -->
+      <header style="margin-bottom: 2rem;">
+        <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: #333;">
+          {post.data.title}
+        </h1>
+        
+        <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+          <div style="font-size: 1rem; color: #666;">
+            {post.data.date.toLocaleDateString('ja-JP')}
+          </div>
+          <div style="font-size: 1rem; color: #666;">
+            ・
+          </div>
+          <div style="font-size: 1rem; color: #007bff; font-weight: 600;">
+            {member?.data.name || post.data.author}
+          </div>
+        </div>
+        
+        {post.data.tags && post.data.tags.length > 0 && (
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            {post.data.tags.map(tag => (
+              <span style="background: #e8f5fd; color: #1da1f2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.9rem;">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </header>
+
+      <!-- カバー画像 -->
+      {post.data.cover && (
+        <div style="margin-bottom: 2rem;">
+          <img src={post.data.cover} alt="" style="width: 100%; height: auto; border-radius: 8px;" />
+        </div>
+      )}
+
+      <!-- 本文 -->
+      <div style="line-height: 1.8; font-size: 1.1rem;">
+        <Content />
+      </div>
+
+      <!-- 戻るリンク -->
+      <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e1e8ed;">
+        <a href="/blog/" style="color: #007bff; text-decoration: none; font-weight: 600;">
+          ← ブログ一覧に戻る
+        </a>
+      </div>
+    </article>
+  </body>
+</html>

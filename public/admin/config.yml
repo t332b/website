@@ -35,9 +35,9 @@ collections:
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     format: "frontmatter"
     fields:
-      - { label: "レイアウト", name: "layout", widget: "hidden", default: "../../layouts/BlogPost.astro" }
       - { label: "タイトル", name: "title", widget: "string", required: true }
       - { label: "公開日", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true, default: "{{now}}" }
       - { label: "著者", name: "author", widget: "relation", collection: "member", search_fields: ["name","id","github"], value_field: "id", display_fields: ["name"], multiple: false, required: true }
       - { label: "タグ", name: "tags", widget: "list", required: false }
+      - { label: "カバー画像", name: "cover", widget: "image", required: false }
       - { label: "本文", name: "body", widget: "markdown", required: true }

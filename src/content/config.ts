@@ -20,9 +20,5 @@ export const collections = {
       tags: z.array(z.string()).optional(),
       cover: z.string().optional(),
     }),
-    // デフォルトのレイアウトを指定
-    frontmatter: {
-      layout: "../../layouts/BlogPost.astro"
-    }
   }),
 };
