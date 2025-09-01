@@ -5,10 +5,7 @@ CMS.registerWidget('author-auto', {
   
   // ウィジェットの初期化
   create: function() {
-    return {
-      value: '',
-      user: null
-    };
+    return '';
   },
 
   // ウィジェットの描画
@@ -16,37 +13,72 @@ CMS.registerWidget('author-auto', {
     const container = document.createElement('div');
     container.className = 'author-auto-widget';
     
-    // ユーザー情報を取得
-    this.getCurrentUser().then(user => {
-      if (user) {
-        // memberコレクションからGitHubユーザー名で検索
-        this.findMemberByGitHub(user.login).then(member => {
-          if (member) {
-            // 自動設定
-            this.value = member.id;
-            this.updateWidget(container, member);
-          } else {
-            // 手動選択
-            this.renderManualSelect(container);
-          }
-        });
-      } else {
-        // 手動選択
-        this.renderManualSelect(container);
-      }
-    });
+    // 初期表示
+    container.innerHTML = `
+      <div class="author-auto-container">
+        <label>著者（自動設定）</label>
+        <div class="author-status">読み込み中...</div>
+        <select class="author-select" style="display: none;">
+          <option value="">選択してください</option>
+        </select>
+      </div>
+    `;
+
+    // ユーザー情報を取得して著者を設定
+    this.initializeAuthor(container, value);
 
     return container;
+  },
+
+  // 著者の初期化
+  initializeAuthor: async function(container, currentValue) {
+    try {
+      // 現在のユーザー情報を取得
+      const user = await this.getCurrentUser();
+      
+      if (user && user.login) {
+        // memberコレクションからGitHubユーザー名で検索
+        const member = await this.findMemberByGitHub(user.login);
+        
+        if (member) {
+          // 自動設定
+          this.setAuthorValue(container, member.id, member.name);
+          this.showAutoSet(container, member);
+        } else {
+          // 手動選択
+          this.showManualSelect(container, currentValue);
+        }
+      } else {
+        // 手動選択
+        this.showManualSelect(container, currentValue);
+      }
+    } catch (error) {
+      console.log('著者初期化エラー:', error);
+      this.showManualSelect(container, currentValue);
+    }
   },
 
   // 現在のユーザー情報を取得
   getCurrentUser: async function() {
     try {
-      // Decap CMSの内部APIを使用してユーザー情報を取得
-      const user = await CMS.auth.getUser();
-      return user;
+      // GitHub OAuthのユーザー情報を取得
+      const response = await fetch('/api/user', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+      
+      // 代替方法: localStorageから取得
+      const userData = localStorage.getItem('netlify-cms-user');
+      if (userData) {
+        return JSON.parse(userData);
+      }
+      
+      return null;
     } catch (error) {
-      console.log('ユーザー情報の取得に失敗:', error);
+      console.log('ユーザー情報取得エラー:', error);
       return null;
     }
   },
@@ -56,73 +88,102 @@ CMS.registerWidget('author-auto', {
     try {
       // memberコレクションのエントリを取得
       const entries = await CMS.getEntries('member');
-      const member = entries.find(entry => 
-        entry.data.github && entry.data.github.toLowerCase() === githubUsername.toLowerCase()
-      );
-      return member ? member.data : null;
+      
+      for (const entry of entries) {
+        if (entry.data.github && 
+            entry.data.github.toLowerCase() === githubUsername.toLowerCase()) {
+          return entry.data;
+        }
+      }
+      
+      return null;
     } catch (error) {
-      console.log('member検索に失敗:', error);
+      console.log('member検索エラー:', error);
       return null;
     }
   },
 
-  // 自動設定時のウィジェット表示
-  updateWidget: function(container, member) {
-    container.innerHTML = `
+  // 自動設定時の表示
+  showAutoSet: function(container, member) {
+    const statusDiv = container.querySelector('.author-status');
+    statusDiv.innerHTML = `
       <div class="author-auto-set">
-        <label>著者（自動設定）</label>
-        <div class="author-info">
-          <strong>${member.name}</strong> (${member.id})
-          <small>GitHub: ${member.github}</small>
-        </div>
-        <input type="hidden" value="${member.id}" />
-        <button type="button" class="change-author-btn">変更</button>
+        <strong>${member.name}</strong> (${member.id})
+        <small>GitHub: ${member.github}</small>
+        <button type="button" class="change-author-btn" style="margin-left: 10px;">変更</button>
       </div>
     `;
 
     // 変更ボタンのイベント
     container.querySelector('.change-author-btn').addEventListener('click', () => {
-      this.renderManualSelect(container);
+      this.showManualSelect(container, member.id);
     });
   },
 
-  // 手動選択時のウィジェット表示
-  renderManualSelect: function(container) {
-    container.innerHTML = `
-      <div class="author-manual-select">
-        <label>著者を選択</label>
-        <select class="author-select">
-          <option value="">選択してください</option>
-        </select>
-      </div>
-    `;
-
-    // memberコレクションからオプションを生成
-    this.loadMembers(container.querySelector('.author-select'));
+  // 手動選択時の表示
+  showManualSelect: async function(container, currentValue) {
+    const statusDiv = container.querySelector('.author-status');
+    const select = container.querySelector('.author-select');
+    
+    statusDiv.style.display = 'none';
+    select.style.display = 'block';
+    
+    // memberコレクションを読み込み
+    await this.loadMembers(select, currentValue);
   },
 
   // memberコレクションを読み込み
-  loadMembers: async function(select) {
+  loadMembers: async function(select, currentValue) {
     try {
       const entries = await CMS.getEntries('member');
+      
       entries.forEach(entry => {
         const option = document.createElement('option');
         option.value = entry.data.id;
         option.textContent = `${entry.data.name} (${entry.data.id})`;
+        
+        if (entry.data.id === currentValue) {
+          option.selected = true;
+        }
+        
         select.appendChild(option);
       });
     } catch (error) {
-      console.log('member読み込みに失敗:', error);
+      console.log('member読み込みエラー:', error);
     }
+  },
+
+  // 著者値を設定
+  setAuthorValue: function(container, value, displayName) {
+    // 隠しフィールドを作成または更新
+    let hiddenInput = container.querySelector('input[type="hidden"]');
+    if (!hiddenInput) {
+      hiddenInput = document.createElement('input');
+      hiddenInput.type = 'hidden';
+      hiddenInput.name = 'author';
+      container.appendChild(hiddenInput);
+    }
+    hiddenInput.value = value;
   },
 
   // 値の取得
   getValue: function() {
-    return this.value;
+    const container = document.querySelector('.author-auto-widget');
+    if (container) {
+      const hiddenInput = container.querySelector('input[type="hidden"]');
+      const select = container.querySelector('.author-select');
+      
+      if (hiddenInput && hiddenInput.value) {
+        return hiddenInput.value;
+      } else if (select && select.value) {
+        return select.value;
+      }
+    }
+    return '';
   },
 
   // 値の設定
   setValue: function(value) {
-    this.value = value;
+    // 値の設定は render メソッドで処理される
   }
 });
