@@ -1,0 +1,182 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from 'astro:content';
+
+const liveEvents = (await getCollection('live'))
+  .sort((a,b) => a.data.date.getTime() - b.data.date.getTime()); // 日付順
+
+// ステータス別に分類
+const upcoming = liveEvents.filter(event => event.data.status === 'scheduled');
+const ongoing = liveEvents.filter(event => event.data.status === 'ongoing');
+const finished = liveEvents.filter(event => event.data.status === 'finished');
+const canceled = liveEvents.filter(event => event.data.status === 'canceled');
+---
+
+<Base title="ライブ情報">
+  <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
+    <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; text-align: center; color: var(--accent, #333);">
+      ライブ情報
+    </h1>
+
+    <!-- 今後のライブ -->
+    {upcoming.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #28a745; border-left: 4px solid #28a745; padding-left: 1rem;">
+          🎵 今後のライブ
+        </h2>
+        <div style="display: grid; gap: 1rem;">
+          {upcoming.map(event => (
+            <div style="background: white; border: 2px solid #28a745; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <div>
+                  <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
+                    {event.data.venue}
+                  </h3>
+                  <div style="font-size: 1rem; color: #666; margin-bottom: 0.5rem;">
+                    📍 {event.data.city}
+                  </div>
+                  <div style="font-size: 1rem; color: #666;">
+                    📅 {event.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </div>
+                  {event.data.doors && (
+                    <div style="font-size: 0.9rem; color: #666;">
+                      🚪 開場: {event.data.doors}
+                    </div>
+                  )}
+                  {event.data.start && (
+                    <div style="font-size: 0.9rem; color: #666;">
+                      🎭 開演: {event.data.start}
+                    </div>
+                  )}
+                  {event.data.price && (
+                    <div style="font-size: 0.9rem; color: #666;">
+                      💰 {event.data.price}
+                    </div>
+                  )}
+                </div>
+                <div style="text-align: right;">
+                  <span style="background: #28a745; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                    予定
+                  </span>
+                </div>
+              </div>
+              {event.data.ticketUrl && (
+                <a href={event.data.ticketUrl} target="_blank" rel="noopener noreferrer" 
+                   style="display: inline-block; background: #28a745; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: 600; transition: background 0.3s ease; hover:background: #1e7e34;">
+                  チケット購入
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- 進行中のライブ -->
+    {ongoing.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #ffc107; border-left: 4px solid #ffc107; padding-left: 1rem;">
+          🔥 進行中
+        </h2>
+        <div style="display: grid; gap: 1rem;">
+          {ongoing.map(event => (
+            <div style="background: white; border: 2px solid #ffc107; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(255, 193, 7, 0.1);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
+                    {event.data.venue}
+                  </h3>
+                  <div style="font-size: 1rem; color: #666;">
+                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
+                <span style="background: #ffc107; color: #333; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                  進行中
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- 終了したライブ -->
+    {finished.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #6c757d; border-left: 4px solid #6c757d; padding-left: 1rem;">
+          ✅ 終了
+        </h2>
+        <div style="display: grid; gap: 1rem;">
+          {finished.map(event => (
+            <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 12px; padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #6c757d;">
+                    {event.data.venue}
+                  </h3>
+                  <div style="font-size: 1rem; color: #6c757d;">
+                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
+                <span style="background: #6c757d; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                  終了
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- キャンセルされたライブ -->
+    {canceled.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #dc3545; border-left: 4px solid #dc3545; padding-left: 1rem;">
+          ❌ キャンセル
+        </h2>
+        <div style="display: grid; gap: 1rem;">
+          {canceled.map(event => (
+            <div style="background: #f8f9fa; border: 1px solid #dc3545; border-radius: 12px; padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h3 style="font-size: 1.3rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #dc3545;">
+                    {event.data.venue}
+                  </h3>
+                  <div style="font-size: 1rem; color: #dc3545;">
+                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                  </div>
+                </div>
+                <span style="background: #dc3545; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                  キャンセル
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {liveEvents.length === 0 && (
+      <div style="text-align: center; padding: 3rem; color: #666;">
+        <p style="font-size: 1.2rem;">現在、ライブの予定はありません。</p>
+        <p>今後の予定をお楽しみに！</p>
+      </div>
+    )}
+  </div>
+
+  <style>
+    @media (max-width: 768px) {
+      .live-event {
+        padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem !important;
+      }
+      
+      h2 {
+        font-size: 1.5rem !important;
+      }
+    }
+  </style>
+</Base>

@@ -3,7 +3,7 @@ backend:
   repo: t332-b/website
   branch: main
   base_url: https://cms-login-proxy.pages.dev   # ← Cloudflare Pages(プロキシ)のURL
-  auth_endpoint: /auth                      # ← フルURLじゃなく相対
+  auth_endpoint: /auth
 
 site_url: https://pr0p0se.com
 display_url: https://pr0p0se.com
@@ -26,6 +26,69 @@ collections:
       - { label: "GitHub", name: "github", widget: "string", required: false }
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - { label: "アイコン画像", name: "avatar", widget: "image", required: false }
+
+  # 曲
+  - name: "tracks"
+    label: "曲リスト"
+    folder: "src/content/tracks"
+    extension: "mdx"
+    create: true
+    slug: "{{slug}}"          # ファイル名＝slug
+    fields:
+      - { label: "タイトル", name: "title", widget: "string", required: true }
+      - { label: "長さ", name: "duration", widget: "string", required: false, hint: "例: 3:45" }
+      - { label: "作詞", name: "lyrics_by", widget: "string", required: false }
+      - { label: "作曲", name: "music_by", widget: "string", required: false }
+      - label: "リンク"
+        name: "links"
+        widget: "object"
+        fields:
+          - { label: "Spotify",  name: "spotify",  widget: "string", required: false }
+          - { label: "Apple",    name: "apple",    widget: "string", required: false }
+          - { label: "Bandcamp", name: "bandcamp", widget: "string", required: false }
+          - { label: "YouTube",  name: "youtube",  widget: "string", required: false }
+      - { label: "本文（歌詞や解説）", name: "body", widget: "markdown", required: false }
+
+  # リリース（アルバム/EP/シングル）
+  - name: "releases"
+    label: "リリース"
+    folder: "src/content/releases"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "タイトル", name: "title", widget: "string", required: true }
+      - { label: "リリース日", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
+      - { label: "種別", name: "type", widget: "select", options: ["single","EP","album"], default: "single" }
+      - { label: "カバー画像", name: "cover", widget: "image", required: false }
+      - label: "トラックリスト"
+        name: "tracks"
+        widget: "relation"
+        collection: "tracks"
+        search_fields: ["title", "slug"]
+        value_field: "slug"        # ← 曲側のファイル名（slug）で紐付け
+        display_fields: ["title"]
+        multiple: true
+      - { label: "本文（任意）", name: "body", widget: "markdown", required: false }
+
+  # ライブ
+  - name: "live"
+    label: "ライブ"
+    folder: "src/content/live"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{city}}-{{slug}}"
+    fields:
+      - { label: "公演日", name: "date", widget: "datetime", format: "YYYY-MM-DDTHH:mm", required: true, default: "{{now}}" }
+      - { label: "会場", name: "venue", widget: "string", required: true }
+      - { label: "都市", name: "city", widget: "string", required: true }
+      - { label: "開場", name: "doors", widget: "string", required: false, hint: "例 18:30" }
+      - { label: "開演", name: "start", widget: "string", required: false, hint: "例 19:00" }
+      - { label: "チケットURL", name: "ticketUrl", widget: "string", required: false }
+      - { label: "価格", name: "price", widget: "string", required: false }
+      - { label: "ステータス", name: "status", widget: "select", options: ["scheduled","soldout","canceled","finished"], default: "scheduled" }
+      - { label: "本文（補足）", name: "body", widget: "markdown", required: false }
+
 
   - name: "blog"
     label: "ブログ"

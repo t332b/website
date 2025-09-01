@@ -1,0 +1,167 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from 'astro:content';
+
+const releases = (await getCollection('releases'))
+  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
+
+// タイプ別に分類
+const albums = releases.filter(release => release.data.type === 'album');
+const eps = releases.filter(release => release.data.type === 'EP');
+const singles = releases.filter(release => release.data.type === 'single');
+---
+
+<Base title="リリース情報">
+  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+    <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; text-align: center; color: var(--accent, #333);">
+      リリース情報
+    </h1>
+
+    <!-- アルバム -->
+    {albums.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #6f42c1; border-left: 4px solid #6f42c1; padding-left: 1rem;">
+          💿 アルバム
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+          {albums.map(release => (
+            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #6f42c1; hover:box-shadow: 0 4px 12px rgba(111, 66, 193, 0.1);">
+              {release.data.cover && (
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img src={release.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
+                </div>
+              )}
+              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
+                {release.data.title}
+              </h3>
+              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                📅 {release.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+              {release.data.tracks && release.data.tracks.length > 0 && (
+                <div style="margin-bottom: 1rem;">
+                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
+                    🎵 トラック数: {release.data.tracks.length}
+                  </div>
+                  <div style="font-size: 0.8rem; color: #888;">
+                    {release.data.tracks.slice(0, 3).join(', ')}
+                    {release.data.tracks.length > 3 && '...'}
+                  </div>
+                </div>
+              )}
+              <span style="background: #6f42c1; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                アルバム
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- EP -->
+    {eps.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #fd7e14; border-left: 4px solid #fd7e14; padding-left: 1rem;">
+          🎵 EP
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+          {eps.map(release => (
+            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #fd7e14; hover:box-shadow: 0 4px 12px rgba(253, 126, 20, 0.1);">
+              {release.data.cover && (
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img src={release.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
+                </div>
+              )}
+              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
+                {release.data.title}
+              </h3>
+              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                📅 {release.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+              {release.data.tracks && release.data.tracks.length > 0 && (
+                <div style="margin-bottom: 1rem;">
+                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
+                    🎵 トラック数: {release.data.tracks.length}
+                  </div>
+                  <div style="font-size: 0.8rem; color: #888;">
+                    {release.data.tracks.slice(0, 3).join(', ')}
+                    {release.data.tracks.length > 3 && '...'}
+                  </div>
+                </div>
+              )}
+              <span style="background: #fd7e14; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                EP
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- シングル -->
+    {singles.length > 0 && (
+      <section style="margin-bottom: 3rem;">
+        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #20c997; border-left: 4px solid #20c997; padding-left: 1rem;">
+          🎶 シングル
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+          {singles.map(release => (
+            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #20c997; hover:box-shadow: 0 4px 12px rgba(32, 201, 151, 0.1);">
+              {release.data.cover && (
+                <div style="text-align: center; margin-bottom: 1rem;">
+                  <img src={release.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
+                </div>
+              )}
+              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
+                {release.data.title}
+              </h3>
+              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
+                📅 {release.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+              {release.data.tracks && release.data.tracks.length > 0 && (
+                <div style="margin-bottom: 1rem;">
+                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
+                    🎵 トラック数: {release.data.tracks.length}
+                  </div>
+                  <div style="font-size: 0.8rem; color: #888;">
+                    {release.data.tracks.slice(0, 3).join(', ')}
+                    {release.data.tracks.length > 3 && '...'}
+                  </div>
+                </div>
+              )}
+              <span style="background: #20c997; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">
+                シングル
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {releases.length === 0 && (
+      <div style="text-align: center; padding: 3rem; color: #666;">
+        <p style="font-size: 1.2rem;">現在、リリース情報はありません。</p>
+        <p>今後のリリースをお楽しみに！</p>
+      </div>
+    )}
+  </div>
+
+  <style>
+    @media (max-width: 768px) {
+      .release-card {
+        padding: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem !important;
+      }
+      
+      h2 {
+        font-size: 1.5rem !important;
+      }
+      
+      div[style*="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))"] {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</Base>
