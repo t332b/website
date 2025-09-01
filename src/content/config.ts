@@ -1,7 +1,7 @@
 import { defineCollection, z } from "astro:content";
 
 export const collections = {
-  authors: defineCollection({
+  member: defineCollection({
     type: "content",
     schema: z.object({
       id: z.string(),              // "A" / "B"
@@ -16,7 +16,7 @@ export const collections = {
     schema: z.object({
       title: z.string(),
       date: z.date(),
-      author: z.string(),          // authors.id を入れる
+      author: z.string(),          // member.id を入れる
       tags: z.array(z.string()).optional(),
     }),
   }),

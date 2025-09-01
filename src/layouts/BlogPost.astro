@@ -1,0 +1,63 @@
+---
+import Base from "./Base.astro";
+import { getCollection } from 'astro:content';
+
+export interface Props {
+  title: string;
+  date: Date;
+  author: string;
+  tags?: string[];
+  cover?: string;
+}
+
+const { title, date, author, tags, cover } = Astro.props;
+
+// メンバー情報を取得
+const members = await getCollection('member');
+const member = members.find(m => m.data.id === author);
+---
+
+<Base title={title}>
+  <article style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+    <!-- ヘッダー -->
+    <header style="margin-bottom: 2rem;">
+      <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--accent, #333);">
+        {title}
+      </h1>
+      
+      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+        <div style="font-size: 1rem; color: #666;">
+          {date.toLocaleDateString('ja-JP')}
+        </div>
+        <div style="font-size: 1rem; color: #666;">
+          ・
+        </div>
+        <div style="font-size: 1rem; color: var(--accent, #007bff); font-weight: 600;">
+          {member?.data.name || author}
+        </div>
+      </div>
+      
+      {tags && tags.length > 0 && (
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          {tags.map(tag => (
+            <span style="background: #e8f5fd; color: #1da1f2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.9rem;">
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <!-- カバー画像 -->
+    {cover && (
+      <div style="margin-bottom: 2rem;">
+        <img src={cover} alt="" style="width: 100%; height: auto; border-radius: 8px;" />
+      </div>
+    )}
+
+    <!-- 本文 -->
+    <div style="line-height: 1.8; font-size: 1.1rem;">
+      <slot />
+    </div>
+  </article>
+</Base>

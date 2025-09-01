@@ -14,9 +14,9 @@ public_folder: "/images/uploads"
 
 collections:
   # ★ 著者マスタ
-  - name: "authors"
+  - name: "member"
     label: "著者"
-    folder: "src/content/authors"
+    folder: "src/content/member"
     extension: "mdx"
     create: true         # まずはUIから作れるように true 推奨
     slug: "{{slug}}"
@@ -45,10 +45,10 @@ collections:
           format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true,
           default: "{{now}}"
         }
-      # ★ relation で authors に紐づける（valueは author.id）
+      # ★ relation で member に紐づける（valueは author.id）
       - {
-          label: "著者", name: "author", widget: "relation", required: true,
-          collection: "authors",
+          label: "著者", name: "member", widget: "relation", required: true,
+          collection: "member",
           search_fields: ["name","id","github"],
           value_field: "id",
           display_fields: ["name"],

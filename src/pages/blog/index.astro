@@ -5,31 +5,31 @@ import { getCollection } from 'astro:content';
 const posts = (await getCollection('blog'))
   .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
 
-// 著者情報を取得
-const authors = await getCollection('authors');
-const authorMap = new Map(authors.map(a => [a.data.id, a.data]));
+// メンバー情報を取得
+const members = await getCollection('member');
+const memberMap = new Map(members.map(m => [m.data.id, m.data]));
 
 // アバター画像のURLを生成する関数
-function getAvatarUrl(author: any) {
-  if (author?.avatar) {
-    return author.avatar.startsWith('/') ? author.avatar : `/${author.avatar}`;
+function getAvatarUrl(member: any) {
+  if (member?.avatar) {
+    return member.avatar.startsWith('/') ? member.avatar : `/${member.avatar}`;
   }
-  if (author?.github) {
-    return `https://github.com/${author.github}.png?size=64`;
+  if (member?.github) {
+    return `https://github.com/${member.github}.png?size=64`;
   }
   return '/images/uploads/default-avatar.png'; // デフォルトアバター
 }
 ---
 
-<Base title="blog">
-  <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:1rem;">blog</h1>
+<Base title="ブログ">
+  <h1 style="font-size:1.5rem; font-weight:700; margin-bottom:1rem;">ブログ</h1>
 
   <!-- 絞り込みUI -->
   <div id="filters" style="display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;">
     <div>
       <button class="author-btn" data-author="ALL">ALL</button>
-      {authors.map(author => (
-        <button class="author-btn" data-author={author.data.id}>{author.data.name}</button>
+      {members.map(member => (
+        <button class="author-btn" data-author={member.data.id}>{member.data.name}</button>
       ))}
     </div>
     <div style="display:flex; gap:.5rem; align-items:center;">
@@ -48,8 +48,8 @@ function getAvatarUrl(author: any) {
     {posts.map(p => {
       const d = p.data.date.toISOString().slice(0,10); // YYYY-MM-DD
       const tags = (p.data.tags ?? []).join(',');
-      const author = authorMap.get(p.data.author);
-      const avatarUrl = getAvatarUrl(author);
+      const member = memberMap.get(p.data.author);
+      const avatarUrl = getAvatarUrl(member);
       
       return (
         <article class="item tweet-card"
@@ -59,13 +59,13 @@ function getAvatarUrl(author: any) {
             data-tags={tags.toLowerCase()}
             style="background: white; border: 1px solid #e1e8ed; border-radius: 16px; padding: 20px; transition: all 0.2s ease; hover:border-color: #1da1f2; hover:box-shadow: 0 4px 12px rgba(29, 161, 242, 0.1);">
           
-          <!-- ヘッダー（著者情報） -->
+          <!-- ヘッダー（メンバー情報） -->
           <div style="display: flex; align-items: center; margin-bottom: 16px;">
             <img src={avatarUrl} alt="" width="48" height="48" 
                  style="border-radius: 50%; border: 2px solid #e1e8ed; margin-right: 12px;" />
             <div style="flex: 1;">
               <div style="font-weight: 600; color: #14171a; margin-bottom: 2px;">
-                {author?.name || p.data.author}
+                {member?.name || p.data.author}
               </div>
               <div style="font-size: 0.9rem; color: #657786;">
                 {d}
