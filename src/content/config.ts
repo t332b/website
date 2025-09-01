@@ -18,6 +18,11 @@ export const collections = {
       date: z.date(),
       author: z.string(),          // member.id を入れる
       tags: z.array(z.string()).optional(),
+      cover: z.string().optional(),
     }),
+    // デフォルトのレイアウトを指定
+    frontmatter: {
+      layout: "../../layouts/BlogPost.astro"
+    }
   }),
 };
