@@ -34,6 +34,7 @@ collections:
     extension: "mdx"
     create: true
     slug: "{{slug}}"          # ファイル名＝slug
+    format: "frontmatter"
     fields:
       - { label: "タイトル", name: "title", widget: "string", required: true }
       - { label: "長さ", name: "duration", widget: "string", required: false, hint: "例: 3:45" }
@@ -56,6 +57,7 @@ collections:
     extension: "mdx"
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    format: "frontmatter"
     fields:
       - { label: "タイトル", name: "title", widget: "string", required: true }
       - { label: "リリース日", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
@@ -78,6 +80,7 @@ collections:
     extension: "mdx"
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{city}}-{{slug}}"
+    format: "frontmatter"
     fields:
       - { label: "公演日", name: "date", widget: "datetime", format: "YYYY-MM-DDTHH:mm", required: true, default: "{{now}}" }
       - { label: "会場", name: "venue", widget: "string", required: true }
