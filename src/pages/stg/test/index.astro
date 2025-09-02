@@ -3,36 +3,13 @@ import Base from "../../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
 const latestPosts = (await getCollection('blog')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
-const latestReleases = (await getCollection('releases')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 6);
+const latestWorks = (await getCollection('works')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 6);
 const upcomingLive = (await getCollection('live')).filter(event => event.data.status === 'scheduled').sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
 ---
 
 <Base title="PR0P0SE - 東京を拠点とする音楽ユニット">
   <div class="main-container">
     
-    <!-- ヒーローセクション -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <h1 class="hero-title">PR0P0SE</h1>
-        <p class="hero-subtitle">東京を拠点とする音楽ユニット</p>
-        <div class="hero-buttons">
-          <a href="/live" class="btn-primary">TOUR DATES</a>
-          <a href="/releases" class="btn-secondary">NEW MUSIC</a>
-        </div>
-      </div>
-      <div class="hero-image">
-        <img src="/images/header-tokyo-skyline.png" alt="Tokyo Skyline" />
-      </div>
-    </section>
-
-    <!-- ナビゲーションセクション -->
-    <nav class="main-nav">
-      <a href="/blog/" class="nav-item">BLOG</a>
-      <a href="/releases" class="nav-item">RELEASES</a>
-      <a href="/live" class="nav-item">LIVE</a>
-      <a href="/profile" class="nav-item">PROFILE</a>
-    </nav>
-
     <!-- ソーシャルリンク -->
     <div class="social-links">
       <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link">
@@ -52,12 +29,22 @@ const upcomingLive = (await getCollection('live')).filter(event => event.data.st
       </a>
     </div>
 
+    <!-- ナビゲーションセクション -->
+    <nav class="main-nav">
+      <a href="/blog/" class="nav-item">BLOG</a>
+      <a href="/works" class="nav-item">WORKS</a>
+      <a href="/live" class="nav-item">LIVE</a>
+      <a href="/profile" class="nav-item">PROFILE</a>
+    </nav>
+
+
+
     <!-- 最新リリースセクション -->
-    {latestReleases.length > 0 && (
+    {latestWorks.length > 0 && (
       <section class="releases-section">
         <h2 class="section-title">NEW MUSIC</h2>
         <div class="releases-grid">
-          {latestReleases.map(release => (
+          {latestWorks.map(release => (
             <div class="release-card">
               {release.data.cover && (
                 <div class="release-cover">
@@ -66,7 +53,7 @@ const upcomingLive = (await getCollection('live')).filter(event => event.data.st
               )}
               <div class="release-info">
                 <h3 class="release-title">{release.data.title}</h3>
-                <p class="release-type">{release.data.type}</p>
+                <p class="release-type">{release.data.category}</p>
                 <p class="release-date">{release.data.date.toLocaleDateString('ja-JP')}</p>
               </div>
             </div>

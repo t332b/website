@@ -40,14 +40,17 @@ const tracks = defineCollection({
   }),
 });
 
-const releases = defineCollection({
+const works = defineCollection({
   type: "content",
   schema: z.object({
     title: z.string(),
     date: z.date(), // z.string() → z.date() に統一
-    type: z.enum(["single","EP","album"]),
+    category: z.enum(["release","feature","remix","appearance"]).default("release"),
+    type: z.enum(["single","EP","album"]).optional(),
     cover: z.string().optional(),
     tracks: z.array(z.string()).default([]), // tracks の slug 配列
+    credits: z.array(z.object({ name: z.string(), role: z.string() })).optional(),
+    original_track: z.string().optional(),
     body: z.string().optional(), // リリース情報の詳細
   }),
 });
@@ -67,4 +70,4 @@ const live = defineCollection({
   }),
 });
 
-export const collections = { tracks, releases, live, member, blog };
+export const collections = { tracks, works, live, member, blog };
