@@ -6,11 +6,14 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "sync:tracks": "node scripts/sync-tracks-from-sheets.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.5.1",
-    "astro": "^5.13.3"
+    "astro": "^5.13.3",
+    "googleapis": "^144.0.0",
+    "yaml": "^2.5.1"
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.4",

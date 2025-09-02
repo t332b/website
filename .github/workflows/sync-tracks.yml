@@ -1,0 +1,44 @@
+name: Sync Tracks from Google Sheets
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Base ref to run against (e.g. main)"
+        required: false
+        default: "main"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sync script
+        env:
+          GOOGLE_SERVICE_ACCOUNT: ${{ secrets.GOOGLE_SERVICE_ACCOUNT }}
+          GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
+        run: npm run sync:tracks
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(content): sync tracks from Google Sheets"
+          title: "Sync tracks from Google Sheets"
+          body: "Automated update of tracks MDX from Google Sheets."
+          branch: "chore/sync-tracks"
+          base: ${{ github.event.inputs.ref }}
+          add-paths: |
+            src/content/tracks/**
+
