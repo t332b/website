@@ -18,15 +18,16 @@ const { title = "Unit Site" } = Astro.props;
   <body>
     <div class="container">
       <header class="header">
-        <a class="brand" href="/">
-          <span class="brand-badge" aria-hidden="true"></span>
-          <span>PR0P0SE</span>
-        </a>
-        <nav class="nav">
-          <a href="/diary/">日記</a>
-          <a href="/profile">プロフィール</a>
-          <a href="/live">ライブ</a>
-        </nav>
+        <div class="header-background">
+          <img src="/images/header-tokyo-skyline.png" alt="Tokyo Skyline" class="header-image" />
+          <div class="header-overlay"></div>
+        </div>
+        <div class="header-content">
+          <a class="brand" href="/">
+            <span class="brand-badge" aria-hidden="true"></span>
+            <span>PR0P0SE</span>
+          </a>
+        </div>
       </header>
 
       <main class="main">

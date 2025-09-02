@@ -1,618 +1,537 @@
 ---
 import Base from "../../../layouts/Base.astro";
-import { getCollection } from "astro:content";
+import { getCollection } from 'astro:content';
 
-// 最新のブログ記事を4件取得
-const latestPosts = (await getCollection("blog"))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-  .slice(0, 4);
-
-// メンバー情報を取得
-const members = await getCollection("member");
-const memberMap = new Map(members.map((m) => [m.data.id, m.data]));
-
-// リリース履歴（サンプルデータ - 実際のデータに置き換えてください）
-const releases = [
-  {
-    date: "2024-12-01",
-    title: 'New Album "Future Dreams"',
-    type: "Album",
-    image: "/images/uploads/album-cover-1.jpg",
-    description: "最新アルバム。新しいサウンドに挑戦した意欲作。",
-  },
-  {
-    date: "2024-10-15",
-    title: 'Single "Midnight City"',
-    type: "Single",
-    image: "/images/uploads/single-cover-1.jpg",
-    description: "夜の街をテーマにした新曲。",
-  },
-  {
-    date: "2024-08-20",
-    title: 'EP "Summer Vibes"',
-    type: "EP",
-    image: "/images/uploads/ep-cover-1.jpg",
-    description: "夏の季節に合わせた楽曲集。",
-  },
-];
-
-// ライブスケジュール（サンプルデータ）
-const liveSchedule = [
-  {
-    date: "2025-02-15",
-    venue: "渋谷CLUB QUATTRO",
-    title: "Winter Live 2025",
-    status: "予定",
-  },
-];
+const latestPosts = (await getCollection('blog')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
+const latestReleases = (await getCollection('releases')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 6);
+const upcomingLive = (await getCollection('live')).filter(event => event.data.status === 'scheduled').sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
 ---
 
-<Base title="ホーム">
-  <div class="container">
-    <!-- ヘッダーセクション -->
-    <header class="hero-section">
+<Base title="PR0P0SE - 東京を拠点とする音楽ユニット">
+  <div class="main-container">
+    
+    <!-- ヒーローセクション -->
+    <section class="hero-section">
       <div class="hero-content">
-        <h1 class="hero-title">音楽アーティスト名</h1>
-        <p class="hero-subtitle">新しい音楽の世界へようこそ</p>
-      </div>
-    </header>
-
-    <!-- 音楽再生セクション -->
-    <section class="music-section">
-      <h2 class="section-title">🎵 最新楽曲</h2>
-      <div class="soundcloud-player">
-        <iframe
-          width="100%"
-          height="300"
-          scrolling="no"
-          frameborder="no"
-          allow="autoplay"
-          src="https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/2121088050&color=%23ff5500&auto_play=false&hide_related=false&show_comments=true&show_user=true&show_reposts=false&show_teaser=true&visual=true"
-        ></iframe><div
-          style="font-size: 10px; color: #cccccc;line-break: anywhere;word-break: normal;overflow: hidden;white-space: nowrap;text-overflow: ellipsis; font-family: Interstate,Lucida Grande,Lucida Sans Unicode,Lucida Sans,Garuda,Verdana,Tahoma,sans-serif;font-weight: 100;"
-        >
-          <a
-            href="https://soundcloud.com/pr0p0se"
-            title="PR0P0SE"
-            target="_blank"
-            style="color: #cccccc; text-decoration: none;">PR0P0SE</a
-          > · <a
-            href="https://soundcloud.com/pr0p0se/miuyixmiokct"
-            title="シトラス"
-            target="_blank"
-            style="color: #cccccc; text-decoration: none;">シトラス</a>
+        <h1 class="hero-title">PR0P0SE</h1>
+        <p class="hero-subtitle">東京を拠点とする音楽ユニット</p>
+        <div class="hero-buttons">
+          <a href="/live" class="btn-primary">TOUR DATES</a>
+          <a href="/releases" class="btn-secondary">NEW MUSIC</a>
         </div>
       </div>
-      <div class="music-links">
-        <a
-          href="https://soundcloud.com/your-artist"
-          class="music-link"
-          target="_blank"
-          rel="noopener"
-        >
-          <span>🎧 SoundCloud</span>
-        </a>
-        <a
-          href="https://spotify.com/artist/your-artist"
-          class="music-link"
-          target="_blank"
-          rel="noopener"
-        >
-          <span>🎵 Spotify</span>
-        </a>
-        <a
-          href="https://apple.co/your-artist"
-          class="music-link"
-          target="_blank"
-          rel="noopener"
-        >
-          <span>🍎 Apple Music</span>
-        </a>
+      <div class="hero-image">
+        <img src="/images/header-tokyo-skyline.png" alt="Tokyo Skyline" />
       </div>
     </section>
 
-    <!-- リリース履歴セクション -->
-    <section class="releases-section">
-      <h2 class="section-title">💿 リリース履歴</h2>
-      <div class="releases-timeline">
-        {
-          releases.map((release, index) => (
-            <div class="release-item" data-index={index}>
-              <div class="release-date">{release.date}</div>
-              <div class="release-content">
-                <div class="release-image">
-                  <img
-                    src={release.image}
-                    alt={release.title}
-                    onerror="this.src='/images/uploads/default-album.png'"
-                  />
+    <!-- ナビゲーションセクション -->
+    <nav class="main-nav">
+      <a href="/blog/" class="nav-item">BLOG</a>
+      <a href="/releases" class="nav-item">RELEASES</a>
+      <a href="/live" class="nav-item">LIVE</a>
+      <a href="/profile" class="nav-item">PROFILE</a>
+    </nav>
+
+    <!-- ソーシャルリンク -->
+    <div class="social-links">
+      <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+        <img src="/images/logo/icons8-youtube.svg" alt="YouTube" />
+      </a>
+      <a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+        <img src="/images/logo/spotify-icon.svg" alt="Spotify" />
+      </a>
+      <a href="https://music.apple.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+        <img src="/images/logo/Apple_logo_black.svg" alt="Apple Music" />
+      </a>
+      <a href="https://soundcloud.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+        <img src="/images/logo/soundcloud-icon.svg" alt="SoundCloud" />
+      </a>
+      <a href="https://bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+        <img src="/images/logo/Bandcamp-button-bc-circle-black.svg.png" alt="Bandcamp" />
+      </a>
+    </div>
+
+    <!-- 最新リリースセクション -->
+    {latestReleases.length > 0 && (
+      <section class="releases-section">
+        <h2 class="section-title">NEW MUSIC</h2>
+        <div class="releases-grid">
+          {latestReleases.map(release => (
+            <div class="release-card">
+              {release.data.cover && (
+                <div class="release-cover">
+                  <img src={release.data.cover} alt={release.data.title} />
                 </div>
-                <div class="release-info">
-                  <div class="release-type">{release.type}</div>
-                  <h3 class="release-title">{release.title}</h3>
-                  <p class="release-description">{release.description}</p>
-                </div>
+              )}
+              <div class="release-info">
+                <h3 class="release-title">{release.data.title}</h3>
+                <p class="release-type">{release.data.type}</p>
+                <p class="release-date">{release.data.date.toLocaleDateString('ja-JP')}</p>
               </div>
             </div>
-          ))
-        }
-      </div>
-    </section>
+          ))}
+        </div>
+      </section>
+    )}
 
-    <!-- ブログ一覧セクション -->
-    <section class="blog-section">
-      <h2 class="section-title">📝 最新のブログ</h2>
-      <div class="blog-grid">
-        {
-          latestPosts.map((post) => {
-            const date = post.data.date.toISOString().slice(0, 10);
-            const author = memberMap.get(post.data.author);
-            return (
-              <article class="blog-card" data-slug={post.slug}>
-                <div class="blog-content">
-                  <h3 class="blog-title">
-                    <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
-                  </h3>
-                  <div class="blog-meta">
-                    <span class="blog-date">{date}</span>
-                    {author && (
-                      <span class="blog-author">・ {author.name}</span>
-                    )}
-                    {post.data.tags && post.data.tags.length > 0 && (
-                      <span class="blog-tags">
-                        {post.data.tags.map((tag: string) => (
-                          <span class="tag">#{tag}</span>
-                        ))}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            );
-          })
-        }
-      </div>
-      {
-        latestPosts.length > 0 && (
-          <div class="blog-more">
-            <a href="/blog/" class="btn-primary">
-              すべての記事を見る
-            </a>
-          </div>
-        )
-      }
-    </section>
-
-    <!-- ライブスケジュールセクション -->
-    <section class="live-section">
-      <h2 class="section-title">🎤 ライブスケジュール</h2>
-      <div class="live-list">
-        {
-          liveSchedule.map((live, index) => (
-            <div class="live-item" data-index={index}>
-              <div class="live-date">{live.date}</div>
-              <div class="live-info">
-                <h3 class="live-title">{live.title}</h3>
-                <p class="live-venue">{live.venue}</p>
-                <span class="live-status">{live.status}</span>
+    <!-- ライブセクション -->
+    {upcomingLive.length > 0 && (
+      <section class="live-section">
+        <h2 class="section-title">TOUR DATES</h2>
+        <div class="live-list">
+          {upcomingLive.map(event => (
+            <div class="live-item">
+              <div class="live-date">
+                <span class="date-day">{event.data.date.getDate()}</span>
+                <span class="date-month">{event.data.date.toLocaleDateString('ja-JP', { month: 'short' })}</span>
+              </div>
+              <div class="live-details">
+                <h3 class="live-venue">{event.data.venue}</h3>
+                <p class="live-location">{event.data.city}</p>
+                {event.data.ticketUrl && (
+                  <a href={event.data.ticketUrl} target="_blank" rel="noopener noreferrer" class="ticket-link">
+                    TICKETS
+                  </a>
+                )}
               </div>
             </div>
-          ))
-        }
-        {
-          liveSchedule.length === 0 && (
-            <p class="no-live">現在、ライブの予定はありません。</p>
-          )
-        }
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- ブログセクション -->
+    {latestPosts.length > 0 && (
+      <section class="blog-section">
+        <h2 class="section-title">LATEST BLOG</h2>
+        <div class="blog-grid">
+          {latestPosts.map(post => (
+            <article class="blog-card">
+              <div class="blog-content">
+                <h3 class="blog-title">
+                  <a href={`/blog/${post.slug}/`}>{post.data.title}</a>
+                </h3>
+                <p class="blog-meta">
+                  {post.data.date.toLocaleDateString('ja-JP')} • {post.data.author}
+                </p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <!-- ニュースレター登録 -->
+    <section class="newsletter-section">
+      <h2 class="newsletter-title">SIGN UP FOR UPDATES</h2>
+      <div class="newsletter-form">
+        <input type="email" placeholder="Enter your email" class="newsletter-input" />
+        <button class="newsletter-button">SUBSCRIBE</button>
       </div>
     </section>
+
   </div>
 
   <style>
-    .container {
+    .main-container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 0 1rem;
+      padding: 0 20px;
     }
 
-    /* ヘッダーセクション */
+    /* ヒーローセクション */
     .hero-section {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      text-align: center;
-      padding: 4rem 2rem;
-      margin: -2rem -1rem 3rem -1rem;
-      border-radius: 0 0 2rem 2rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      align-items: center;
+      padding: 4rem 0;
+      min-height: 60vh;
+    }
+
+    .hero-content {
+      text-align: left;
     }
 
     .hero-title {
-      font-size: 3rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      font-size: 4rem;
+      font-weight: 900;
+      color: var(--wa-ink);
+      margin: 0 0 1rem 0;
+      font-family: 'Spectral', serif;
+      letter-spacing: -0.02em;
     }
 
     .hero-subtitle {
-      font-size: 1.3rem;
-      opacity: 0.9;
-      line-height: 1.6;
+      font-size: 1.5rem;
+      color: var(--muted);
+      margin: 0 0 2rem 0;
+      font-weight: 400;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .btn-primary, .btn-secondary {
+      padding: 1rem 2rem;
+      border-radius: 0;
+      text-decoration: none;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: all 0.3s ease;
+      border: 2px solid;
+    }
+
+    .btn-primary {
+      background: var(--wa-ink);
+      color: white;
+      border-color: var(--wa-ink);
+    }
+
+    .btn-primary:hover {
+      background: transparent;
+      color: var(--wa-ink);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--wa-ink);
+      border-color: var(--wa-ink);
+    }
+
+    .btn-secondary:hover {
+      background: var(--wa-ink);
+      color: white;
+    }
+
+    .hero-image img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    /* ナビゲーション */
+    .main-nav {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      padding: 2rem 0;
+      border-top: 1px solid var(--wa-butter);
+      border-bottom: 1px solid var(--wa-butter);
+      margin: 2rem 0;
+    }
+
+    .nav-item {
+      text-decoration: none;
+      color: var(--wa-ink);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: color 0.3s ease;
+    }
+
+    .nav-item:hover {
+      color: var(--wa-teal);
+    }
+
+    /* ソーシャルリンク */
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 2rem 0;
+    }
+
+    .social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--wa-cream);
+      transition: all 0.3s ease;
+    }
+
+    .social-link:hover {
+      background: var(--wa-teal);
+      transform: translateY(-2px);
+    }
+
+    .social-link img {
+      width: 20px;
+      height: 20px;
     }
 
     /* セクション共通 */
     .section-title {
-      font-size: 2rem;
-      font-weight: 600;
-      margin-bottom: 2rem;
-      color: #333;
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--wa-ink);
       text-align: center;
+      margin: 4rem 0 2rem 0;
+      font-family: 'Spectral', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
     }
 
-    /* 音楽再生セクション */
-    .music-section {
+    /* リリースセクション */
+    .releases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
       margin-bottom: 4rem;
-      text-align: center;
     }
 
-    .soundcloud-player {
-      max-width: 600px;
-      margin: 0 auto 2rem auto;
+    .release-card {
+      background: white;
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
     }
 
-    .music-links {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
+    .release-card:hover {
+      transform: translateY(-4px);
     }
 
-    .music-link {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.75rem 1.5rem;
-      background: #f8f9fa;
-      border: 2px solid #e9ecef;
-      border-radius: 25px;
-      text-decoration: none;
-      color: #333;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .music-link:hover {
-      background: #667eea;
-      color: white;
-      border-color: #667eea;
-      transform: translateY(-2px);
-    }
-
-    /* リリース履歴セクション */
-    .releases-section {
-      margin-bottom: 4rem;
-    }
-
-    .releases-timeline {
-      position: relative;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-
-    .releases-timeline::before {
-      content: "";
-      position: absolute;
-      left: 50%;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: #e9ecef;
-      transform: translateX(-50%);
-    }
-
-    .release-item {
-      position: relative;
-      margin-bottom: 3rem;
-      display: flex;
-      align-items: center;
-    }
-
-    .release-item:nth-child(odd) {
-      flex-direction: row;
-    }
-
-    .release-item:nth-child(even) {
-      flex-direction: row-reverse;
-    }
-
-    .release-date {
-      background: #667eea;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      z-index: 1;
-    }
-
-    .release-content {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      background: white;
-      padding: 1.5rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      flex: 1;
-      max-width: 400px;
-    }
-
-    .release-image img {
-      width: 80px;
-      height: 80px;
-      border-radius: 8px;
+    .release-cover img {
+      width: 100%;
+      height: 200px;
       object-fit: cover;
     }
 
-    .release-type {
-      background: #f8f9fa;
-      color: #667eea;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      display: inline-block;
-      margin-bottom: 0.5rem;
+    .release-info {
+      padding: 1.5rem;
     }
 
     .release-title {
-      font-size: 1.1rem;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      color: var(--wa-ink);
+    }
+
+    .release-type {
+      color: var(--wa-teal);
       font-weight: 600;
       margin: 0 0 0.5rem 0;
-      color: #333;
+      text-transform: uppercase;
+      font-size: 0.9rem;
     }
 
-    .release-description {
+    .release-date {
+      color: var(--muted);
       font-size: 0.9rem;
-      color: #666;
       margin: 0;
-      line-height: 1.5;
-    }
-
-    /* ブログセクション */
-    .blog-section {
-      margin-bottom: 4rem;
-    }
-
-    .blog-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .blog-card {
-      background: white;
-      border: 1px solid #e9ecef;
-      border-radius: 12px;
-      padding: 1.5rem;
-      transition: all 0.3s ease;
-    }
-
-    .blog-card:hover {
-      border-color: #667eea;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-      transform: translateY(-2px);
-    }
-
-    .blog-title {
-      margin: 0 0 1rem 0;
-      font-size: 1.2rem;
-    }
-
-    .blog-title a {
-      color: #333;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .blog-title a:hover {
-      color: #667eea;
-    }
-
-    .blog-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
-    }
-
-    .blog-date {
-      font-size: 0.9rem;
-      color: #666;
-    }
-
-    .blog-tags {
-      display: flex;
-      gap: 0.25rem;
-    }
-
-    .tag {
-      background: #f8f9fa;
-      color: #667eea;
-      padding: 0.25rem 0.5rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-    }
-
-    .blog-more {
-      text-align: center;
-    }
-
-    .btn-primary {
-      display: inline-block;
-      background: #667eea;
-      color: white;
-      padding: 1rem 2rem;
-      border-radius: 25px;
-      text-decoration: none;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .btn-primary:hover {
-      background: #5a6fd8;
-      transform: translateY(-2px);
     }
 
     /* ライブセクション */
-    .live-section {
-      margin-bottom: 4rem;
-    }
-
     .live-list {
-      max-width: 600px;
-      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+      margin-bottom: 4rem;
     }
 
     .live-item {
       display: flex;
       align-items: center;
-      gap: 1.5rem;
-      background: white;
+      gap: 2rem;
       padding: 1.5rem;
+      background: white;
       border-radius: 12px;
-      border: 1px solid #e9ecef;
-      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .live-item:hover {
+      transform: translateX(8px);
     }
 
     .live-date {
-      background: #28a745;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 80px;
     }
 
-    .live-info {
+    .date-day {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--wa-teal);
+    }
+
+    .date-month {
+      font-size: 0.9rem;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .live-details {
       flex: 1;
     }
 
-    .live-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0 0 0.5rem 0;
-      color: #333;
-    }
-
     .live-venue {
-      font-size: 0.9rem;
-      color: #666;
+      font-size: 1.3rem;
+      font-weight: 700;
       margin: 0 0 0.5rem 0;
+      color: var(--wa-ink);
     }
 
-    .live-status {
-      background: #ffc107;
-      color: #333;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
+    .live-location {
+      color: var(--muted);
+      margin: 0 0 1rem 0;
+    }
+
+    .ticket-link {
+      display: inline-block;
+      background: var(--wa-teal);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      text-decoration: none;
       font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+      transition: background 0.3s ease;
     }
 
-    .no-live {
-      text-align: center;
-      color: #666;
-      font-style: italic;
+    .ticket-link:hover {
+      background: var(--wa-forest);
+    }
+
+    /* ブログセクション */
+    .blog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .blog-card {
+      background: white;
+      border-radius: 12px;
       padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
     }
 
-    /* レスポンシブデザイン */
+    .blog-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .blog-title a {
+      color: var(--wa-ink);
+      text-decoration: none;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .blog-title a:hover {
+      color: var(--wa-teal);
+    }
+
+    .blog-meta {
+      color: var(--muted);
+      margin: 1rem 0 0 0;
+      font-size: 0.9rem;
+    }
+
+    /* ニュースレター */
+    .newsletter-section {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--wa-cream);
+      border-radius: 20px;
+      margin: 4rem 0;
+    }
+
+    .newsletter-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--wa-ink);
+      margin: 0 0 2rem 0;
+      font-family: 'Spectral', serif;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .newsletter-form {
+      display: flex;
+      max-width: 400px;
+      margin: 0 auto;
+      gap: 1rem;
+    }
+
+    .newsletter-input {
+      flex: 1;
+      padding: 1rem;
+      border: 2px solid var(--wa-butter);
+      border-radius: 4px;
+      font-size: 1rem;
+      background: white;
+    }
+
+    .newsletter-input:focus {
+      outline: none;
+      border-color: var(--wa-teal);
+    }
+
+    .newsletter-button {
+      padding: 1rem 2rem;
+      background: var(--wa-teal);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .newsletter-button:hover {
+      background: var(--wa-forest);
+    }
+
+    /* レスポンシブ */
     @media (max-width: 768px) {
-      .hero-title {
-        font-size: 2rem;
-      }
-
-      .hero-subtitle {
-        font-size: 1.1rem;
-      }
-
       .hero-section {
-        padding: 3rem 1rem;
-        margin: -2rem -1rem 2rem -1rem;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
       }
 
-      .section-title {
-        font-size: 1.5rem;
+      .hero-title {
+        font-size: 2.5rem;
       }
 
-      .releases-timeline::before {
-        left: 20px;
-      }
-
-      .release-item {
-        flex-direction: column !important;
-        align-items: flex-start;
-        margin-left: 40px;
-      }
-
-      .release-date {
-        align-self: flex-start;
-        margin-bottom: 1rem;
-      }
-
-      .release-content {
-        max-width: none;
-        width: 100%;
-      }
-
-      .music-links {
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .music-link {
-        width: 200px;
+      .hero-buttons {
         justify-content: center;
       }
 
-      .blog-grid {
-        grid-template-columns: 1fr;
+      .main-nav {
+        flex-wrap: wrap;
+        gap: 1.5rem;
+      }
+
+      .releases-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 1rem;
       }
 
       .live-item {
         flex-direction: column;
         text-align: center;
+        gap: 1rem;
       }
 
-      .live-date {
-        align-self: center;
-        margin-bottom: 1rem;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .container {
-        padding: 0 0.5rem;
-      }
-
-      .hero-section {
-        padding: 2rem 1rem;
-      }
-
-      .hero-title {
-        font-size: 1.8rem;
-      }
-
-      .release-content {
-        padding: 1rem;
-      }
-
-      .release-image img {
-        width: 60px;
-        height: 60px;
+      .newsletter-form {
+        flex-direction: column;
       }
     }
   </style>

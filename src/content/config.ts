@@ -33,6 +33,8 @@ const tracks = defineCollection({
       apple: z.string().url().optional(),
       bandcamp: z.string().url().optional(),
       youtube: z.string().url().optional(),
+      soundcloud: z.string().url().optional(),
+      music_video: z.string().url().optional(),
     }).optional(),
     body: z.string().optional(), // 歌詞や解説
   }),
