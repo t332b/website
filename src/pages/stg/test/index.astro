@@ -7,7 +7,7 @@ const latestWorks = (await getCollection('works')).sort((a,b) => b.data.date.get
 const upcomingLive = (await getCollection('live')).filter(event => event.data.status === 'scheduled').sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
 ---
 
-<Base title="PR0P0SE - 東京を拠点とする音楽ユニット">
+<Base title="PR0P0SE">
   <div class="main-container">
     
     <!-- ソーシャルリンク -->
