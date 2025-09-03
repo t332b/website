@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: t332-b/website
+  repo: t332b/website
   branch: main
   # ← ローカル開発中だけ有効。本番では消す or false にする
 # local_backend: true

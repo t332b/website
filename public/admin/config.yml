@@ -1,6 +1,6 @@
 backend:
   name: github
-  repo: t332-b/website
+  repo: t332b/website
   branch: main
   base_url: https://cms-login-proxy.pages.dev   # ← Cloudflare Pages(プロキシ)のURL
   auth_endpoint: /auth
