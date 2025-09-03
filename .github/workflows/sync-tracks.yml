@@ -20,6 +20,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
+          # Avoid persisting the default GITHUB_TOKEN credentials so the
+          # create-pull-request action can inject its own token.
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -45,3 +49,4 @@ jobs:
           base: ${{ github.event.inputs.ref }}
           add-paths: |
             src/content/tracks/**
+          token: ${{ github.token }}
