@@ -1,5 +1,9 @@
 name: Sync Tracks from Google Sheets
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -41,4 +45,3 @@ jobs:
           base: ${{ github.event.inputs.ref }}
           add-paths: |
             src/content/tracks/**
-
