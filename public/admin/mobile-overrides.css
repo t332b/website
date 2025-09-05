@@ -70,10 +70,13 @@
     }
      [class*=PublishedToolbarButton] {
          padding: 0 8px;
-    }
+         display: block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+     }
      [class*=PublishedToolbarButton]::after {
          display: none;
-    }
+     }
      [class*=ToolbarSubSectionFirst] {
          flex-direction: row;
     }
@@ -104,5 +107,41 @@
      [class*=CollectionMain] {
          padding-left: 0;
          margin-top: 20px;
-    }
+     }
+     
+     /* Publishボタンの表示を確実にする */
+     [class*=PublishedToolbarButton],
+     [class*="PublishButton"],
+     [class*="publish-button"],
+     button[class*="publish"],
+     button[class*="Publish"] {
+         display: block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+         background: #007cba !important;
+         color: white !important;
+         border: none !important;
+         padding: 12px 24px !important;
+         border-radius: 4px !important;
+         font-size: 16px !important;
+         min-height: 44px !important;
+         margin: 8px 0 !important;
+     }
+     
+     /* ツールバー全体の調整 */
+     [class*=ToolbarContainer] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 8px !important;
+         align-items: center !important;
+     }
+     
+     /* ボタンが隠れないようにする */
+     [class*=ToolbarSubSectionFirst] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 8px !important;
+     }
 }
