@@ -6,10 +6,7 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
-    <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-    <meta name="theme-color" content="#007cba"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <title>CMS管理画面 - pr0p0se</title>
 
     <link rel="cms-config-url" type="text/yaml" href="/admin/config.yml" />
@@ -20,10 +17,12 @@
     <div id="nc-root"></div>
     <script src="/admin/vendor/decap/decap-cms.js" is:inline></script>
     <script src="/admin/custom-widgets.js" is:inline></script>
+    <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
     <script>
       window.addEventListener('message', (e) => {
         console.log('[CMS message]', e.data, 'from', e.origin);
       });
     </script>
+    <link href="/admin/mobile-overrides.css" rel="stylesheet" />
   </body>
 </html>
