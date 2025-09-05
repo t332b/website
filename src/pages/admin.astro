@@ -1,3 +1,7 @@
+---
+// admin.astro - CMS管理画面のページ
+---
+
 <!doctype html>
 <html lang="ja">
   <head>
@@ -8,14 +12,14 @@
     <meta name="theme-color" content="#007cba"/>
     <title>CMS管理画面 - pr0p0se</title>
 
-    <link rel="cms-config-url" type="text/yaml" href="config.yml" />
-    <link rel="stylesheet" href="cms.css" />
+    <link rel="cms-config-url" type="text/yaml" href="/admin/config.yml" />
+    <link rel="stylesheet" href="/admin/cms.css" />
 
   </head>
   <body>
     <div id="nc-root"></div>
-    <script src="/admin/vendor/decap/decap-cms.js"></script>
-    <script src="/admin/custom-widgets.js"></script>
+    <script src="/admin/vendor/decap/decap-cms.js" is:inline></script>
+    <script src="/admin/custom-widgets.js" is:inline></script>
     <script>
       window.addEventListener('message', (e) => {
         console.log('[CMS message]', e.data, 'from', e.origin);

@@ -123,9 +123,45 @@ collections:
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     format: "frontmatter"
     fields:
-      - { label: "タイトル", name: "title", widget: "string", required: true }
-      - { label: "公開日", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false, required: true, default: "{{now}}" }
-      - { label: "著者", name: "author", widget: "relation", collection: "member", search_fields: ["name","id"], value_field: "id", display_fields: ["name"], multiple: false, required: true }
-      - { label: "タグ", name: "tags", widget: "list", required: false }
-      - { label: "カバー画像", name: "cover", widget: "image", required: false }
-      - { label: "本文", name: "body", widget: "markdown", required: true }
+      - label: "タイトル"
+        name: "title"
+        widget: "string"
+        required: true
+        hint: "記事のタイトルを入力してください（50文字以内推奨）"
+      - label: "公開日"
+        name: "date"
+        widget: "datetime"
+        format: "YYYY-MM-DD"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        required: true
+        default: "{{now}}"
+        hint: "記事の公開日を選択してください"
+      - label: "著者"
+        name: "author"
+        widget: "relation"
+        collection: "member"
+        search_fields: ["name","id"]
+        value_field: "id"
+        display_fields: ["name"]
+        multiple: false
+        required: true
+        hint: "記事の著者を選択してください"
+      - label: "タグ"
+        name: "tags"
+        widget: "list"
+        required: false
+        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
+      - label: "カバー画像"
+        name: "cover"
+        widget: "image"
+        required: false
+        hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
+        media_library:
+          config:
+            max_file_size: 2097152  # 2MB
+      - label: "本文"
+        name: "body"
+        widget: "markdown"
+        required: true
+        hint: "記事の本文をマークダウン形式で入力してください"
