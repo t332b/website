@@ -93,9 +93,12 @@
          max-width: 100vw;
     }
      [class*=EditorControlBar] [class*=ToolbarContainer] {
-         display: flex;
-         flex-direction: column;
-    }
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 4px !important;
+         align-items: center !important;
+     }
      [class*=CollectionContainer] {
          display: flex;
          flex-direction: column;
@@ -114,7 +117,11 @@
      [class*="PublishButton"],
      [class*="publish-button"],
      button[class*="publish"],
-     button[class*="Publish"] {
+     button[class*="Publish"],
+     button[title*="Publish"],
+     button[title*="publish"],
+     button[aria-label*="Publish"],
+     button[aria-label*="publish"] {
          display: block !important;
          visibility: visible !important;
          opacity: 1 !important;
@@ -126,6 +133,10 @@
          font-size: 16px !important;
          min-height: 44px !important;
          margin: 8px 0 !important;
+         position: relative !important;
+         z-index: 9999 !important;
+         width: auto !important;
+         max-width: none !important;
      }
      
      /* ツールバー全体の調整 */
@@ -143,5 +154,64 @@
          flex-direction: row !important;
          flex-wrap: wrap !important;
          gap: 8px !important;
+     }
+     
+     /* エディタエリアの調整 */
+     [class*=EditorContainer] {
+         position: relative !important;
+         z-index: 1 !important;
+     }
+     
+     /* ツールバーを常に表示 */
+     [class*=ToolbarContainer] {
+         position: relative !important;
+         background: white !important;
+         z-index: 1000 !important;
+         padding: 8px !important;
+         border-bottom: 1px solid #e1e8ed !important;
+     }
+     
+     /* マークダウンエディタの調整 */
+     [class*=MarkdownEditor] {
+         margin-top: 0 !important;
+     }
+     
+     /* プレビューペインの調整 */
+     [class*=PreviewPaneContainer] {
+         margin-top: 0 !important;
+     }
+     
+     /* コントロールペインの調整 */
+     [class*=ControlPaneContainer] {
+         margin-top: 0 !important;
+     }
+     
+     /* エディタのボタンを横並びに */
+     [class*=EditorControlBar] button,
+     [class*=ToolbarContainer] button,
+     [class*=MarkdownEditor] button {
+         display: inline-block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+         margin: 2px !important;
+         padding: 8px !important;
+         min-width: 32px !important;
+         height: 32px !important;
+     }
+     
+     /* エディタのツールバーグループ */
+     [class*=ToolbarSubSection] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 4px !important;
+         align-items: center !important;
+     }
+     
+     /* すべてのボタンを確実に表示 */
+     button {
+         display: inline-block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
      }
 }
