@@ -113,7 +113,7 @@
      }
      
      /* Publishボタンの表示を確実にする */
-     [class*=PublishedToolbarButton],
+     /* [class*=PublishedToolbarButton],
      [class*="PublishButton"],
      [class*="publish-button"],
      button[class*="publish"],
@@ -137,7 +137,7 @@
          z-index: 9999 !important;
          width: auto !important;
          max-width: none !important;
-     }
+     } */
      
      /* ツールバー全体の調整 */
      [class*=ToolbarContainer] {
