@@ -1,0 +1,368 @@
+---
+const { audioSrc = '/music/intro.mp3' } = Astro.props;
+---
+
+<div class="audio-player-wrapper">
+  <div class="card" role="region" aria-label="オーディオプレーヤー">
+    <div class="player">
+    <div class="circle" id="circle" aria-label="再生位置スライダー" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+      <svg viewBox="0 0 100 100">
+        <!-- トラック（未再生） -->
+        <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="8" fill="none" />
+        <!-- 進捗パス（濃い緑） -->
+        <path id="progressPath" d="" stroke="var(--progress)" stroke-width="8" stroke-linecap="round" fill="none" />
+        <!-- つまみ（ノブ） -->
+        <circle id="knob" cx="50" cy="8" r="4.3" fill="var(--knob)" stroke="#0a1114" stroke-width="1.5"></circle>
+      </svg>
+
+      <div class="center-ui">
+        <div class="stack">
+          <button id="play" class="play" aria-label="再生/一時停止" title="スペースキーでも操作可">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7-11-7z"/></svg>
+          </button>
+
+          <div class="controls">
+            <div class="time" aria-live="polite">
+              <span id="cur">00:00</span>
+              <span>/</span>
+              <span id="dur">00:00</span>
+            </div>
+            <div class="volume">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"/><path d="M16 8a5 5 0 010 8" stroke="currentColor"/></svg>
+              <input id="vol" type="range" min="0" max="1" step="0.01" value="0.9" aria-label="音量" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 非表示のaudio要素（プログラム制御用） -->
+  <audio id="audio" preload="metadata"></audio>
+  </div>
+</div>
+
+<style>
+  .audio-player-wrapper{
+    /* CSS変数をラッパー内に限定 */
+    --bg:#0f1417;           /* 背景 */
+    --card:#1a2329;         /* カード */
+    --ring:#2e3a41;         /* 未再生トラック */
+    --progress:#1e8f54;     /* 進捗（濃い緑） */
+    --knob:#a7ffcb;         /* ノブ */
+    --text:#e6f1f5;
+    --sub:#9bb2bd;
+    --accent:#29b36b;       /* ボタンのアクセント */
+    --danger:#e74c3c;
+    --radius: 18px;
+    /* ラッパーの幅を制限して中央配置 */
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .audio-player-wrapper .card{
+    width: clamp(280px, 85vw, 480px);
+    background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01)); 
+    border:1px solid rgba(255,255,255,.06); 
+    border-radius:var(--radius); 
+    padding: clamp(0.75rem, 2vw, 1.5rem);
+  }
+
+  .audio-player-wrapper .player{
+    display:grid; 
+    place-items:center; 
+    padding: clamp(0.5rem, 1.5vw, 1.125rem) 0 0.5rem;
+  }
+  
+  .audio-player-wrapper .circle{
+    position:relative; 
+    width: clamp(200px, 60vw, 320px);
+    height: clamp(200px, 60vw, 320px);
+  }
+  
+  .audio-player-wrapper svg{
+    display:block; 
+    width:100%; 
+    height:100%;
+  }
+  
+  .audio-player-wrapper .center-ui{
+    position:absolute; 
+    inset:0; 
+    display:grid; 
+    place-items:center; 
+    pointer-events:none;
+  }
+  
+  .audio-player-wrapper .center-ui .stack{
+    pointer-events:auto; 
+    display:grid; 
+    place-items:center; 
+    gap:12px;
+  }
+
+  .audio-player-wrapper .play{ 
+    width: clamp(3.5rem, 15vw, 5.375rem);
+    height: clamp(3.5rem, 15vw, 5.375rem);
+    border-radius:999px; 
+    border:none; 
+    cursor:pointer; 
+    background:linear-gradient(180deg, var(--accent), #17894f); 
+    color:white; 
+    display:grid; 
+    place-items:center; 
+    transition: transform .08s ease, filter .2s ease;
+  }
+  
+  .audio-player-wrapper .play:active{ 
+    transform: scale(.98); 
+  }
+  
+  .audio-player-wrapper .play svg{ 
+    width: clamp(1.5rem, 6vw, 2.25rem);
+    height: clamp(1.5rem, 6vw, 2.25rem);
+  }
+
+  .audio-player-wrapper .time{
+    display:flex; 
+    align-items:center; 
+    gap: clamp(0.375rem, 1.5vw, 0.5rem);
+    font-feature-settings:"tnum" 1, "lnum" 1; 
+    font-size: clamp(0.85rem, 2vw, 1rem);
+    background:whitesmoke; 
+    padding: clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 1.5vw, 0.625rem);
+    border-radius:10px; 
+    border:1px solid rgba(255,255,255,.06);
+  }
+
+  .audio-player-wrapper .controls{ 
+    display:flex; 
+    align-items:center; 
+    gap: clamp(0.5rem, 2vw, 0.875rem);
+    margin-top:0.125rem; 
+    justify-content:center; 
+    flex-wrap:wrap; 
+  }
+  
+  .audio-player-wrapper .controls .volume{ 
+    display:flex; 
+    align-items:center; 
+    gap: clamp(0.5rem, 1.5vw, 0.625rem);
+    background:whitesmoke; 
+    padding: clamp(0.01rem, 0.1vw, 0.1rem) clamp(0.5rem, 1.5vw, 0.625rem);
+    border-radius:12px; 
+    border:1px solid rgba(255,255,255,.06);
+  }
+  
+  .audio-player-wrapper .controls input[type="range"]{ 
+    -webkit-appearance:none; 
+    appearance:none; 
+    width: clamp(100px, 30vw, 160px);
+    height:4px; 
+    background:var(--ring); 
+    border-radius:999px; 
+    outline:none;
+  }
+  
+  .audio-player-wrapper .controls input[type="range"]::-webkit-slider-thumb{ 
+    -webkit-appearance:none; 
+    appearance:none; 
+    width:16px; 
+    height:16px; 
+    border-radius:50%; 
+    background:var(--knob); 
+    border:2px solid #0a1114; 
+    cursor:pointer;
+  }
+  
+  .audio-player-wrapper .controls input[type="range"]::-moz-range-thumb{ 
+    width:16px; 
+    height:16px; 
+    border-radius:50%; 
+    background:var(--knob); 
+    border:2px solid #0a1114; 
+    cursor:pointer;
+  }
+
+  /* アクセシビリティ: キーボードフォーカス */
+  .audio-player-wrapper button:focus-visible, 
+  .audio-player-wrapper input:focus-visible{ 
+    outline:2px solid #66e4a0; 
+    outline-offset:2px; 
+  }
+</style>
+
+<script define:vars={{ audioSrc }}>
+  const audio = document.getElementById('audio');
+  const playBtn = document.getElementById('play');
+  const playIcon = document.getElementById('playIcon');
+  const circleEl = document.getElementById('circle');
+  const progressPath = document.getElementById('progressPath');
+  const knob = document.getElementById('knob');
+  const curEl = document.getElementById('cur');
+  const durEl = document.getElementById('dur');
+  const vol = document.getElementById('vol');
+
+  // 初期音量
+  audio.volume = parseFloat(vol.value);
+
+  // 音源を設定
+  audio.src = audioSrc;
+  audio.load();
+
+  // 再生/一時停止
+  function setPlayingUI(playing){
+    playBtn.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    playIcon.innerHTML = playing
+      ? '<path d="M6 6h4v12H6zM14 6h4v12h-4z"/>' // pause
+      : '<path d="M8 5v14l11-7-11-7z"/>';        // play
+  }
+  playBtn.addEventListener('click', ()=>{
+    if(audio.src === '') return; // ファイル未選択
+    if(audio.paused) audio.play(); else audio.pause();
+  });
+  audio.addEventListener('play', ()=> setPlayingUI(true));
+  audio.addEventListener('pause', ()=> setPlayingUI(false));
+
+  // 時間表示
+  const fmt = s => {
+    if(!isFinite(s)) return '00:00';
+    const m = Math.floor(s/60).toString().padStart(2,'0');
+    const sec = Math.floor(s%60).toString().padStart(2,'0');
+    return `${m}:${sec}`;
+  };
+
+  audio.addEventListener('loadedmetadata', ()=>{
+    durEl.textContent = fmt(audio.duration);
+    updateProgress();
+  });
+  audio.addEventListener('timeupdate', updateProgress);
+
+  // 円弧描画（12時始点→時計回り）
+  function polarToCartesian(cx, cy, r, deg){
+    const rad = (deg-90) * Math.PI / 180.0;
+    return { x: cx + (r * Math.cos(rad)), y: cy + (r * Math.sin(rad)) };
+  }
+  function describeArc(x, y, r, start, end){
+    const startPt = polarToCartesian(x, y, r, end);
+    const endPt   = polarToCartesian(x, y, r, start);
+    const largeArcFlag = end - start <= 180 ? '0' : '1';
+    return [
+      'M', startPt.x, startPt.y,
+      'A', r, r, 0, largeArcFlag, 0, endPt.x, endPt.y
+    ].join(' ');
+  }
+
+  function updateProgress(){
+    const cur = audio.currentTime || 0;
+    const dur = audio.duration || 0;
+    curEl.textContent = fmt(cur);
+    durEl.textContent = fmt(dur);
+
+    const pct = dur ? cur / dur : 0;
+    const endDeg = 360 * pct; // 0→360
+    // 角度0=12時から endDeg までを描く
+    if(endDeg <= 0){
+      progressPath.setAttribute('d','');
+    }else{
+      const d = describeArc(50, 50, 42, 0, endDeg);
+      progressPath.setAttribute('d', d);
+    }
+    // ノブ位置を更新
+    const k = polarToCartesian(50,50,42, endDeg);
+    knob.setAttribute('cx', k.x.toFixed(3));
+    knob.setAttribute('cy', k.y.toFixed(3));
+    circleEl.setAttribute('aria-valuenow', Math.round(pct*100));
+  }
+
+  // リングでのシーク（クリック/ドラッグ）
+  let dragging = false;
+  function pointToAngle(clientX, clientY){
+    const rect = circleEl.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    let deg = (Math.atan2(dy, dx) * 180 / Math.PI) + 90; // 12時基準
+    if(deg < 0) deg += 360;
+    return deg; // 0..360
+  }
+  function withinRing(clientX, clientY){
+    const rect = circleEl.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    const outer = rect.width * 0.5;        // 半径=幅の半分
+    const inner = outer - 26;              // トラック幅(約8) + 余白
+    return dist <= outer && dist >= inner;
+  }
+
+  function seekFromClientXY(x, y){
+    if(!isFinite(audio.duration)) return;
+    const deg = pointToAngle(x, y);
+    const pct = deg / 360;
+    audio.currentTime = audio.duration * pct;
+    updateProgress();
+  }
+
+  circleEl.addEventListener('pointerdown', (e)=>{
+    if(withinRing(e.clientX, e.clientY)){
+      dragging = true;
+      circleEl.setPointerCapture(e.pointerId);
+      seekFromClientXY(e.clientX, e.clientY);
+    }
+  });
+  circleEl.addEventListener('pointermove', (e)=>{
+    if(dragging){
+      seekFromClientXY(e.clientX, e.clientY);
+    }
+  });
+  const endDrag = (e)=>{ dragging = false; try{ circleEl.releasePointerCapture(e.pointerId); }catch(_){} };
+  circleEl.addEventListener('pointerup', endDrag);
+  circleEl.addEventListener('pointercancel', endDrag);
+  circleEl.addEventListener('lostpointercapture', ()=> dragging=false);
+
+  // キーボード操作（フォーカスを円に当てた状態）
+  circleEl.addEventListener('keydown', (e)=>{
+    if(!isFinite(audio.duration)) return;
+    const step = 5; // 秒
+    if(e.key === 'ArrowRight'){ audio.currentTime = Math.min(audio.duration, audio.currentTime + step); e.preventDefault(); }
+    if(e.key === 'ArrowLeft'){  audio.currentTime = Math.max(0, audio.currentTime - step); e.preventDefault(); }
+    if(e.key === 'Home'){ audio.currentTime = 0; e.preventDefault(); }
+    if(e.key === 'End'){ audio.currentTime = audio.duration; e.preventDefault(); }
+    updateProgress();
+  });
+
+  // 全体のキーボード（スペースと音量）
+  window.addEventListener('keydown', (e)=>{
+    if(e.code === 'Space'){
+      if(audio.src === '') return;
+      if((document.activeElement === circleEl) || (document.activeElement === document.body) || (document.activeElement === playBtn)){
+        e.preventDefault();
+        if(audio.paused) audio.play(); else audio.pause();
+      }
+    }else if(e.key === 'ArrowUp'){
+      audio.volume = Math.min(1, audio.volume + 0.05);
+      vol.value = audio.volume.toFixed(2);
+    }else if(e.key === 'ArrowDown'){
+      audio.volume = Math.max(0, audio.volume - 0.05);
+      vol.value = audio.volume.toFixed(2);
+    }
+  });
+
+  // 音量
+  vol.addEventListener('input', ()=>{
+    audio.volume = parseFloat(vol.value);
+  });
+
+  // 再生終了時: 0に戻す
+  audio.addEventListener('ended', ()=>{
+    updateProgress();
+    setPlayingUI(false);
+  });
+</script>
+

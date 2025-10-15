@@ -12,6 +12,77 @@ media_folder: "public/images/uploads"
 public_folder: "/images/uploads"
 
 collections:
+  - name: "blog"
+    label: "Blog"
+    folder: "src/content/blog"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    format: "frontmatter"
+    fields:
+      - label: "タイトル"
+        name: "title"
+        widget: "string"
+        required: true
+        hint: "記事のタイトルを入力してください（50文字以内推奨）"
+      - label: "公開日"
+        name: "date"
+        widget: "datetime"
+        format: "YYYY-MM-DD"
+        date_format: "YYYY-MM-DD"
+        time_format: false
+        required: true
+        default: "{{now}}"
+        hint: "記事の公開日を選択してください"
+      - label: "著者"
+        name: "author"
+        widget: "relation"
+        collection: "member"
+        search_fields: ["name","id"]
+        value_field: "id"
+        display_fields: ["name"]
+        multiple: false
+        required: true
+        hint: "記事の著者を選択してください"
+      - label: "タグ"
+        name: "tags"
+        widget: "list"
+        required: false
+        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
+      - label: "カバー画像"
+        name: "cover"
+        widget: "image"
+        required: false
+        hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
+        media_library:
+          config:
+            max_file_size: 2097152  # 2MB
+      - label: "本文"
+        name: "body"
+        widget: "markdown"
+        required: true
+        hint: "記事の本文をマークダウン形式で入力してください"
+
+  # ライブ
+  - name: "live"
+    label: "Live"
+    folder: "src/content/live"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{city}}-{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "公演日", name: "date", widget: "datetime", format: "YYYY-MM-DDTHH:mm", required: true, default: "{{now}}" }
+      - { label: "会場", name: "venue", widget: "string", required: true }
+      - { label: "都市", name: "city", widget: "string", required: true }
+      - { label: "開場", name: "doors", widget: "string", required: false, hint: "例 18:30" }
+      - { label: "開演", name: "start", widget: "string", required: false, hint: "例 19:00" }
+      - { label: "チケットURL", name: "ticketUrl", widget: "string", required: false }
+      - { label: "価格", name: "price", widget: "string", required: false }
+      - { label: "ステータス", name: "status", widget: "select", options: ["scheduled","soldout","canceled","finished"], default: "scheduled" }
+      - { label: "本文（補足）", name: "body", widget: "markdown", required: false }
+
+
   - name: "member"
     label: "メンバー"
     folder: "src/content/member"
@@ -95,73 +166,3 @@ collections:
         required: false
       - { label: "本文（任意）", name: "body", widget: "markdown", required: false }
 
-  # ライブ
-  - name: "live"
-    label: "ライブ"
-    folder: "src/content/live"
-    extension: "mdx"
-    create: true
-    slug: "{{year}}-{{month}}-{{day}}-{{city}}-{{slug}}"
-    format: "frontmatter"
-    fields:
-      - { label: "公演日", name: "date", widget: "datetime", format: "YYYY-MM-DDTHH:mm", required: true, default: "{{now}}" }
-      - { label: "会場", name: "venue", widget: "string", required: true }
-      - { label: "都市", name: "city", widget: "string", required: true }
-      - { label: "開場", name: "doors", widget: "string", required: false, hint: "例 18:30" }
-      - { label: "開演", name: "start", widget: "string", required: false, hint: "例 19:00" }
-      - { label: "チケットURL", name: "ticketUrl", widget: "string", required: false }
-      - { label: "価格", name: "price", widget: "string", required: false }
-      - { label: "ステータス", name: "status", widget: "select", options: ["scheduled","soldout","canceled","finished"], default: "scheduled" }
-      - { label: "本文（補足）", name: "body", widget: "markdown", required: false }
-
-
-  - name: "blog"
-    label: "ブログ"
-    folder: "src/content/blog"
-    extension: "mdx"
-    create: true
-    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
-    format: "frontmatter"
-    fields:
-      - label: "タイトル"
-        name: "title"
-        widget: "string"
-        required: true
-        hint: "記事のタイトルを入力してください（50文字以内推奨）"
-      - label: "公開日"
-        name: "date"
-        widget: "datetime"
-        format: "YYYY-MM-DD"
-        date_format: "YYYY-MM-DD"
-        time_format: false
-        required: true
-        default: "{{now}}"
-        hint: "記事の公開日を選択してください"
-      - label: "著者"
-        name: "author"
-        widget: "relation"
-        collection: "member"
-        search_fields: ["name","id"]
-        value_field: "id"
-        display_fields: ["name"]
-        multiple: false
-        required: true
-        hint: "記事の著者を選択してください"
-      - label: "タグ"
-        name: "tags"
-        widget: "list"
-        required: false
-        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
-      - label: "カバー画像"
-        name: "cover"
-        widget: "image"
-        required: false
-        hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
-        media_library:
-          config:
-            max_file_size: 2097152  # 2MB
-      - label: "本文"
-        name: "body"
-        widget: "markdown"
-        required: true
-        hint: "記事の本文をマークダウン形式で入力してください"
