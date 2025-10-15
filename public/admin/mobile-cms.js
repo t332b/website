@@ -9,107 +9,104 @@
   function initMobileFeatures() {
     if (isInitialized || window.innerWidth > 799) return;
     
-    // ハンバーガーメニューの作成
-    createHamburgerMenu();
-    
     // 編集画面のヘッダー作成
     createEditorHeader();
     
     isInitialized = true;
   }
   
-  function createHamburgerMenu() {
-    const header = document.querySelector('[class*="AppHeaderContent"]');
-    if (!header || document.querySelector('.mobile-header-main')) return;
-    
-    // 既存のボタンを非表示
-    const existingButtons = header.querySelectorAll('[class*="AppHeaderButton"], [class*="AppHeaderQuickNewButton"]');
-    existingButtons.forEach(btn => {
-      btn.style.display = 'none';
-    });
-    
-    // ハンバーガーメニューのHTML
-    const hamburgerHTML = `
-      <div class="mobile-header-main">
-        <div class="mobile-hamburger" id="mobile-hamburger">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <h1 class="mobile-header-title">CMS管理画面</h1>
-        <div style="width: 44px;"></div>
-      </div>
-      <div class="mobile-menu-dropdown" id="mobile-menu">
-        <a href="/admin" class="mobile-menu-item">🏠 ダッシュボード</a>
-        <a href="/admin#/collections/blog" class="mobile-menu-item">📝 ブログ</a>
-        <a href="/admin#/collections/member" class="mobile-menu-item">👥 メンバー</a>
-        <a href="/admin#/collections/tracks" class="mobile-menu-item">🎵 曲リスト</a>
-        <a href="/admin#/collections/works" class="mobile-menu-item">💿 作品</a>
-        <a href="/admin#/collections/live" class="mobile-menu-item">🎤 ライブ</a>
-        <a href="/admin#/media" class="mobile-menu-item">📁 メディア</a>
-      </div>
-    `;
-    
-    header.innerHTML = hamburgerHTML;
-    
-    // ハンバーガーメニューのイベント
-    const hamburger = document.getElementById('mobile-hamburger');
-    const menu = document.getElementById('mobile-menu');
-    
-    if (hamburger && menu) {
-      hamburger.addEventListener('click', function(e) {
-        e.stopPropagation();
-        menu.classList.toggle('active');
-      });
-      
-      // メニュー外をクリックしたら閉じる
-      document.addEventListener('click', function(e) {
-        if (!hamburger.contains(e.target) && !menu.contains(e.target)) {
-          menu.classList.remove('active');
-        }
-      });
-    }
-  }
-  
   function createEditorHeader() {
     const editorContainer = document.querySelector('[class*="EditorContainer"]');
-    if (!editorContainer || document.querySelector('.mobile-editor-header')) return;
+    if (!editorContainer || document.querySelector('.mobile-format-toggle-btn')) return;
     
     // ブログ編集画面かどうかをチェック
-    const isBlogEditPage = window.location.hash.includes('/collections/blog/') && window.location.hash.includes('/entries/');
+    const isBlogEditPage = window.location.hash.includes('/collections/') && window.location.hash.includes('/entries/');
     if (!isBlogEditPage) return;
     
-    // 戻るボタンのテキストを取得
-    const backButton = document.querySelector('[class*="BackCollection"]');
-    const backText = backButton ? backButton.textContent.trim() : '戻る';
+    // 書式設定トグルボタンと書式設定ツールバーを作成
+    createFormatToolbar();
     
-    // 編集ヘッダーのHTML
-    const editorHeaderHTML = `
-      <div class="mobile-editor-header">
-        <a href="/admin#/collections/blog" class="mobile-back-button">
-          ← ${backText}
-        </a>
-        <button class="mobile-publish-button" id="mobile-publish-btn">
-          公開
-        </button>
-        <button class="mobile-preview-toggle" id="mobile-preview-btn">Preview</button>
-      </div>
+    // 元のToolbarContainerを非表示にする
+    const toolbarContainers = document.querySelectorAll('[class*="ToolbarContainer"]');
+    toolbarContainers.forEach(toolbar => {
+      // エディタ内の書式設定ツールバーのみを非表示
+      const isEditorToolbar = toolbar.querySelector('[class*="MarkdownButton"], button[title*="Bold"], button[title*="bold"]');
+      if (isEditorToolbar) {
+        toolbar.style.display = 'none';
+      }
+    });
+  }
+  
+  function createFormatToolbar() {
+    if (document.querySelector('.mobile-format-toggle-btn')) return;
+    
+    // 書式設定ツールバーのHTML
+    const formatToolbarHTML = `
+      <button class="mobile-format-toggle-btn" id="mobile-format-toggle-btn" title="書式設定">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" fill="currentColor">
+          <path d="M0 0h24v24H0z" fill="none"/>
+          <path d="M5 17v2h14v-2H5zm4.5-4.2h5l.9 2.2h2.1L12.75 4h-1.5L6.5 15h2.1l.9-2.2zM12 5.98L13.87 11h-3.74L12 5.98z"/>
+        </svg>
+      </button>
       <div class="mobile-format-toolbar" id="mobile-format-toolbar">
-        <button class="mobile-format-button" data-format="bold" title="太字">B</button>
-        <button class="mobile-format-button" data-format="italic" title="斜体">I</button>
-        <button class="mobile-format-button" data-format="link" title="リンク">🔗</button>
-        <button class="mobile-format-button" data-format="quote" title="引用">"</button>
-        <button class="mobile-format-button" data-format="code" title="コード">&lt;/&gt;</button>
-        <button class="mobile-format-button" data-format="header" title="見出し">H</button>
-        <button class="mobile-toolbar-toggle" id="mobile-toolbar-toggle">−</button>
+        <div class="mobile-format-toolbar-header">
+          <span>書式設定</span>
+          <button class="mobile-format-close" id="mobile-format-close">×</button>
+        </div>
+        <div class="mobile-format-buttons">
+          <button class="mobile-format-button" data-format="bold" title="太字"><strong>B</strong></button>
+          <button class="mobile-format-button" data-format="italic" title="斜体"><em>I</em></button>
+          <button class="mobile-format-button" data-format="link" title="リンク">🔗</button>
+          <button class="mobile-format-button" data-format="quote" title="引用">"</button>
+          <button class="mobile-format-button" data-format="code" title="コード">&lt;/&gt;</button>
+          <button class="mobile-format-button" data-format="header" title="見出し">H1</button>
+          <button class="mobile-format-button" data-format="list" title="リスト">•</button>
+          <button class="mobile-format-button" data-format="image" title="画像">🖼</button>
+        </div>
       </div>
     `;
     
-    // ヘッダーをエディタの前に挿入
-    editorContainer.insertAdjacentHTML('beforebegin', editorHeaderHTML);
+    // body に追加
+    document.body.insertAdjacentHTML('beforeend', formatToolbarHTML);
     
     // イベントリスナーの追加
-    setupEditorEvents();
+    setupFormatToolbarEvents();
+  }
+  
+  function setupFormatToolbarEvents() {
+    const toggleBtn = document.getElementById('mobile-format-toggle-btn');
+    const toolbar = document.getElementById('mobile-format-toolbar');
+    const closeBtn = document.getElementById('mobile-format-close');
+    
+    if (toggleBtn && toolbar) {
+      toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toolbar.classList.toggle('active');
+      });
+    }
+    
+    if (closeBtn && toolbar) {
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        toolbar.classList.remove('active');
+      });
+    }
+    
+    // ツールバー外をクリックしたら閉じる
+    document.addEventListener('click', function(e) {
+      if (toolbar && !toolbar.contains(e.target) && !toggleBtn.contains(e.target)) {
+        toolbar.classList.remove('active');
+      }
+    });
+    
+    // フォーマットボタン
+    const formatButtons = document.querySelectorAll('.mobile-format-button[data-format]');
+    formatButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const format = this.dataset.format;
+        applyFormat(format);
+      });
+    });
   }
   
   function setupEditorEvents() {
@@ -212,6 +209,12 @@
       case 'header':
         formattedText = `## ${selectedText}`;
         break;
+      case 'list':
+        formattedText = `- ${selectedText}`;
+        break;
+      case 'image':
+        formattedText = `![${selectedText || 'alt text'}](image-url)`;
+        break;
     }
     
     const newText = textarea.value.substring(0, start) + formattedText + textarea.value.substring(end);
@@ -221,10 +224,16 @@
     const newStart = start + formattedText.length;
     textarea.setSelectionRange(newStart, newStart);
     textarea.focus();
+    
+    // 書式設定ツールバーを閉じる
+    const toolbar = document.getElementById('mobile-format-toolbar');
+    if (toolbar) {
+      toolbar.classList.remove('active');
+    }
   }
   
   function cleanup() {
-    const mobileElements = document.querySelectorAll('.mobile-header-main, .mobile-editor-header, .mobile-format-toolbar, .mobile-preview-pane');
+    const mobileElements = document.querySelectorAll('.mobile-editor-header, .mobile-format-toolbar, .mobile-format-toggle-btn, .mobile-preview-pane');
     mobileElements.forEach(el => {
       if (el && el.parentNode) {
         el.parentNode.removeChild(el);
