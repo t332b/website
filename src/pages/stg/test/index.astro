@@ -70,40 +70,39 @@ function getAvatarUrl(member: any) {
             const avatarUrl = getAvatarUrl(member);
             
             return (
-              <article class="blog-card tweet-card">
-                <!-- ヘッダー（メンバー情報） -->
-                <div style="display: flex; align-items: center; margin-bottom: 16px;">
-                  <img src={avatarUrl} alt="" width="48" height="48" 
-                       style="border-radius: 50%; border: 2px solid #e1e8ed; margin-right: 12px;" />
-                  <div style="flex: 1;">
-                    <div style="font-weight: 600; color: #14171a; margin-bottom: 2px;">
-                      {member?.name || p.data.author}
-                    </div>
-                    <div style="font-size: 0.9rem; color: #657786;">
-                      {d}
+              <a href={`/blog/${p.slug}/`} class="blog-card-link">
+                <article class="blog-card tweet-card">
+                  <!-- ヘッダー（メンバー情報） -->
+                  <div style="display: flex; align-items: center; margin-bottom: 16px;">
+                    <img src={avatarUrl} alt="" width="48" height="48" 
+                         style="border-radius: 50%; border: 2px solid #e1e8ed; margin-right: 12px;" />
+                    <div style="flex: 1;">
+                      <div style="font-weight: 600; color: #14171a; margin-bottom: 2px;">
+                        {member?.name || p.data.author}
+                      </div>
+                      <div style="font-size: 0.9rem; color: #657786;">
+                        {d}
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                <!-- 本文 -->
-                <div>
-                  <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; line-height: 1.4;">
-                    <a href={`/blog/${p.slug}/`} 
-                       style="color: #14171a; text-decoration: none; font-weight: 600;">
+                  
+                  <!-- 本文 -->
+                  <div>
+                    <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; line-height: 1.4; color: #14171a; font-weight: 600;">
                       {p.data.title}
-                    </a>
-                  </h3>
-                  {p.data.tags && p.data.tags.length > 0 && (
-                    <div style="font-size: 0.85rem; color: #1da1f2; margin-top: 8px;">
-                      {p.data.tags.map((tag: string) => (
-                        <span style="background: #e8f5fd; padding: 4px 8px; border-radius: 12px; margin-right: 6px;">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </article>
+                    </h3>
+                    {p.data.tags && p.data.tags.length > 0 && (
+                      <div style="font-size: 0.85rem; color: #1da1f2; margin-top: 8px;">
+                        {p.data.tags.map((tag: string) => (
+                          <span style="background: #e8f5fd; padding: 4px 8px; border-radius: 12px; margin-right: 6px;">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </article>
+              </a>
             )
           })}
         </div>
@@ -320,7 +319,6 @@ function getAvatarUrl(member: any) {
       color: var(--wa-ink);
       text-align: center;
       margin: 4rem 0 2rem 0;
-      font-family: 'Spectral', serif;
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
@@ -458,6 +456,12 @@ function getAvatarUrl(member: any) {
       margin-bottom: 4rem;
     }
 
+    .blog-card-link {
+      text-decoration: none;
+      display: block;
+      color: inherit;
+    }
+
     .blog-card {
       background: white;
       border: 1px solid #e1e8ed;
@@ -467,19 +471,10 @@ function getAvatarUrl(member: any) {
       transition: all 0.2s ease;
     }
 
-    .blog-card:hover {
+    .blog-card-link:hover .blog-card {
       transform: translateY(-2px);
       border-color: #1da1f2;
       box-shadow: 0 4px 12px rgba(29, 161, 242, 0.1);
-    }
-
-    .blog-card a {
-      color: #14171a;
-      text-decoration: none;
-    }
-
-    .blog-card a:hover {
-      color: #1da1f2;
     }
 
     /* ニュースレター */

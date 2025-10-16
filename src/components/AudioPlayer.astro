@@ -1,14 +1,15 @@
 ---
-const { audioSrc = '/music/intro.mp3' } = Astro.props;
+const { audioSrc = '/music/intro.mp3', jacketSrc = '/images/citrus.jpg' } = Astro.props;
 ---
 
 <div class="audio-player-wrapper">
   <div class="card" role="region" aria-label="オーディオプレーヤー">
     <div class="player">
     <div class="circle" id="circle" aria-label="再生位置スライダー" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
+      <img class="jacket" src={jacketSrc} alt="ジャケット画像" loading="lazy" />
       <svg viewBox="0 0 100 100">
         <!-- トラック（未再生） -->
-        <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="8" fill="none" />
+        <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="4" fill="none" />
         <!-- 進捗パス（濃い緑） -->
         <path id="progressPath" d="" stroke="var(--progress)" stroke-width="8" stroke-linecap="round" fill="none" />
         <!-- つまみ（ノブ） -->
@@ -78,8 +79,21 @@ const { audioSrc = '/music/intro.mp3' } = Astro.props;
   
   .audio-player-wrapper .circle{
     position:relative; 
-    width: clamp(200px, 60vw, 320px);
-    height: clamp(200px, 60vw, 320px);
+    width: clamp(240px, 70vw, 420px);
+    height: clamp(240px, 70vw, 420px);
+  }
+  .audio-player-wrapper .circle .jacket{
+    position:absolute;
+    top:50%; left:50%;
+    width:55%; height:55%;
+    transform: translate(-50%, -50%);
+    object-fit:contain; /* 元の四角い比率のまま */
+    z-index:0;
+    pointer-events:none;
+  }
+  .audio-player-wrapper .circle svg{
+    position:relative;
+    z-index:1;
   }
   
   .audio-player-wrapper svg{
@@ -94,6 +108,7 @@ const { audioSrc = '/music/intro.mp3' } = Astro.props;
     display:grid; 
     place-items:center; 
     pointer-events:none;
+    z-index:2;
   }
   
   .audio-player-wrapper .center-ui .stack{
@@ -114,7 +129,9 @@ const { audioSrc = '/music/intro.mp3' } = Astro.props;
     display:grid; 
     place-items:center; 
     transition: transform .08s ease, filter .2s ease;
+    opacity: 0.88;
   }
+  .audio-player-wrapper .play:hover{ opacity: 1; }
   
   .audio-player-wrapper .play:active{ 
     transform: scale(.98); 
@@ -135,15 +152,16 @@ const { audioSrc = '/music/intro.mp3' } = Astro.props;
     padding: clamp(0.25rem, 1vw, 0.375rem) clamp(0.5rem, 1.5vw, 0.625rem);
     border-radius:10px; 
     border:1px solid rgba(255,255,255,.06);
+    opacity: 0.9;
   }
 
   .audio-player-wrapper .controls{ 
     display:flex; 
+    flex-direction: column; 
     align-items:center; 
     gap: clamp(0.5rem, 2vw, 0.875rem);
     margin-top:0.125rem; 
     justify-content:center; 
-    flex-wrap:wrap; 
   }
   
   .audio-player-wrapper .controls .volume{ 
@@ -154,6 +172,7 @@ const { audioSrc = '/music/intro.mp3' } = Astro.props;
     padding: clamp(0.01rem, 0.1vw, 0.1rem) clamp(0.5rem, 1.5vw, 0.625rem);
     border-radius:12px; 
     border:1px solid rgba(255,255,255,.06);
+    opacity: 0.9;
   }
   
   .audio-player-wrapper .controls input[type="range"]{ 

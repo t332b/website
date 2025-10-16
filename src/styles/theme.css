@@ -1,6 +1,4 @@
-/* src/styles/theme.css  — Wes Anderson-ish theme */
 :root{
-  /* 受け取りやすいパステル群（必要に応じて微調整してな） */
   --wa-cream: #F7E9D7;
   --wa-butter: #F5D19A;
   --wa-mustard: #D7A449;
@@ -28,6 +26,22 @@ html,body{
   font-family: "Figtree", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans JP", sans-serif;
   line-height: 1.7;
 }
+
+/* テクスチャ効果のための疑似要素 */
+/* html::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/images/header_buildings.png');
+  background-size: cover;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: -1;
+  background-blend-mode: multiply;
+} */
 
 .container{
   max-width: 980px;
