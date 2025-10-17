@@ -26,13 +26,6 @@ function getAvatarUrl(member: any) {
 <Base title="PR0P0SE">
   <div class="main-container">
 
-    <!-- ナビゲーションセクション -->
-    <nav class="main-nav">
-      <a href="/blog/" class="nav-item">BLOG</a>
-      <a href="/works" class="nav-item">WORKS</a>
-      <a href="/live" class="nav-item">LIVE</a>
-    </nav>
-
     <!-- ソーシャルリンク -->
     <div class="social-links">
       <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link">
@@ -55,6 +48,17 @@ function getAvatarUrl(member: any) {
     <div class="wrap">
       <AudioPlayer audioSrc="/music/intro.mp3" />
     </div>
+
+    <!-- ナビゲーションセクション -->
+    <nav class="main-nav">
+      <a href="/blog/" class="nav-item">BLOG</a>
+      <a href="/works" class="nav-item">WORKS</a>
+      <a href="/live" class="nav-item">LIVE</a>
+    </nav>
+
+
+
+
 
 
 
@@ -288,7 +292,7 @@ function getAvatarUrl(member: any) {
       display: flex;
       justify-content: center;
       gap: 1.5rem;
-      padding: 2rem 0;
+      padding: 0.5rem 0;
     }
 
     .social-link {
@@ -318,7 +322,7 @@ function getAvatarUrl(member: any) {
       font-weight: 800;
       color: var(--wa-ink);
       text-align: center;
-      margin: 4rem 0 2rem 0;
+      margin: 2rem 0 2rem 0;
       text-transform: uppercase;
       letter-spacing: 0.1em;
     }
@@ -327,8 +331,8 @@ function getAvatarUrl(member: any) {
     .releases-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 2rem;
-      margin-bottom: 4rem;
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
 
     .release-card {

@@ -8,8 +8,34 @@ backend:
 site_url: https://pr0p0se.com
 display_url: https://pr0p0se.com
 
-media_folder: "public/images/uploads"
-public_folder: "/images/uploads"
+# Cloudinary設定
+# 署名なしアップロードを使用（upload_preset必須）
+# Cloudinaryダッシュボードで作成したプリセット名を指定してください
+media_library:
+  name: cloudinary
+  config:
+    cloud_name: djzxpyzu3
+    api_key: 719521938943924
+    
+    # アップロードプリセット（署名なしアップロード用）
+    # Cloudinaryダッシュボードで以下の手順で作成:
+    # 1. Settings → Upload → Upload presets
+    # 2. Add upload preset
+    # 3. Signing Mode: Unsigned を選択
+    # 4. プリセット名を設定
+    upload_preset: pr0p0se
+    
+    # 複数の画像を扱う場合
+    multiple: true
+    
+    # 最大ファイルサイズ（5MB）
+    max_file_size: 5242880
+    
+    # アップロードのみ（メディアライブラリ表示を簡略化）
+    output_filename_only: false
+    
+    # デフォルトのソースタブ（ローカルアップロードを最初に表示）
+    default_transformations: []
 
 collections:
   - name: "blog"
@@ -54,9 +80,6 @@ collections:
         widget: "image"
         required: false
         hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
-        media_library:
-          config:
-            max_file_size: 2097152  # 2MB
       - label: "本文"
         name: "body"
         widget: "markdown"
@@ -99,9 +122,6 @@ collections:
         name: "avatar"
         widget: "image"
         required: false
-        media_library:
-          config:
-            max_file_size: 1048576  # 1MB
 
   # 曲
   - name: "tracks"
