@@ -151,6 +151,18 @@ const {
     object-fit: contain; /* 元の四角い比率のまま */
     z-index: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease;
+    opacity: 0.6; /* ボタン表示時は透過 */
+  }
+  
+  /* 再生中でボタン非表示時（非アクティブ）：ジャケットを不透明に */
+  .audio-player-wrapper .circle.is-playing:not(.is-active) .jacket {
+    opacity: 1;
+  }
+  
+  /* PC: ホバー時はshow-buttonクラスでジャケットを透過 */
+  .audio-player-wrapper .circle.show-button .jacket {
+    opacity: 0.6;
   }
   .audio-player-wrapper .circle svg {
     position: relative;
@@ -196,18 +208,30 @@ const {
       transform 0.08s ease,
       filter 0.2s ease,
       opacity 0.3s ease;
-    opacity: 0.75;
+    opacity: 0.85;
   }
-  .audio-player-wrapper .play:hover {
-    opacity: 1;
+  /* ホバー効果（タッチデバイス以外） */
+  @media (hover: hover) and (pointer: fine) {
+    .audio-player-wrapper .play:hover {
+      opacity: 1;
+    }
   }
 
-  /* 再生中は非表示、ホバー時のみ表示 */
+  /* 再生中は非表示、ホバー/アクティブ時のみ表示 */
   .audio-player-wrapper .play.playing {
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  .audio-player-wrapper .play.playing:hover {
+  
+  /* PC: ホバー時に表示 */
+  @media (hover: hover) and (pointer: fine) {
+    .audio-player-wrapper .play.playing:hover {
+      opacity: 0.9;
+    }
+  }
+  
+  /* スマホ: アクティブ状態なら再生中でも表示 */
+  .audio-player-wrapper .circle.is-active .play.playing {
     opacity: 0.9;
   }
 
@@ -446,6 +470,10 @@ const {
   // 初期表示時に背景を更新
   updateVolumeBackground();
 
+  // タッチデバイスかどうかを検知（変数を先に宣言）
+  let isTouchDevice = false;
+  let wasPlayingBeforeClick = false; // クリック前の再生状態を保存
+
   // 再生/一時停止
   function setPlayingUI(playing) {
     playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
@@ -456,17 +484,68 @@ const {
     // 再生中はplayingクラスを追加
     if (playing) {
       playBtn.classList.add("playing");
+      circleEl.classList.add("is-playing");
+      
+      // 停止→再生の切り替え時のみ、自動的に非アクティブ化
+      if (!wasPlayingBeforeClick) {
+        circleEl.classList.remove("is-active");
+        circleEl.classList.remove("show-button");
+      }
     } else {
       playBtn.classList.remove("playing");
+      circleEl.classList.remove("is-playing");
+      circleEl.classList.remove("show-button"); // 停止時はホバー状態もリセット
     }
   }
   playBtn.addEventListener("click", () => {
     if (audio.src === "") return; // ファイル未選択
+    
+    // クリック前の再生状態を保存
+    wasPlayingBeforeClick = !audio.paused;
+    
+    // スマホの場合、タップでアクティブ化
+    if (isTouchDevice) {
+      circleEl.classList.add("is-active");
+    }
+    
     if (audio.paused) audio.play();
     else audio.pause();
   });
+  
   audio.addEventListener("play", () => setPlayingUI(true));
   audio.addEventListener("pause", () => setPlayingUI(false));
+
+  // タッチイベントが発生したらタッチデバイスとしてマーク
+  const markAsTouchDevice = () => {
+    isTouchDevice = true;
+    document.body.classList.add("is-touch-device"); // ボディにマーク
+  };
+
+  playBtn.addEventListener("touchstart", markAsTouchDevice, { passive: true });
+  circleEl.addEventListener("touchstart", markAsTouchDevice, { passive: true });
+
+  // PC: ボタンホバー時にジャケットを透過
+  playBtn.addEventListener("mouseenter", () => {
+    if (isTouchDevice) return; // タッチデバイスでは無視
+    if (!audio.paused) {
+      circleEl.classList.add("show-button");
+    }
+  });
+  
+  playBtn.addEventListener("mouseleave", () => {
+    if (isTouchDevice) return;
+    circleEl.classList.remove("show-button");
+  });
+
+  // スマホ: サークル外をタップしたら非アクティブ化
+  if (isTouchDevice || 'ontouchstart' in window) {
+    document.addEventListener("touchstart", (e) => {
+      // サークル外をタップした場合
+      if (!circleEl.contains(e.target)) {
+        circleEl.classList.remove("is-active");
+      }
+    }, { passive: true });
+  }
 
   // 時間表示
   const fmt = (s) => {
