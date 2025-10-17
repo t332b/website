@@ -23,7 +23,7 @@
 html,body{
   background: var(--bg);
   color: var(--fg);
-  font-family: "Figtree", system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic", "Noto Sans JP", sans-serif;
+  font-family: "Menlo", "PT Mono", "Courier New", monospace;
   line-height: 1.7;
 }
 
@@ -46,12 +46,12 @@ html,body{
 .container{
   max-width: 980px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 0 16px;
 }
 
 .header{
   position: relative;
-  height: 200px;
+  height: 100px;
   overflow: hidden;
   border-bottom: 2px solid var(--wa-butter);
 }
@@ -90,7 +90,7 @@ html,body{
   justify-content: space-between;
   gap: 16px;
   height: 100%;
-  padding: 20px 0;
+  padding: 0;
 }
 
 .brand{
@@ -98,7 +98,7 @@ html,body{
   font-weight: 800; letter-spacing:.5px;
   color: white;
   text-decoration: none;
-  font-family: "Spectral", ui-serif, "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP", serif;
+  font-family: "Menlo", "PT Mono", "Courier New", monospace;
   font-size: 24px;
   text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
@@ -162,7 +162,7 @@ html,body{
 /* モバイル対応 */
 @media (max-width: 768px) {
   .header{
-    height: 150px;
+    height: 75px;
   }
   .header-content{
     flex-direction: column; gap: 12px;
@@ -248,10 +248,7 @@ html,body{
   max-width: 70ch;
   font-size: 17px;
 }
-.content h1,.content h2,.content h3{
-  font-family: "Spectral", ui-serif, "Hiragino Mincho ProN","Yu Mincho","Noto Serif JP", serif;
-  letter-spacing:.2px;
-}
+.content h1,.content h2,.content h3{ font-family: inherit; letter-spacing:.2px; }
 .content h1{ font-size: 28px; margin: 6px 0 8px; }
 .content h2{ font-size: 22px; margin: 20px 0 6px; }
 .content p{ margin: 10px 0; }
