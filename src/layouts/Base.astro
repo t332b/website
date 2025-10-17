@@ -1,25 +1,35 @@
 ---
 import "../styles/theme.css";
 const { title = "Unit Site" } = Astro.props;
+import AudioPlayer from "../components/AudioPlayer.astro";
+import SocialLinksGrid from "../components/SocialLinksGrid.astro";
 ---
+
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    
+
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <!-- Google Fonts（見出し=Spectral / 本文=Figtree） -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Spectral:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Spectral:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div class="container">
       <header class="header">
         <div class="header-background">
-          <img src="/images/header_buildings.png" alt="buildings" class="header-image" />
+          <img
+            src="/images/header_buildings.png"
+            alt="buildings"
+            class="header-image"
+          />
           <!-- <div class="header-overlay"></div> -->
         </div>
         <div class="header-content">
@@ -30,13 +40,43 @@ const { title = "Unit Site" } = Astro.props;
         </div>
       </header>
 
-      <main class="main">
-        <slot />
-      </main>
-
-      <footer class="footer">
-        © {new Date().getFullYear()} PR0P0SE
-      </footer>
+      <!-- 共通: ソーシャルリンク & オーディオプレイヤー -->
+      <div class="global-header-extras">
+        <div class="extras-inner">
+          <div class="social-column">
+            <SocialLinksGrid
+              columns={1}
+              size={36}
+              gap={8}
+              links={[
+                { href: "https://bandcamp.com/", imgSrc: "/images/logo/Bandcamp-button-bc-circle-black.svg.png", alt: "Bandcamp" },
+                { href: "https://www.youtube.com/", imgSrc: "/images/logo/icons8-youtube.svg", alt: "YouTube" },
+                { href: "https://soundcloud.com/", imgSrc: "/images/logo/soundcloud-icon.svg", alt: "SoundCloud" },
+              ]}
+            />
+          </div>
+          <div class="global-player-wrap">
+            <AudioPlayer scale={0.75} audioSrc="/music/intro.mp3" />
+          </div>
+        </div>
+      </div>
     </div>
+
+    <main class="main">
+      <slot />
+    </main>
+
+    <footer class="footer">
+      © {new Date().getFullYear()} PR0P0SE
+    </footer>
   </body>
 </html>
+
+<style>
+  .global-header-extras {
+    padding: clamp(0.25rem, 1.5vw, 0.75rem) 0;
+  }
+  .extras-inner{ display:flex; align-items:center; justify-content:space-between; gap: 16px; }
+  .social-column{ width: 56px; flex: 0 0 auto; }
+  .global-player-wrap{ flex: 1; display:flex; justify-content:flex-end; }
+</style>

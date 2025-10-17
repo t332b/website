@@ -1,0 +1,63 @@
+---
+interface LinkItem {
+  href: string;
+  imgSrc: string;
+  alt: string;
+}
+
+const {
+  links = [] as LinkItem[],
+  columns = 3,
+  size = 40, // 1セルの幅高さ(px)
+  gap = 10,
+} = Astro.props;
+
+const gridStyle = `
+  grid-template-columns: repeat(${columns}, ${size}px);
+  grid-auto-rows: ${size}px;
+  gap: ${gap}px;
+`;
+---
+
+<div class="social-grid" style={gridStyle}>
+  {links.map((l: LinkItem) => (
+    <a href={l.href} target="_blank" rel="noopener noreferrer" class="social-link">
+      <img src={l.imgSrc} alt={l.alt} />
+    </a>
+  ))}
+  
+  <!-- 足りないセルは空のプレースホルダで均等な見た目を維持（任意） -->
+  {Array.from({ length: Math.max(0, columns * 4 - links.length) }).map(() => (
+    <span class="placeholder" aria-hidden="true"></span>
+  ))}
+</div>
+
+<style>
+  .social-grid{
+    display: grid;
+    align-content: center;
+    justify-content: start;
+  }
+  .social-link{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%; height: 100%;
+    border-radius: 10px;
+    background: var(--wa-cream, #f6f3ea);
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+  .social-link:hover{
+    background: var(--wa-teal, #2bb6a9);
+    transform: translateY(-2px);
+  }
+  .social-link img{ width: 50%; height: 50%; object-fit: contain; }
+  .placeholder{ display: block; border-radius: 10px; opacity: 0; }
+  
+  @media (max-width: 768px){
+    .social-grid{ justify-content: center; }
+  }
+</style>
+
+
