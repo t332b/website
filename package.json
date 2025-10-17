@@ -18,6 +18,8 @@
   },
   "devDependencies": {
     "@astrojs/mdx": "^4.3.4",
-    "decap-cms": "^3.6.2"
+    "cloudinary": "^2.7.0",
+    "decap-cms": "^3.6.2",
+    "dotenv": "^17.2.3"
   }
 }
