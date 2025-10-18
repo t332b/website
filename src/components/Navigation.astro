@@ -1,0 +1,40 @@
+---
+// ナビゲーションコンポーネント
+---
+
+<nav class="main-nav">
+  <a href="/blog/" class="nav-item">BLOG</a>
+  <a href="/works" class="nav-item">WORKS</a>
+  <a href="/live" class="nav-item">LIVE</a>
+</nav>
+
+<style>
+  .main-nav {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .nav-item {
+    padding: 0.35rem 1rem;
+    text-decoration: none;
+    color: #333;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-item:hover {
+    border-color: var(--accent, #6f42c1);
+    background-color: rgba(111, 66, 193, 0.05);
+  }
+
+  .nav-item:active {
+    transform: scale(0.95);
+  }
+</style>
+

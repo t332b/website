@@ -1,8 +1,8 @@
 ---
 import "../styles/theme.css";
-const { title = "Unit Site" } = Astro.props;
+const { title = "PR0P0SE" } = Astro.props;
 import AudioPlayer from "../components/AudioPlayer.astro";
-import SocialLinksGrid from "../components/SocialLinksGrid.astro";
+import Navigation from "../components/Navigation.astro";
 ---
 
 <html lang="ja">
@@ -24,42 +24,31 @@ import SocialLinksGrid from "../components/SocialLinksGrid.astro";
   <body>
     <div class="container">
       <header class="header">
-        <div class="header-background">
-          <img
-            src="/images/header_buildings.png"
-            alt="buildings"
-            class="header-image"
-          />
-          <!-- <div class="header-overlay"></div> -->
-        </div>
         <div class="header-content">
           <a class="brand" href="/">
-            <span class="brand-badge" aria-hidden="true"></span>
             <span>PR0P0SE</span>
           </a>
+          <div class="header-social">
+            <a href="https://bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/Bandcamp-button-bc-circle-black.svg.png" alt="Bandcamp" />
+            </a>
+            <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/icons8-youtube.svg" alt="YouTube" />
+            </a>
+            <a href="https://soundcloud.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/soundcloud-icon.svg" alt="SoundCloud" />
+            </a>
+          </div>
         </div>
       </header>
 
-      <!-- 共通: ソーシャルリンク & オーディオプレイヤー -->
-      <div class="global-header-extras">
-        <div class="extras-inner">
-          <div class="social-column">
-            <SocialLinksGrid
-              columns={1}
-              size={36}
-              gap={8}
-              links={[
-                { href: "https://bandcamp.com/", imgSrc: "/images/logo/Bandcamp-button-bc-circle-black.svg.png", alt: "Bandcamp" },
-                { href: "https://www.youtube.com/", imgSrc: "/images/logo/icons8-youtube.svg", alt: "YouTube" },
-                { href: "https://soundcloud.com/", imgSrc: "/images/logo/soundcloud-icon.svg", alt: "SoundCloud" },
-              ]}
-            />
-          </div>
-          <div class="global-player-wrap">
-            <AudioPlayer scale={0.75} audioSrc="/music/intro.mp3" />
-          </div>
-        </div>
+      <!-- オーディオプレイヤー -->
+      <div class="global-player-wrap">
+        <AudioPlayer scale={0.75} audioSrc="/music/intro.mp3" />
       </div>
+
+      <!-- 共通ナビゲーション -->
+      <Navigation />
     </div>
 
     <main class="main">
@@ -73,10 +62,55 @@ import SocialLinksGrid from "../components/SocialLinksGrid.astro";
 </html>
 
 <style>
-  .global-header-extras {
-    padding: clamp(0.25rem, 1.5vw, 0.75rem) 0;
+  .header-content {
+    position: relative;
   }
-  .extras-inner{ display:flex; align-items:center; justify-content:space-between; gap: 16px; }
-  .social-column{ width: 56px; flex: 0 0 auto; }
-  .global-player-wrap{ flex: 1; display:flex; justify-content:flex-end; }
+
+  .header-social {
+    position: absolute;
+    bottom: 4px;
+    right: 0;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--wa-cream, #f6f3ea);
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .social-link:hover {
+    background: var(--wa-teal, #2bb6a9);
+    transform: translateY(-2px);
+  }
+
+  .social-link img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+  }
+  
+  .global-player-wrap{ 
+    display: flex; 
+    justify-content: flex-end; 
+    padding: 0.25rem 0;
+    margin-bottom: 0.25rem;
+  }
+
+  @media (max-width: 768px) {
+    .header-social {
+      position: relative;
+      bottom: auto;
+      right: auto;
+      order: 2;
+    }
+  }
 </style>
