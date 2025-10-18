@@ -51,9 +51,10 @@ html,body{
 
 .header{
   position: relative;
-  height: 100px;
-  overflow: hidden;
+  height: 60px;
+  overflow: visible;
   border-bottom: 2px solid var(--wa-butter);
+  margin-bottom: 0;
 }
 
 .header-background{
@@ -86,21 +87,21 @@ html,body{
   position: relative;
   z-index: 3;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   height: 100%;
-  padding: 0;
+  padding: 8px 0 0 0;
 }
 
 .brand{
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; gap:6px;
   font-weight: 800; letter-spacing:.5px;
-  color: white;
+  color: #444;
   text-decoration: none;
   font-family: "Menlo", "PT Mono", "Courier New", monospace;
-  font-size: 24px;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  font-size: 18px;
+  text-shadow: none;
 }
 .brand-badge{
   width: 32px; height: 32px; border-radius: 8px;
@@ -162,15 +163,16 @@ html,body{
 /* モバイル対応 */
 @media (max-width: 768px) {
   .header{
-    height: 75px;
+    height: 55px;
   }
   .header-content{
-    flex-direction: column; gap: 12px;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column; gap: 4px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 6px 0 0 0;
   }
   .brand{
-    font-size: 20px;
+    font-size: 16px;
     order: 1;
   }
   .nav{
@@ -193,11 +195,11 @@ html,body{
   }
 }
 
-.main{ padding: 20px 0 36px; }
+.main{ padding: 10px 0 20px; }
 
 .footer{
   border-top: 2px solid var(--wa-butter);
-  padding: 18px 0; font-size:13px; color: var(--muted);
+  padding: 12px 0; font-size:12px; color: var(--muted);
 }
 
 /* カード & リスト */
