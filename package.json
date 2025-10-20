@@ -20,6 +20,8 @@
     "@astrojs/mdx": "^4.3.4",
     "cloudinary": "^2.7.0",
     "decap-cms": "^3.6.2",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1"
   }
 }

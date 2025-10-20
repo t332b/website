@@ -22,6 +22,12 @@ import Navigation from "../components/Navigation.astro";
     />
   </head>
   <body>
+    <svg width="0" height="0" style="position:absolute">
+      <filter id="grain">
+        <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch"/>
+        <feColorMatrix type="saturate" values="0"/>
+      </filter>
+    </svg>
     <div class="container">
       <header class="header">
         <div class="header-content">
@@ -44,7 +50,7 @@ import Navigation from "../components/Navigation.astro";
 
       <!-- オーディオプレイヤー -->
       <div class="global-player-wrap">
-        <AudioPlayer scale={0.75} audioSrc="/music/intro.mp3" />
+        <AudioPlayer audioSrc="/music/intro.mp3" />
       </div>
 
       <!-- 共通ナビゲーション -->
@@ -61,7 +67,23 @@ import Navigation from "../components/Navigation.astro";
   </body>
 </html>
 
-<style>
+<style is:global>
+  /* グレイン模様の背景 - ページ全体に適用 */
+  html::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    background: rgba(255, 255, 255, 0.03);
+    filter: url(#grain);
+    opacity: 0.6;
+    mix-blend-mode: multiply;
+  }
+
   .header-content {
     position: relative;
   }

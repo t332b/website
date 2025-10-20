@@ -19,7 +19,7 @@
   --shadow: 0 8px 20px rgba(0,0,0,.08);
 }
 
-/* フォント（Google Fonts）をBase.astroから読み込む想定 */
+
 html,body{
   background: var(--bg);
   color: var(--fg);
