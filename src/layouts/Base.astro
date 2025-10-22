@@ -1,5 +1,6 @@
 ---
 import "../styles/theme.css";
+import { ViewTransitions } from "astro:transitions";
 const { title = "PR0P0SE" } = Astro.props;
 import AudioPlayer from "../components/AudioPlayer.astro";
 import Navigation from "../components/Navigation.astro";
@@ -20,6 +21,9 @@ import Navigation from "../components/Navigation.astro";
       href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Spectral:wght@700;800&display=swap"
       rel="stylesheet"
     />
+    
+    <!-- View Transitions でページ遷移時も再生状態を維持 -->
+    <ViewTransitions />
   </head>
   <body>
     <div class="container">
@@ -43,12 +47,12 @@ import Navigation from "../components/Navigation.astro";
       </header>
 
       <!-- オーディオプレイヤー -->
-      <div class="global-player-wrap">
+      <div class="global-player-wrap" transition:persist="audio-player">
         <AudioPlayer audioSrc="/music/intro.mp3" />
       </div>
 
       <!-- 共通ナビゲーション -->
-      <Navigation />
+      <Navigation currentPath={Astro.url.pathname} />
     </div>
 
     <main class="main">

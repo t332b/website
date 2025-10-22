@@ -18,31 +18,25 @@ const member = members.find(m => m.data.id === author);
 ---
 
 <Base title={title}>
-  <article style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+  <article class="blog-post">
     <!-- ヘッダー -->
-    <header style="margin-bottom: 2rem;">
-      <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: var(--accent, #333);">
-        {title}
-      </h1>
+    <header class="post-header">
+      <h1 class="post-title">{title}</h1>
       
-      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-        <div style="font-size: 1rem; color: #666;">
+      <div class="post-meta">
+        <div class="post-date">
           {date.toLocaleDateString('ja-JP')}
         </div>
-        <div style="font-size: 1rem; color: #666;">
-          ・
-        </div>
-        <div style="font-size: 1rem; color: var(--accent, #007bff); font-weight: 600;">
+        <div class="post-separator">・</div>
+        <div class="post-author">
           {member?.data.name || author}
         </div>
       </div>
       
       {tags && tags.length > 0 && (
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="post-tags">
           {tags.map(tag => (
-            <span style="background: #e8f5fd; color: #1da1f2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.9rem;">
-              #{tag}
-            </span>
+            <span class="tag">#{tag}</span>
           ))}
         </div>
       )}
@@ -50,14 +44,118 @@ const member = members.find(m => m.data.id === author);
 
     <!-- カバー画像 -->
     {cover && (
-      <div style="margin-bottom: 2rem;">
-        <img src={cover} alt="" style="width: 100%; height: auto; border-radius: 8px;" />
+      <div class="post-cover">
+        <img src={cover} alt="" />
       </div>
     )}
 
     <!-- 本文 -->
-    <div style="line-height: 1.8; font-size: 1.1rem;">
+    <div class="post-content content">
       <slot />
+    </div>
+
+    <!-- 戻るリンク -->
+    <div class="post-footer">
+      <a href="/blog/" class="back-link">← ブログ一覧に戻る</a>
     </div>
   </article>
 </Base>
+
+<style>
+  .blog-post {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+  }
+
+  .post-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--fg);
+    line-height: 1.2;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+
+  .post-date {
+    color: var(--muted);
+  }
+
+  .post-separator {
+    color: var(--muted);
+  }
+
+  .post-author {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .post-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    background: var(--wa-cream);
+    color: var(--accent);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    border: 1px solid var(--wa-butter);
+  }
+
+  .post-cover {
+    margin-bottom: 2rem;
+  }
+
+  .post-cover img {
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+    border: 2px solid var(--wa-cream);
+  }
+
+  .post-content {
+    line-height: 1.8;
+    font-size: 1.1rem;
+  }
+
+  .post-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--wa-butter);
+  }
+
+  .back-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--wa-forest);
+  }
+
+  @media (max-width: 768px) {
+    .post-title {
+      font-size: 2rem;
+    }
+
+    .post-content {
+      font-size: 1rem;
+    }
+  }
+</style>
