@@ -3,160 +3,405 @@ import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
 const works = (await getCollection('works'))
-  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
+  .sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()); // 新しい順
 
-// カテゴリ別
-const releaseItems = works.filter(w => w.data.category === 'release');
-const featureItems = works.filter(w => w.data.category === 'feature');
-const remixItems = works.filter(w => w.data.category === 'remix');
-const appearanceItems = works.filter(w => w.data.category === 'appearance');
+// release_typeでフィルタリング用
+const allReleases = works.filter(w => w.data.is_primary_release);
+const singles = allReleases.filter(w => w.data.release_type === 'single');
+const eps = allReleases.filter(w => w.data.release_type === 'ep');
+const albums = allReleases.filter(w => w.data.release_type === 'album');
 ---
 
-<Base title="作品一覧">
+<Base title="PR0P0SE Works">
   <div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
-    <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; text-align: center; color: var(--accent, #333);">
-      リリース情報
-    </h1>
+    <!-- フィルタボタン -->
+    <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+      <button class="filter-btn active" data-filter="all">
+        すべて ({allReleases.length})
+      </button>
+      <button class="filter-btn" data-filter="single">
+        Single ({singles.length})
+      </button>
+      <button class="filter-btn" data-filter="ep">
+        EP ({eps.length})
+      </button>
+      <button class="filter-btn" data-filter="album">
+        Album ({albums.length})
+      </button>
+    </div>
 
-    <!-- リリース -->
-    {releaseItems.length > 0 && (
-      <section style="margin-bottom: 3rem;">
-        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #6f42c1; border-left: 4px solid #6f42c1; padding-left: 1rem;">
-          💿 リリース
-        </h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-          {releaseItems.map(item => (
-            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #6f42c1; hover:box-shadow: 0 4px 12px rgba(111, 66, 193, 0.1);">
-              {item.data.cover && (
-                <div style="text-align: center; margin-bottom: 1rem;">
-                  <img src={item.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
-                </div>
-              )}
-              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
-                {item.data.title}
-              </h3>
-              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-                📅 {item.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+    <!-- リリース一覧 -->
+    <div class="releases-grid">
+      {allReleases.map(item => (
+        <a href={`/works/${item.slug}`} class="release-card" data-type={item.data.release_type}>
+          {item.data.cover_images && item.data.cover_images.length > 0 && (
+            <div class="carousel-container">
+              <div class="carousel-images">
+                {item.data.cover_images.map((img, idx) => (
+                  <img 
+                    src={img} 
+                    alt={`${item.data.title} - Image ${idx + 1}`}
+                    class={`carousel-image ${idx === 0 ? 'active' : ''}`}
+                    loading="lazy"
+                  />
+                ))}
               </div>
-              {item.data.tracks && item.data.tracks.length > 0 && (
-                <div style="margin-bottom: 1rem;">
-                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
-                    🎵 トラック数: {item.data.tracks.length}
+              {item.data.cover_images.length > 1 && (
+                <>
+                  <button class="carousel-btn prev" aria-label="前の画像">‹</button>
+                  <button class="carousel-btn next" aria-label="次の画像">›</button>
+                  <div class="carousel-dots">
+                    {item.data.cover_images.map((_, idx) => (
+                      <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+                    ))}
                   </div>
-                  <div style="font-size: 0.8rem; color: #888;">
-                    {item.data.tracks.slice(0, 3).join(', ')}
-                    {item.data.tracks.length > 3 && '...'}
-                  </div>
-                </div>
+                </>
               )}
-              <span style="background: #6f42c1; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Release</span>
             </div>
-          ))}
-        </div>
-      </section>
-    )}
-
-    <!-- Feature -->
-    {featureItems.length > 0 && (
-      <section style="margin-bottom: 3rem;">
-        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #fd7e14; border-left: 4px solid #fd7e14; padding-left: 1rem;">
-          🤝 Feature
-        </h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-          {featureItems.map(item => (
-            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #fd7e14; hover:box-shadow: 0 4px 12px rgba(253, 126, 20, 0.1);">
-              {item.data.cover && (
-                <div style="text-align: center; margin-bottom: 1rem;">
-                  <img src={item.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
-                </div>
-              )}
-              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
-                {item.data.title}
-              </h3>
-              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-                📅 {item.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+          )}
+          <div class="card-content">
+            <h3 class="card-title">
+              {item.data.title}
+            </h3>
+            {item.data.release_artist_name && (
+              <div class="card-artist">
+                {item.data.release_artist_name}
               </div>
-              {item.data.tracks && item.data.tracks.length > 0 && (
-                <div style="margin-bottom: 1rem;">
-                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
-                    🎵 トラック数: {item.data.tracks.length}
-                  </div>
-                  <div style="font-size: 0.8rem; color: #888;">
-                    {item.data.tracks.slice(0, 3).join(', ')}
-                    {item.data.tracks.length > 3 && '...'}
-                  </div>
-                </div>
-              )}
-              <span style="background: #fd7e14; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Feature</span>
+            )}
+            <div class="card-date">
+              {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
-          ))}
-        </div>
-      </section>
-    )}
+            {item.data.release_type && (
+              <span class={`badge badge-${item.data.release_type}`}>
+                {item.data.release_type.toUpperCase()}
+              </span>
+            )}
+          </div>
+        </a>
+      ))}
+    </div>
 
-    <!-- Remix -->
-    {remixItems.length > 0 && (
-      <section style="margin-bottom: 3rem;">
-        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #20c997; border-left: 4px solid #20c997; padding-left: 1rem;">
-          🔁 Remix
-        </h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
-          {remixItems.map(item => (
-            <div style="background: white; border: 1px solid #e1e8ed; border-radius: 12px; padding: 1.5rem; transition: all 0.3s ease; hover:border-color: #20c997; hover:box-shadow: 0 4px 12px rgba(32, 201, 151, 0.1);">
-              {item.data.cover && (
-                <div style="text-align: center; margin-bottom: 1rem;">
-                  <img src={item.data.cover} alt="" style="width: 100%; max-width: 200px; height: auto; border-radius: 8px;" />
-                </div>
-              )}
-              <h3 style="font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #333;">
-                {item.data.title}
-              </h3>
-              <div style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">
-                📅 {item.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
-              </div>
-              {item.data.tracks && item.data.tracks.length > 0 && (
-                <div style="margin-bottom: 1rem;">
-                  <div style="font-size: 0.9rem; color: #666; margin-bottom: 0.5rem;">
-                    🎵 トラック数: {item.data.tracks.length}
-                  </div>
-                  <div style="font-size: 0.8rem; color: #888;">
-                    {item.data.tracks.slice(0, 3).join(', ')}
-                    {item.data.tracks.length > 3 && '...'}
-                  </div>
-                </div>
-              )}
-              <span style="background: #20c997; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;">Remix</span>
-            </div>
-          ))}
-        </div>
-      </section>
-    )}
-
-    {works.length === 0 && (
+    {allReleases.length === 0 && (
       <div style="text-align: center; padding: 3rem; color: #666;">
-        <p style="font-size: 1.2rem;">現在、作品情報はありません。</p>
+        <p style="font-size: 1.2rem;">現在、リリース情報はありません。</p>
         <p>今後の作品をお楽しみに！</p>
       </div>
     )}
   </div>
 
   <style>
+    .filter-btn {
+      padding: 0.5rem 1.5rem;
+      border: 2px solid #6f42c1;
+      background: white;
+      color: #6f42c1;
+      border-radius: 24px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+    
+    .filter-btn:hover {
+      background: #6f42c1;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    }
+    
+    .filter-btn.active {
+      background: #6f42c1;
+      color: white;
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    }
+
+    .releases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+
+    .release-card {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    
+    .release-card:hover {
+      border-color: #6f42c1;
+      box-shadow: 0 8px 24px rgba(111, 66, 193, 0.15);
+      transform: translateY(-4px);
+    }
+    
+    .release-card.hidden {
+      display: none;
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f5f5f5;
+      overflow: hidden;
+    }
+
+    .carousel-images {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .carousel-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .carousel-image.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 2;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+    }
+
+    .carousel-container:hover .carousel-btn {
+      opacity: 1;
+    }
+
+    .carousel-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .carousel-btn.prev {
+      left: 10px;
+    }
+
+    .carousel-btn.next {
+      right: 10px;
+    }
+
+    .carousel-dots {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background: white;
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .card-content {
+      padding: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem 0;
+      color: #333;
+    }
+
+    .card-artist {
+      font-size: 0.95rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .card-date {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 1rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-single {
+      background: #6f42c1;
+      color: white;
+    }
+
+    .badge-ep {
+      background: #fd7e14;
+      color: white;
+    }
+
+    .badge-album {
+      background: #20c997;
+      color: white;
+    }
+
+    .badge-compilation {
+      background: #e83e8c;
+      color: white;
+    }
+
     @media (max-width: 768px) {
-      .release-card {
-        padding: 1rem;
+      .releases-grid {
+        grid-template-columns: 1fr;
       }
       
       h1 {
         font-size: 2rem !important;
       }
       
-      h2 {
-        font-size: 1.5rem !important;
-      }
-      
-      div[style*="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))"] {
-        grid-template-columns: 1fr;
+      .filter-btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 1rem;
       }
     }
   </style>
+
+  <script is:inline>
+    // フィルタリング機能
+    document.addEventListener('DOMContentLoaded', () => {
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      const cards = document.querySelectorAll('.release-card');
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const filter = btn.dataset.filter;
+          
+          // アクティブボタンの切り替え
+          filterBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          
+          // カードのフィルタリング
+          cards.forEach(card => {
+            if (filter === 'all') {
+              card.classList.remove('hidden');
+            } else {
+              if (card.dataset.type === filter) {
+                card.classList.remove('hidden');
+              } else {
+                card.classList.add('hidden');
+              }
+            }
+          });
+        });
+      });
+
+      // カルーセル機能
+      cards.forEach(card => {
+        const images = card.querySelectorAll('.carousel-image');
+        const dots = card.querySelectorAll('.dot');
+        const prevBtn = card.querySelector('.carousel-btn.prev');
+        const nextBtn = card.querySelector('.carousel-btn.next');
+        
+        if (images.length <= 1) return;
+        
+        let currentIndex = 0;
+        
+        function showImage(index) {
+          images.forEach((img, i) => {
+            img.classList.toggle('active', i === index);
+          });
+          dots.forEach((dot, i) => {
+            dot.classList.toggle('active', i === index);
+          });
+        }
+        
+        function nextImage(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          currentIndex = (currentIndex + 1) % images.length;
+          showImage(currentIndex);
+        }
+        
+        function prevImage(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          currentIndex = (currentIndex - 1 + images.length) % images.length;
+          showImage(currentIndex);
+        }
+        
+        nextBtn?.addEventListener('click', nextImage);
+        prevBtn?.addEventListener('click', prevImage);
+        
+        dots.forEach((dot, index) => {
+          dot.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            currentIndex = index;
+            showImage(currentIndex);
+          });
+        });
+        
+        // タッチスワイプ対応
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        card.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        card.addEventListener('touchend', (e) => {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        }, { passive: true });
+        
+        function handleSwipe() {
+          if (touchEndX < touchStartX - 50) {
+            currentIndex = (currentIndex + 1) % images.length;
+            showImage(currentIndex);
+          }
+          if (touchEndX > touchStartX + 50) {
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            showImage(currentIndex);
+          }
+        }
+      });
+    });
+  </script>
 </Base>

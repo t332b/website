@@ -12,12 +12,8 @@ const finished = liveEvents.filter(event => event.data.status === 'finished');
 const canceled = liveEvents.filter(event => event.data.status === 'canceled');
 ---
 
-<Base title="ライブ情報">
+<Base title="PR0P0SE LIVE">
   <div style="max-width: 1000px; margin: 0 auto; padding: 2rem 1rem;">
-    <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 2rem; text-align: center; color: var(--accent, #333);">
-      ライブ情報
-    </h1>
-
     <!-- 今後のライブ -->
     {upcoming.length > 0 && (
       <section style="margin-bottom: 3rem;">

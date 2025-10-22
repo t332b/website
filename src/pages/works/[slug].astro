@@ -1,0 +1,640 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection, getEntry } from 'astro:content';
+
+export async function getStaticPaths() {
+  const works = await getCollection('works');
+  return works.map(work => ({
+    params: { slug: work.slug },
+    props: { work },
+  }));
+}
+
+const { slug } = Astro.params;
+const work = await getEntry('works', slug);
+
+if (!work) {
+  return Astro.redirect('/404');
+}
+
+const { data, render } = work;
+const { Content } = await render();
+
+// トラック情報の取得
+const trackEntries = await Promise.all(
+  data.tracks.map(async (trackSlug) => {
+    try {
+      return await getEntry('tracks', trackSlug);
+    } catch {
+      return null;
+    }
+  })
+);
+const validTracks = trackEntries.filter((t): t is NonNullable<typeof t> => t !== null);
+---
+
+<Base title={data.title}>
+  <article style="max-width: 900px; margin: 0 auto; padding: 2rem 1rem;">
+    <!-- パンくずリスト -->
+    <nav style="margin-bottom: 2rem; font-size: 0.9rem; color: #666;">
+      <a href="/" style="color: #6f42c1; text-decoration: none;">HOME</a>
+      <span style="margin: 0 0.5rem;">›</span>
+      <a href="/works" style="color: #6f42c1; text-decoration: none;">Works</a>
+      <span style="margin: 0 0.5rem;">›</span>
+      <span>{data.title}</span>
+    </nav>
+
+    <!-- ヘッダー -->
+    <header style="margin-bottom: 3rem;">
+      <h1 style="font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; color: #333;">
+        {data.title}
+      </h1>
+      
+      {data.release_artist_name && (
+        <div style="font-size: 1.2rem; color: #666; margin-bottom: 1rem; font-weight: 500;">
+          {data.release_artist_name}
+        </div>
+      )}
+      
+      <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+        <div style="font-size: 0.95rem; color: #666;">
+          {data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </div>
+        {data.release_type && (
+          <span class={`badge badge-${data.release_type}`}>
+            {data.release_type.toUpperCase()}
+          </span>
+        )}
+        {data.id && (
+          <span style="font-size: 0.85rem; color: #999;">
+            {data.id}
+          </span>
+        )}
+      </div>
+    </header>
+
+    <!-- メインコンテンツエリア -->
+    <div class="content-grid">
+      <!-- 左カラム：画像 -->
+      <div class="cover-section">
+        {data.cover_images && data.cover_images.length > 0 ? (
+          <div class="cover-carousel">
+            <div class="carousel-images">
+              {data.cover_images.map((img, idx) => (
+                <img 
+                  src={img} 
+                  alt={`${data.title} - Image ${idx + 1}`}
+                  class={`carousel-image ${idx === 0 ? 'active' : ''}`}
+                />
+              ))}
+            </div>
+            {data.cover_images.length > 1 && (
+              <>
+                <button class="carousel-btn prev" aria-label="前の画像">‹</button>
+                <button class="carousel-btn next" aria-label="次の画像">›</button>
+                <div class="carousel-dots">
+                  {data.cover_images.map((_, idx) => (
+                    <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div class="no-cover">
+            <span style="font-size: 4rem;">🎵</span>
+          </div>
+        )}
+
+        <!-- クレジット情報 -->
+        {(data.cover_illustration_by || data.cover_design_by || data.cover_photography_by) && (
+          <div class="credits-box">
+            <h3 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem; color: #666;">
+              Artwork Credits
+            </h3>
+            {data.cover_illustration_by && (
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
+                Illustration: {data.cover_illustration_by}
+              </div>
+            )}
+            {data.cover_design_by && (
+              <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
+                Design: {data.cover_design_by}
+              </div>
+            )}
+            {data.cover_photography_by && (
+              <div style="font-size: 0.85rem; color: #666;">
+                Photography: {data.cover_photography_by}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <!-- 右カラム：詳細情報 -->
+      <div class="details-section">
+        <!-- リンク -->
+        {data.links && Object.keys(data.links).length > 0 && (
+          <div class="links-section">
+            <h2 style="font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem; color: #333;">
+              🔗 ストリーミング & リンク
+            </h2>
+            <div class="links-grid">
+              {data.links.spotify && (
+                <a href={data.links.spotify} target="_blank" rel="noopener" class="link-btn spotify">
+                  <span class="link-icon">🎵</span>
+                  <span>Spotify</span>
+                </a>
+              )}
+              {data.links.apple && (
+                <a href={data.links.apple} target="_blank" rel="noopener" class="link-btn apple">
+                  <span class="link-icon">🍎</span>
+                  <span>Apple Music</span>
+                </a>
+              )}
+              {data.links.youtube && (
+                <a href={data.links.youtube} target="_blank" rel="noopener" class="link-btn youtube">
+                  <span class="link-icon">📺</span>
+                  <span>YouTube</span>
+                </a>
+              )}
+              {data.links.bandcamp && (
+                <a href={data.links.bandcamp} target="_blank" rel="noopener" class="link-btn bandcamp">
+                  <span class="link-icon">🎸</span>
+                  <span>Bandcamp</span>
+                </a>
+              )}
+              {data.links.soundcloud && (
+                <a href={data.links.soundcloud} target="_blank" rel="noopener" class="link-btn soundcloud">
+                  <span class="link-icon">☁️</span>
+                  <span>SoundCloud</span>
+                </a>
+              )}
+              {data.links.music_video && (
+                <a href={data.links.music_video} target="_blank" rel="noopener" class="link-btn music-video">
+                  <span class="link-icon">🎬</span>
+                  <span>Music Video</span>
+                </a>
+              )}
+              {data.links.other && (
+                <a href={data.links.other} target="_blank" rel="noopener" class="link-btn other">
+                  <span class="link-icon">🌐</span>
+                  <span>その他</span>
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        <!-- トラックリスト -->
+        {validTracks.length > 0 && (
+          <div class="tracklist-section">
+            <h2 style="font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem; color: #333;">
+              🎼 トラックリスト
+            </h2>
+            <ol class="tracklist">
+              {validTracks.map((track) => (
+                <li class="track-item">
+                  <div class="track-info">
+                    <span class="track-title">{track.data.title}</span>
+                    {track.data.duration && (
+                      <span class="track-duration">{track.data.duration}</span>
+                    )}
+                  </div>
+                  {(track.data.lyrics_by || track.data.music_by) && (
+                    <div class="track-credits">
+                      {track.data.lyrics_by && <span>詞: {track.data.lyrics_by}</span>}
+                      {track.data.music_by && <span>曲: {track.data.music_by}</span>}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
+        <!-- 本文 -->
+        {Content && (
+          <div class="body-section">
+            <h2 style="font-size: 1.3rem; font-weight: 600; margin-bottom: 1rem; color: #333;">
+              📝 詳細
+            </h2>
+            <div class="prose">
+              <Content />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- 戻るボタン -->
+    <div style="margin-top: 3rem; text-align: center;">
+      <a href="/works" class="back-btn">
+        ← 作品一覧に戻る
+      </a>
+    </div>
+  </article>
+
+  <style>
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 3rem;
+      margin-bottom: 2rem;
+    }
+
+    .cover-section {
+      position: sticky;
+      top: 2rem;
+      align-self: start;
+    }
+
+    .cover-carousel {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f5f5f5;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1.5rem;
+    }
+
+    .carousel-images {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .carousel-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .carousel-image.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      font-size: 1.8rem;
+      cursor: pointer;
+      z-index: 2;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .carousel-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .carousel-btn.prev {
+      left: 15px;
+    }
+
+    .carousel-btn.next {
+      right: 15px;
+    }
+
+    .carousel-dots {
+      position: absolute;
+      bottom: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot:hover {
+      background: rgba(255, 255, 255, 0.8);
+    }
+
+    .dot.active {
+      background: white;
+      width: 30px;
+      border-radius: 5px;
+    }
+
+    .no-cover {
+      width: 100%;
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1.5rem;
+    }
+
+    .credits-box {
+      background: #f8f9fa;
+      border-radius: 8px;
+      padding: 1rem;
+      border-left: 3px solid #6f42c1;
+    }
+
+    .details-section > * + * {
+      margin-top: 2rem;
+    }
+
+    .links-section {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .link-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .link-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .link-icon {
+      font-size: 1.2rem;
+    }
+
+    .link-btn.spotify { background: #1DB954; color: white; }
+    .link-btn.apple { background: #FC3C44; color: white; }
+    .link-btn.youtube { background: #FF0000; color: white; }
+    .link-btn.bandcamp { background: #629aa9; color: white; }
+    .link-btn.soundcloud { background: #ff5500; color: white; }
+    .link-btn.music-video { background: #e83e8c; color: white; }
+    .link-btn.other { background: #6c757d; color: white; }
+
+    .tracklist-section {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .tracklist {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      counter-reset: track-counter;
+    }
+
+    .track-item {
+      counter-increment: track-counter;
+      padding: 1rem;
+      border-bottom: 1px solid #e1e8ed;
+      transition: background 0.2s ease;
+    }
+
+    .track-item:last-child {
+      border-bottom: none;
+    }
+
+    .track-item:hover {
+      background: #f8f9fa;
+    }
+
+    .track-item::before {
+      content: counter(track-counter);
+      display: inline-block;
+      width: 2rem;
+      font-weight: 600;
+      color: #6f42c1;
+      margin-right: 0.75rem;
+    }
+
+    .track-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.3rem;
+    }
+
+    .track-title {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .track-duration {
+      font-size: 0.85rem;
+      color: #999;
+      margin-left: 1rem;
+    }
+
+    .track-credits {
+      font-size: 0.8rem;
+      color: #666;
+      margin-left: 2.75rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .body-section {
+      background: white;
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 1.5rem;
+    }
+
+    .prose {
+      line-height: 1.8;
+      color: #333;
+    }
+
+    .prose h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 2rem 0 1rem 0;
+      color: #333;
+    }
+
+    .prose h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.75rem 0;
+      color: #333;
+    }
+
+    .prose p {
+      margin: 1rem 0;
+    }
+
+    .prose a {
+      color: #6f42c1;
+      text-decoration: none;
+    }
+
+    .prose a:hover {
+      text-decoration: underline;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-single {
+      background: #6f42c1;
+      color: white;
+    }
+
+    .badge-ep {
+      background: #fd7e14;
+      color: white;
+    }
+
+    .badge-album {
+      background: #20c997;
+      color: white;
+    }
+
+    .badge-compilation {
+      background: #e83e8c;
+      color: white;
+    }
+
+    .back-btn {
+      display: inline-block;
+      padding: 0.75rem 2rem;
+      background: #6f42c1;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .back-btn:hover {
+      background: #5a2da8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .cover-section {
+        position: static;
+      }
+
+      .links-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .track-info {
+        flex-direction: column;
+        align-items: start;
+      }
+
+      .track-duration {
+        margin-left: 0;
+        margin-top: 0.3rem;
+      }
+
+      h1 {
+        font-size: 2rem !important;
+      }
+    }
+  </style>
+
+  <script is:inline>
+    // カルーセル機能
+    const images = document.querySelectorAll('.carousel-image');
+    const dots = document.querySelectorAll('.dot');
+    const prevBtn = document.querySelector('.carousel-btn.prev');
+    const nextBtn = document.querySelector('.carousel-btn.next');
+    
+    if (images.length > 1) {
+      let currentIndex = 0;
+      
+      function showImage(index) {
+        images.forEach((img, i) => {
+          img.classList.toggle('active', i === index);
+        });
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === index);
+        });
+      }
+      
+      nextBtn?.addEventListener('click', () => {
+        currentIndex = (currentIndex + 1) % images.length;
+        showImage(currentIndex);
+      });
+      
+      prevBtn?.addEventListener('click', () => {
+        currentIndex = (currentIndex - 1 + images.length) % images.length;
+        showImage(currentIndex);
+      });
+      
+      dots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          currentIndex = index;
+          showImage(currentIndex);
+        });
+      });
+      
+      // キーボードナビゲーション
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+          currentIndex = (currentIndex - 1 + images.length) % images.length;
+          showImage(currentIndex);
+        } else if (e.key === 'ArrowRight') {
+          currentIndex = (currentIndex + 1) % images.length;
+          showImage(currentIndex);
+        }
+      });
+    }
+  </script>
+</Base>
+

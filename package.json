@@ -8,6 +8,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "sync:tracks": "node scripts/sync-tracks-from-sheets.mjs",
+    "sync:releases": "node scripts/sync-releases-from-sheets.mjs",
     "test:sheets": "node scripts/test-sheets-access.mjs"
   },
   "dependencies": {
