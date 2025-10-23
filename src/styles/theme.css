@@ -21,7 +21,8 @@
 
 
 html,body{
-  background: var(--bg);
+  /* background: var(--bg); */
+  background: #f9c99b;
   color: var(--fg);
   font-family: "Menlo", "PT Mono", "Courier New", monospace;
   line-height: 1.7;
@@ -223,7 +224,8 @@ html,body{
 /* フィルタUI */
 .filters{
   display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-  background: var(--wa-cream);
+  /* background: var(--wa-cream); */
+  background: #f9c99b;
   border: 2px solid var(--wa-butter);
   border-radius: 12px;
   padding: 10px;
@@ -259,5 +261,5 @@ html,body{
 .content blockquote{
   margin: 12px 0; padding: 12px 14px;
   border-left: 6px solid var(--accent-2);
-  background: #fffaf0; border-radius: 8px;
+  background: #f9c99b; border-radius: 8px;
 }

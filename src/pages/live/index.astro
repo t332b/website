@@ -17,9 +17,6 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
     <!-- 今後のライブ -->
     {upcoming.length > 0 && (
       <section style="margin-bottom: 3rem;">
-        <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #28a745; border-left: 4px solid #28a745; padding-left: 1rem;">
-          🎵 今後のライブ
-        </h2>
         <div style="display: grid; gap: 1rem;">
           {upcoming.map(event => (
             <div style="background: white; border: 2px solid #28a745; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);">
@@ -29,24 +26,24 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
                     {event.data.venue}
                   </h3>
                   <div style="font-size: 1rem; color: #666; margin-bottom: 0.5rem;">
-                    📍 {event.data.city}
+                    {event.data.city}
                   </div>
                   <div style="font-size: 1rem; color: #666;">
-                    📅 {event.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    {event.data.date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </div>
                   {event.data.doors && (
                     <div style="font-size: 0.9rem; color: #666;">
-                      🚪 開場: {event.data.doors}
+                      開場: {event.data.doors}
                     </div>
                   )}
                   {event.data.start && (
                     <div style="font-size: 0.9rem; color: #666;">
-                      🎭 開演: {event.data.start}
+                      開演: {event.data.start}
                     </div>
                   )}
                   {event.data.price && (
                     <div style="font-size: 0.9rem; color: #666;">
-                      💰 {event.data.price}
+                      {event.data.price}
                     </div>
                   )}
                 </div>
@@ -72,7 +69,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
     {ongoing.length > 0 && (
       <section style="margin-bottom: 3rem;">
         <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #ffc107; border-left: 4px solid #ffc107; padding-left: 1rem;">
-          🔥 進行中
+          進行中
         </h2>
         <div style="display: grid; gap: 1rem;">
           {ongoing.map(event => (
@@ -83,7 +80,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
                     {event.data.venue}
                   </h3>
                   <div style="font-size: 1rem; color: #666;">
-                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                    {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
                   </div>
                 </div>
                 <span style="background: #ffc107; color: #333; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
@@ -100,7 +97,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
     {finished.length > 0 && (
       <section style="margin-bottom: 3rem;">
         <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #6c757d; border-left: 4px solid #6c757d; padding-left: 1rem;">
-          ✅ 終了
+          終了
         </h2>
         <div style="display: grid; gap: 1rem;">
           {finished.map(event => (
@@ -111,7 +108,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
                     {event.data.venue}
                   </h3>
                   <div style="font-size: 1rem; color: #6c757d;">
-                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                    {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
                   </div>
                 </div>
                 <span style="background: #6c757d; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
@@ -128,7 +125,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
     {canceled.length > 0 && (
       <section style="margin-bottom: 3rem;">
         <h2 style="font-size: 1.8rem; font-weight: 600; margin-bottom: 1.5rem; color: #dc3545; border-left: 4px solid #dc3545; padding-left: 1rem;">
-          ❌ キャンセル
+          キャンセル
         </h2>
         <div style="display: grid; gap: 1rem;">
           {canceled.map(event => (
@@ -139,7 +136,7 @@ const canceled = liveEvents.filter(event => event.data.status === 'canceled');
                     {event.data.venue}
                   </h3>
                   <div style="font-size: 1rem; color: #dc3545;">
-                    📍 {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
+                    {event.data.city} • 📅 {event.data.date.toLocaleDateString('ja-JP')}
                   </div>
                 </div>
                 <span style="background: #dc3545; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
