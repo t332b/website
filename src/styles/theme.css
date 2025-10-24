@@ -52,12 +52,15 @@ html,body{
 
 .header{
   position: relative;
-  height: 60px;
+  min-height: auto;
   overflow: visible;
   border-bottom: 2px solid var(--wa-butter);
   margin-bottom: 0;
+  padding: 1rem 0;
 }
 
+/* 古いヘッダー関連のCSSは無効化 */
+/*
 .header-background{
   position: absolute;
   top: 0;
@@ -94,6 +97,7 @@ html,body{
   height: 100%;
   padding: 8px 0 0 0;
 }
+*/
 
 .brand{
   display:flex; align-items:center; gap:6px;
@@ -164,20 +168,13 @@ html,body{
 /* モバイル対応 */
 @media (max-width: 768px) {
   .header{
-    height: 55px;
-  }
-  .header-content{
-    flex-direction: column; gap: 4px;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 6px 0 0 0;
+    padding: 0.5rem 0;
   }
   .brand{
     font-size: 16px;
-    order: 1;
   }
   .nav{
-    justify-content: center; order: 2;
+    justify-content: center;
     gap: 8px;
   }
   .nav a{
@@ -185,7 +182,7 @@ html,body{
     font-size: 14px;
   }
   .streaming-links{
-    justify-content: center; order: 3;
+    justify-content: center;
     gap: 6px;
   }
   .streaming-links a{
