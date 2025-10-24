@@ -2,7 +2,6 @@ name: Sync Content from Google Sheets
 
 permissions:
   contents: write
-  pull-requests: write
 
 on:
   workflow_dispatch:
@@ -20,10 +19,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
-          # Avoid persisting the default GITHUB_TOKEN credentials so the
-          # create-pull-request action can inject its own token.
-          persist-credentials: false
-          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -39,15 +35,20 @@ jobs:
           GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}
         run: npm run sync:content
 
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          commit-message: "chore(content): sync works and tracks from Google Sheets"
-          title: "Sync works and tracks from Google Sheets"
-          body: "Automated update of works and tracks MDX from Google Sheets."
-          branch: "chore/sync-content"
-          base: ${{ github.event.inputs.ref }}
-          add-paths: |
-            src/content/works/**
-            src/content/tracks/**
-          token: ${{ github.token }}
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add src/content/works/** src/content/tracks/**
+          git commit -m "chore(content): sync works and tracks from Google Sheets"
+          git push
