@@ -28,31 +28,38 @@ import Navigation from "../components/Navigation.astro";
   <body>
     <div class="container">
       <header class="header">
-        <div class="header-content">
+        <!-- タイトル行 -->
+        <div class="header-title">
           <a class="brand" href="/">
             <span>PR0P0SE</span>
           </a>
-          <div class="header-social">
-            <a href="https://bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
-              <img src="/images/logo/Bandcamp-button-bc-circle-black.svg.png" alt="Bandcamp" />
-            </a>
-            <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link">
-              <img src="/images/logo/icons8-youtube.svg" alt="YouTube" />
-            </a>
-            <a href="https://soundcloud.com/" target="_blank" rel="noopener noreferrer" class="social-link">
-              <img src="/images/logo/soundcloud-icon.svg" alt="SoundCloud" />
-            </a>
+          <div class="header-image">
+            <!-- 将来的に絵を配置 -->
           </div>
         </div>
+        
+        <!-- ソーシャルリンクとオーディオプレーヤー行 -->
+        <div class="header-middle">
+          <div class="header-social">
+            <a href="https://bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/bandcamp-button-bc-circle-green-64.png" alt="Bandcamp" />
+            </a>
+              <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link youtube-link">
+                <img src="/images/logo/icons8-red-youtube.svg" alt="YouTube" />
+              </a>
+            <a href="https://soundcloud.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/soundcloud-2.svg" alt="SoundCloud" />
+            </a>
+          </div>
+          <!-- オーディオプレイヤー -->
+          <div class="global-player-wrap" transition:persist="audio-player">
+            <AudioPlayer audioSrc="/music/intro.mp3" />
+          </div>
+        </div>
+        
+        <!-- ナビゲーション -->
+        <Navigation currentPath={Astro.url.pathname} />
       </header>
-
-      <!-- オーディオプレイヤー -->
-      <div class="global-player-wrap" transition:persist="audio-player">
-        <AudioPlayer audioSrc="/music/intro.mp3" />
-      </div>
-
-      <!-- 共通ナビゲーション -->
-      <Navigation currentPath={Astro.url.pathname} />
     </div>
 
     <main class="main">
@@ -66,16 +73,44 @@ import Navigation from "../components/Navigation.astro";
 </html>
 
 <style is:global>
-  .header-content {
-    position: relative;
+  /* ヘッダー全体の設定 */
+  .header {
+    width: 100%;
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+  }
+
+  /* タイトル行 */
+  .header-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-image {
+    width: 60px;
+    height: 60px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    /* 将来的に絵を配置するためのプレースホルダー */
+  }
+
+  /* ソーシャルリンクとオーディオプレーヤー行 */
+  .header-middle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    margin-bottom: 1.5rem;
   }
 
   .header-social {
-    position: absolute;
-    bottom: 4px;
-    right: 0;
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
     align-items: center;
   }
 
@@ -83,39 +118,62 @@ import Navigation from "../components/Navigation.astro";
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    /* background: var(--wa-cream, #f6f3ea); */
-    background: #f9c99b;
-    transition: all 0.2s ease;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f5f5f5;
     text-decoration: none;
   }
 
-  .social-link:hover {
-    background: var(--wa-teal, #2bb6a9);
-    transform: translateY(-2px);
-  }
 
   .social-link img {
-    width: 18px;
-    height: 18px;
+    width: 25px;
+    height: 25px;
     object-fit: contain;
+  }
+
+  .youtube-link img {
+    width: 28px;
+    height: 28px;
   }
   
   .global-player-wrap{ 
     display: flex; 
-    justify-content: flex-end; 
-    padding: 0.25rem 0;
-    margin-bottom: 0.25rem;
+    justify-content: center; 
+    align-items: center;
   }
 
-  @media (max-width: 768px) {
+  /* main要素の間隔調整 */
+  .main {
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 320px) {
+    .header {
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 0;
+    }
+
+    .header-title {
+      flex-direction: column;
+      gap: 0.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .header-middle {
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
     .header-social {
-      position: relative;
-      bottom: auto;
-      right: auto;
-      order: 2;
+      flex-direction: row;
+      gap: 8px;
+    }
+
+    .main {
+      margin-top: 1rem;
     }
   }
 </style>

@@ -14,7 +14,7 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
       aria-valuenow="0"
       tabindex="0"
     >
-      <img class="jacket" src={jacketSrc} alt="ジャケット画像" loading="lazy" />
+      <img class="jacket" src={jacketSrc} alt="cover image" loading="lazy" />
       <svg viewBox="0 0 100 100">
         <!-- トラック（未再生） -->
         <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="1.5" fill="none"></circle>
@@ -71,7 +71,7 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
     --danger: #e74c3c;
     --radius: 18px;
     /* 円サイズと時間表示の位置係数（円に対する比率で下方向） */
-    --circle-size: clamp(180px, 52.5vw, 315px);
+    --circle-size: clamp(144px, 42vw, 252px);
     --time-shift: 0.28;
     /* ラッパーの幅を制限して中央配置 */
     width: 100%;
@@ -147,8 +147,8 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
   }
 
   .audio-player-wrapper .play {
-    width: clamp(2.625rem, 11.25vw, 4.03125rem);
-    height: clamp(2.625rem, 11.25vw, 4.03125rem);
+    width: clamp(2.1rem, 9vw, 3.225rem);
+    height: clamp(2.1rem, 9vw, 3.225rem);
     border-radius: 999px;
     border: none;
     cursor: pointer;
@@ -192,8 +192,8 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
   }
 
   .audio-player-wrapper .play svg {
-    width: clamp(1.125rem, 4.5vw, 1.6875rem);
-    height: clamp(1.125rem, 4.5vw, 1.6875rem);
+    width: clamp(0.9rem, 3.6vw, 1.35rem);
+    height: clamp(0.9rem, 3.6vw, 1.35rem);
   }
 
   .audio-player-wrapper .time {
@@ -205,7 +205,7 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
       "lnum" 1;
     /* font-family: "PT Mono", "Courier New", monospace; */
     font-family: "Menlo", "PT Mono", "Courier New", monospace;
-    font-size: clamp(0.6rem, 2.4vw, 1rem);
+    font-size: clamp(0.48rem, 1.92vw, 0.804rem);
     font-weight: bold;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.06);
@@ -223,15 +223,15 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
     flex-direction: column !important;
     align-items: center !important;
     border: 1px solid rgba(255, 255, 255, 0.06) !important;
-    max-width: 45px !important;
-    min-width: 45px !important;
+    max-width: 36px !important;
+    min-width: 36px !important;
     box-sizing: border-box !important;
     position: absolute;
     right: 10%;
     top: 55%;
     transform: translateY(-50%);
     flex-shrink: 0;
-    gap: clamp(0.375rem, 4.5vw, 2.25rem) !important;
+    gap: clamp(0.3rem, 3.6vw, 1.8rem) !important;
   }
 
   .audio-player-wrapper .mute-btn {
@@ -253,8 +253,8 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
   }
 
   .audio-player-wrapper .mute-btn svg {
-    width: 21px !important;
-    height: 21px !important;
+    width: 16.8px !important;
+    height: 16.8px !important;
     fill: currentColor !important;
     color: inherit !important;
   }
@@ -268,8 +268,8 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
   .audio-player-wrapper .volume input[type="range"] {
     -webkit-appearance: none !important;
     appearance: none !important;
-    width: clamp(60px, 13.5vw, 82.5px) !important; /* 回転後の縦長確保 */
-    height: 4.5px !important; /* 回転後の横幅（バーの太さ） */
+    width: clamp(48px, 10.8vw, 66px) !important; /* 回転後の縦長確保 */
+    height: 3.6px !important; /* 回転後の横幅（バーの太さ） */
     border-radius: 999px !important;
     outline: none !important;
     box-sizing: border-box !important;
@@ -295,37 +295,37 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
       var(--vol-track) var(--vol-pct),
       var(--vol-track) 100%
     ) !important;
-    height: 4.5px !important;
+    height: 3.6px !important;
   }
 
   /* WebKit: つまみ */
   .audio-player-wrapper .volume input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none !important;
     appearance: none !important;
-    width: 10px !important;
-    height: 10px !important;
+    width: 8.4px !important;
+    height: 8.4px !important;
     border-radius: 50% !important;
     background: var(--vol-thumb) !important;
     border: 1.6px solid var(--vol-thumb-border) !important;
     cursor: pointer !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-    margin-top: -3px; /* トラック中央に配置 */
+    margin-top: -2.4px; /* トラック中央に配置 */
   }
 
   /* Firefox */
   .audio-player-wrapper .volume input[type="range"]::-moz-range-track {
     background: var(--vol-track) !important;
     border-radius: 999px !important;
-    height: 4.5px !important;
+    height: 3.6px !important;
   }
   .audio-player-wrapper .volume input[type="range"]::-moz-range-progress {
     background: var(--vol-fill) !important;
     border-radius: 999px !important;
-    height: 4.5px !important;
+    height: 3.6px !important;
   }
   .audio-player-wrapper .volume input[type="range"]::-moz-range-thumb {
-    width: 12px !important;
-    height: 12px !important;
+    width: 9.6px !important;
+    height: 9.6px !important;
     border-radius: 50% !important;
     background: var(--vol-thumb) !important;
     border: 1.6px solid var(--vol-thumb-border) !important;
@@ -345,11 +345,11 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
 
   /* Firefox: つまみ */
   .audio-player-wrapper .volume input[type="range"]::-moz-range-thumb {
-    width: 16px !important;
-    height: 16px !important;
+    width: 13.2px !important;
+    height: 13.2px !important;
     border-radius: 50% !important;
     background: var(--vol-thumb) !important;
-    border: 2px solid var(--vol-thumb-border) !important;
+    border: 1.56px solid var(--vol-thumb-border) !important;
     cursor: pointer !important;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
   }
@@ -367,8 +367,8 @@ const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro
 
     .audio-player-wrapper .volume {
       right: 10%;
-      max-width: 50px !important;
-      min-width: 50px !important;
+      max-width: 39.6px !important;
+      min-width: 39.6px !important;
     }
   }
 </style>
