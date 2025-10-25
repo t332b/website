@@ -4,15 +4,17 @@ on:
   workflow_call:
     inputs:
       ref:
-        required: false
         type: string
+        required: false
         default: "main"
     secrets:
-      FTP_SERVER:
+      FTP_HOST:
         required: true
       FTP_USERNAME:
         required: true
       FTP_PASSWORD:
+        required: true
+      FTP_REMOTE_DIR:
         required: true
 
 concurrency:
@@ -20,28 +22,54 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
 
-      - uses: actions/setup-node@v4
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
+          cache: npm
 
-      - name: Install & Build
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Verify build output
         run: |
-          npm ci
-          npm run build
+          if [ ! -d "dist" ]; then
+            echo "Build output directory 'dist' not found!"
+            exit 1
+          fi
+          echo "Build verification successful"
 
-      - name: FTP Deploy
-        uses: SamKirkland/FTP-Deploy-Action@v4
+      - name: FTP Deploy to Lolipop
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: ${{ secrets.FTP_HOST }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: dist
+          protocol: ftp
+          port: 21
+          local-dir: dist/
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          timeout: 120000
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/README.md
+            **/.env*
+            **/.github/**
+            **/admin/vendor/**

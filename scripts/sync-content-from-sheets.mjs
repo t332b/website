@@ -32,24 +32,17 @@ function createSheetsClientFromServiceAccountJson(jsonString) {
     "https://www.googleapis.com/auth/spreadsheets.readonly",
   ];
 
-  // ここが重要: \n 文字列を実際の改行へ
-  const privateKey = (creds.private_key || "").replace(/\\n/g, "\n");
-
   const auth = new google.auth.JWT({
     email: creds.client_email,
-    key: privateKey,
+    key: creds.private_key,
     scopes,
   });
 
   return google.sheets({ version: "v4", auth });
 }
 
-// ヘッダーを厳密化（小文字＋トリム＋連続空白は_）
 function normalizeHeader(header) {
-  return String(header || "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "_");
+  return String(header || "").trim();
 }
 
 function rowToObject(headers, row) {
@@ -64,11 +57,14 @@ function rowToObject(headers, row) {
 
 function parseDate(dateStr) {
   if (!dateStr || dateStr.trim() === "") return null;
-  const m = dateStr.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if (m) {
-    const [, y, mo, d] = m;
-    return `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  
+  // YYYY/MM/DD 形式をパース
+  const match = dateStr.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (match) {
+    const [, year, month, day] = match;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
+  
   return null;
 }
 
@@ -76,16 +72,15 @@ function parseJsonField(jsonStr) {
   if (!jsonStr || jsonStr.trim() === "") return {};
   try {
     const parsed = JSON.parse(jsonStr);
+    // 空文字列のプロパティを削除
     const cleaned = {};
-    for (const [k, v] of Object.entries(parsed)) {
-      if (typeof v === "string") {
-        if (v && v.trim() !== "") cleaned[k] = v;
-      } else if (v != null) {
-        cleaned[k] = v;
+    for (const [key, value] of Object.entries(parsed)) {
+      if (value && value.trim() !== "") {
+        cleaned[key] = value;
       }
     }
     return cleaned;
-  } catch {
+  } catch (e) {
     console.warn(`Failed to parse JSON field: ${jsonStr}`);
     return {};
   }
@@ -95,10 +90,8 @@ function parseArrayField(arrayStr) {
   if (!arrayStr || arrayStr.trim() === "") return [];
   try {
     const parsed = JSON.parse(arrayStr);
-    return Array.isArray(parsed)
-      ? parsed.map(String).filter((v) => v && v.trim() !== "")
-      : [];
-  } catch {
+    return Array.isArray(parsed) ? parsed.filter(v => v && v.trim() !== "") : [];
+  } catch (e) {
     console.warn(`Failed to parse array field: ${arrayStr}`);
     return [];
   }
@@ -122,32 +115,34 @@ function buildWorksFrontmatterAndBody(record) {
   } = record;
 
   const fm = {};
-
+  
   if (id) fm.id = id;
   if (title) fm.title = title;
-
+  
   const parsedDate = parseDate(release_date);
   if (parsedDate) fm.release_date = parsedDate;
-
-  if (release_type) fm.release_type = release_type.toLowerCase();
-
-  if (release_artist_name) fm.release_artist_name = release_artist_name;
-
-  if (is_primary_release) {
-    fm.is_primary_release = String(is_primary_release).toLowerCase() === "true";
+  
+  if (release_type && release_type.toLowerCase() !== "") {
+    fm.release_type = release_type.toLowerCase();
   }
-
+  
+  if (release_artist_name) fm.release_artist_name = release_artist_name;
+  
+  if (is_primary_release) {
+    fm.is_primary_release = is_primary_release.toLowerCase() === "true";
+  }
+  
   const coverImages = parseArrayField(cover_image_url_list);
   if (coverImages.length > 0) fm.cover_images = coverImages;
-
+  
   if (cover_illustration_by) fm.cover_illustration_by = cover_illustration_by;
   if (cover_design_by) fm.cover_design_by = cover_design_by;
   if (cover_photography_by) fm.cover_photography_by = cover_photography_by;
-
+  
   const linksObj = parseJsonField(links);
   if (Object.keys(linksObj).length > 0) fm.links = linksObj;
-
-  // 後でリンクするための空配列
+  
+  // デフォルトで空配列（後でtracksを追加）
   fm.tracks = [];
 
   return { frontmatter: fm, body: body || "" };
@@ -170,23 +165,20 @@ function buildTracksFrontmatterAndBody(record) {
   } = record;
 
   const fm = {};
-
+  
   if (id) fm.id = id;
   if (title) fm.title = title;
-  if (track_number) {
-    const num = parseInt(track_number, 10);
-    if (!Number.isNaN(num)) fm.track_number = num;
-  }
-
+  if (track_number) fm.track_number = parseInt(track_number, 10);
+  
   const parsedDate = parseDate(release_date);
   if (parsedDate) fm.release_date = parsedDate;
-
+  
   if (track_type) fm.track_type = track_type;
   if (lyrics_by) fm.lyrics_by = lyrics_by;
   if (music_by) fm.music_by = music_by;
   if (mix_by) fm.mix_by = mix_by;
   if (mastering_by) fm.mastering_by = mastering_by;
-
+  
   const linksObj = parseJsonField(links);
   if (Object.keys(linksObj).length > 0) fm.links = linksObj;
 
@@ -199,7 +191,7 @@ async function readExistingBodyIfAny(filePath) {
     const match = /^---[\s\S]*?---\n?([\s\S]*)$/m.exec(content);
     if (match) return match[1].trim();
     return content.trim();
-  } catch {
+  } catch (e) {
     return "";
   }
 }
@@ -217,29 +209,26 @@ async function ensureDir(dir) {
 
 async function processWorksSheet(sheets, spreadsheetId) {
   console.log("Processing Works sheet...");
-
-  const range = "Works!A1:ZZ999";
+  
+  const range = "'Works'";
   const valuesRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
   });
   const values = valuesRes.data.values || [];
-
+  
   if (values.length === 0) {
     console.log("No data found in Works sheet.");
     return new Map();
   }
 
   const headers = values[0].map(normalizeHeader);
-
   const slugIdx = headers.indexOf("slug");
   const titleIdx = headers.indexOf("title");
   const idIdx = headers.indexOf("id");
-
+  
   if (slugIdx === -1 || titleIdx === -1 || idIdx === -1) {
-    throw new Error(
-      `Works sheet is missing required columns: need 'id', 'slug', 'title'. Got: ${headers.join(", ")}`
-    );
+    throw new Error("Works sheet is missing required columns: 'id', 'slug', and/or 'title'");
   }
 
   const worksMap = new Map();
@@ -248,12 +237,12 @@ async function processWorksSheet(sheets, spreadsheetId) {
   let totalSkipped = 0;
 
   for (let r = 1; r < values.length; r += 1) {
-    const row = values[r] || [];
+    const row = values[r];
     const rec = rowToObject(headers, row);
     const slug = (rec.slug || "").trim();
     const titleValue = (rec.title || "").trim();
     const id = (rec.id || "").trim();
-
+    
     if (!slug || !titleValue || !id) {
       console.warn(`[WARN] Works Row ${r + 1}: Missing required fields (id, slug, or title). Skipped.`);
       totalSkipped += 1;
@@ -270,14 +259,17 @@ async function processWorksSheet(sheets, spreadsheetId) {
 
     let finalBody = body;
     if (exists && (!body || body.trim() === "")) {
+      // シート側にbody未入力なら既存本文を保持
       const currentBody = await readExistingBodyIfAny(filePath);
       if (currentBody) finalBody = currentBody;
     }
 
-    await fs.writeFile(filePath, toMdx(frontmatter, finalBody), "utf8");
-
+    const mdx = toMdx(frontmatter, finalBody);
+    await fs.writeFile(filePath, mdx, "utf8");
+    
+    // Works情報をマップに保存（後でtracksとリンクするため）
     worksMap.set(id, { slug, frontmatter });
-
+    
     if (exists) {
       console.log(`[UPDATE] Works: ${slug}.mdx`);
       totalUpdated += 1;
@@ -293,30 +285,27 @@ async function processWorksSheet(sheets, spreadsheetId) {
 
 async function processTracksSheet(sheets, spreadsheetId, worksMap) {
   console.log("Processing Tracks sheet...");
-
-  const range = "Tracks!A1:ZZ999";
+  
+  const range = "'Tracks'";
   const valuesRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
   });
   const values = valuesRes.data.values || [];
-
+  
   if (values.length === 0) {
     console.log("No data found in Tracks sheet.");
     return;
   }
 
   const headers = values[0].map(normalizeHeader);
-
   const slugIdx = headers.indexOf("slug");
   const titleIdx = headers.indexOf("title");
   const idIdx = headers.indexOf("id");
   const releaseIdIdx = headers.indexOf("release_id");
-
+  
   if (slugIdx === -1 || titleIdx === -1 || idIdx === -1 || releaseIdIdx === -1) {
-    throw new Error(
-      `Tracks sheet is missing required columns: need 'id', 'slug', 'title', 'release_id'. Got: ${headers.join(", ")}`
-    );
+    throw new Error("Tracks sheet is missing required columns: 'id', 'slug', 'title', and/or 'release_id'");
   }
 
   let totalUpdated = 0;
@@ -325,13 +314,13 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
   const tracksByRelease = new Map();
 
   for (let r = 1; r < values.length; r += 1) {
-    const row = values[r] || [];
+    const row = values[r];
     const rec = rowToObject(headers, row);
     const slug = (rec.slug || "").trim();
     const titleValue = (rec.title || "").trim();
     const id = (rec.id || "").trim();
     const releaseId = (rec.release_id || "").trim();
-
+    
     if (!slug || !titleValue || !id || !releaseId) {
       console.warn(`[WARN] Tracks Row ${r + 1}: Missing required fields (id, slug, title, or release_id). Skipped.`);
       totalSkipped += 1;
@@ -348,17 +337,20 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
 
     let finalBody = body;
     if (exists && (!body || body.trim() === "")) {
+      // シート側にbody未入力なら既存本文を保持
       const currentBody = await readExistingBodyIfAny(filePath);
       if (currentBody) finalBody = currentBody;
     }
 
-    await fs.writeFile(filePath, toMdx(frontmatter, finalBody), "utf8");
-
+    const mdx = toMdx(frontmatter, finalBody);
+    await fs.writeFile(filePath, mdx, "utf8");
+    
+    // リリースごとのトラック情報を収集
     if (!tracksByRelease.has(releaseId)) {
       tracksByRelease.set(releaseId, []);
     }
     tracksByRelease.get(releaseId).push(slug);
-
+    
     if (exists) {
       console.log(`[UPDATE] Track: ${slug}.mdx`);
       totalUpdated += 1;
@@ -368,15 +360,18 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
     }
   }
 
-  // Works にトラックをリンク
+  // Worksファイルにtracks情報を追加
   console.log("Linking tracks to works...");
   for (const [releaseId, trackSlugs] of tracksByRelease) {
     const workInfo = worksMap.get(releaseId);
     if (workInfo) {
       const workFilePath = path.join(WORKS_DIR, `${workInfo.slug}.mdx`);
-      const currentBody = await readExistingBodyIfAny(workFilePath);
       const updatedFrontmatter = { ...workInfo.frontmatter, tracks: trackSlugs };
-      await fs.writeFile(workFilePath, toMdx(updatedFrontmatter, currentBody), "utf8");
+      
+      const currentBody = await readExistingBodyIfAny(workFilePath);
+      const mdx = toMdx(updatedFrontmatter, currentBody);
+      await fs.writeFile(workFilePath, mdx, "utf8");
+      
       console.log(`[LINK] Added ${trackSlugs.length} tracks to ${workInfo.slug}.mdx`);
     } else {
       console.warn(`[WARN] Release ID ${releaseId} not found in Works sheet`);
@@ -395,13 +390,16 @@ async function main() {
   await ensureDir(WORKS_DIR);
   await ensureDir(TRACKS_DIR);
 
+  // Worksシートを処理
   const worksMap = await processWorksSheet(sheets, spreadsheetId);
+  
+  // Tracksシートを処理し、Worksとリンク
   await processTracksSheet(sheets, spreadsheetId, worksMap);
 
   console.log("\nAll processing completed successfully!");
 }
 
 main().catch((err) => {
-  console.error("Sync failed:", err?.message || err);
+  console.error(err);
   process.exit(1);
 });
