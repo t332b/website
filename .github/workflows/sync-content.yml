@@ -14,6 +14,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.changes.outputs.has_changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -45,18 +47,22 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Prepare push
+      - name: Commit and push changes
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          # （任意）最新を取り込んで軽衝突回避
-          git fetch origin ${{ github.event.inputs.ref }}
-          git rebase origin/${{ github.event.inputs.ref }} || true
-
-      - name: Commit and push changes
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
           git add -A
           git commit -m "chore(content): sync works and tracks from Google Sheets"
           git push
+
+  deploy:
+    needs: sync
+    if: needs.sync.outputs.has_changes == 'true'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: ${{ github.event.inputs.ref }}
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}

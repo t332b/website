@@ -1,0 +1,25 @@
+name: Actions Build & FTP deploy (Lolipop)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "astro.config.*"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/**"
+      # Decap CMS の投稿先や設定に応じて追記
+      - "content/**"
+      - "src/content/**"
+
+jobs:
+  call-deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: "main"
+    secrets:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}

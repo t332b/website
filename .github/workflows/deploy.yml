@@ -1,65 +1,47 @@
 name: Build & FTP deploy (Lolipop)
 
 on:
-  push:
-    branches: [ "main" ]   # ← main に入ったら自動デプロイ
-  workflow_dispatch:        # ← 手動実行ボタンも出す
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+        default: "main"
+    secrets:
+      FTP_SERVER:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
+
+concurrency:
+  group: deploy-${{ inputs.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-    concurrency:
-      group: deploy-prod
-      cancel-in-progress: true
-
+    permissions:
+      contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: "20"
-          cache: 'npm'
+          ref: ${{ inputs.ref }}
 
-      - name: Install deps
-        run: npm ci
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-      - name: Build
-        run: npm run build
-        env:
-          # 本番環境用の環境変数を設定
-          NODE_ENV: production
-          # 必要に応じて他の環境変数も設定
-          # SITE_URL: https://yourdomain.com
-          # API_KEY: ${{ secrets.API_KEY }}
-        # ビルドが成功した場合のみ次のステップに進む
-
-      - name: Verify build output
+      - name: Install & Build
         run: |
-          if [ ! -d "dist" ]; then
-            echo "Build output directory 'dist' not found!"
-            exit 1
-          fi
-          echo "Build verification successful"
+          npm ci
+          npm run build
 
-      - name: FTP Deploy to Lolipop
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+      - name: FTP Deploy
+        uses: SamKirkland/FTP-Deploy-Action@v4
         with:
-          server: ${{ secrets.FTP_HOST }}
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftp
-          port: 21
-          local-dir: dist/
-          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
-          timeout: 120000
-          # セキュリティ向上のための追加設定
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/README.md
-            **/.env*
-            **/.github/**
-            **/admin/vendor/**
+          local-dir: dist
