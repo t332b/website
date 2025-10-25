@@ -1,5 +1,30 @@
 ---
-const { audioSrc = "/music/intro.mp3", jacketSrc = "/images/citrus.jpg"} = Astro.props;
+import { getCollection } from "astro:content";
+
+const { audioSrc = "/music/intro.mp3", trackSlug } = Astro.props;
+
+// トラックのslugが指定されている場合、対応するworksのジャケット画像を取得
+let jacketSrc = "/images/citrus.jpg"; // デフォルト画像
+
+if (trackSlug) {
+  try {
+    // トラックのMDXファイルを読み込み
+    const tracks = await getCollection("tracks");
+    const track = tracks.find(t => t.slug === trackSlug);
+    
+    if (track && track.data.release_id) {
+      // 対応するworksのMDXファイルを読み込み
+      const works = await getCollection("works");
+      const work = works.find(w => w.data.id === track.data.release_id);
+      
+      if (work && work.data.cover_images && work.data.cover_images.length > 0) {
+        jacketSrc = work.data.cover_images[0];
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to load track/works data:", error);
+  }
+}
 ---
 
 <div class="audio-player-wrapper">

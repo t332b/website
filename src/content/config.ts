@@ -24,6 +24,8 @@ const blog = defineCollection({
 const tracks = defineCollection({
   type: "content",
   schema: z.object({
+    id: z.string().optional(),
+    release_id: z.string().optional(), // worksのidとリンク
     title: z.string(),
     duration: z.string().optional(),
     lyrics_by: z.string().optional(),
