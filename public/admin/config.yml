@@ -36,6 +36,9 @@ media_library:
     
     # デフォルトのソースタブ（ローカルアップロードを最初に表示）
     default_transformations: []
+    
+    # 署名なしアップロードを強制
+    unsigned: true
 
 collections:
   - name: "blog"
