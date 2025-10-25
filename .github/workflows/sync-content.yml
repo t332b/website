@@ -38,17 +38,25 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
+          git status --porcelain
           if [ -n "$(git status --porcelain)" ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Commit and push changes
+      - name: Prepare push
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add src/content/works/** src/content/tracks/**
+          # （任意）最新を取り込んで軽衝突回避
+          git fetch origin ${{ github.event.inputs.ref }}
+          git rebase origin/${{ github.event.inputs.ref }} || true
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add -A
           git commit -m "chore(content): sync works and tracks from Google Sheets"
           git push
