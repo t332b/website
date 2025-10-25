@@ -20,17 +20,25 @@ if (!work) {
 const { data, render } = work;
 const { Content } = await render();
 
-// トラック情報の取得
-const trackEntries = await Promise.all(
-  data.tracks.map(async (trackSlug) => {
-    try {
-      return await getEntry('tracks', trackSlug);
-    } catch {
-      return null;
-    }
-  })
-);
-const validTracks = trackEntries.filter((t): t is NonNullable<typeof t> => t !== null);
+/**
+ * トラック情報の取得（重要な変更点）
+ * - data.tracks は Track の "id" 配列（例: ["TRK-0013", ...]）
+ * - トラックのファイル名は slug なので、getEntry('tracks', id) では見つからない
+ * - よって getCollection('tracks') を全件取得し、 entry.data.id で照合する
+ */
+const trackIds: string[] = Array.isArray(data.tracks) ? data.tracks : [];
+const allTracks = await getCollection('tracks');
+
+const validTracks = trackIds
+  .map((tid) => allTracks.find((t) => t?.data?.id === tid) ?? null)
+  .filter((t): t is NonNullable<typeof t> => t !== null);
+
+// 見つからないIDがあればビルドログに出す（デバッグ用）
+for (const tid of trackIds) {
+  if (!allTracks.find((t) => t?.data?.id === tid)) {
+    console.warn(`[works/${slug}] Track not found by id: ${tid}`);
+  }
+}
 ---
 
 <Base title={data.title}>
@@ -142,37 +150,37 @@ const validTracks = trackEntries.filter((t): t is NonNullable<typeof t> => t !==
             <div class="links-grid">
               {data.links.spotify && (
                 <a href={data.links.spotify} target="_blank" rel="noopener" class="link-btn spotify">
-                  <span class="link-icon">🎵</span>
+                  <img src="/images/logo/spotify-icon.svg" alt="Spotify" class="link-icon" />
                   <span>Spotify</span>
                 </a>
               )}
               {data.links.apple && (
                 <a href={data.links.apple} target="_blank" rel="noopener" class="link-btn apple">
-                  <span class="link-icon">🍎</span>
+                  <img src="/images/logo/Apple_logo_black.svg" alt="Apple Music" class="link-icon" />
                   <span>Apple Music</span>
                 </a>
               )}
               {data.links.youtube && (
                 <a href={data.links.youtube} target="_blank" rel="noopener" class="link-btn youtube">
-                  <span class="link-icon">📺</span>
+                  <img src="/images/logo/icons8-red-youtube.svg" alt="YouTube" class="link-icon" />
                   <span>YouTube</span>
                 </a>
               )}
               {data.links.bandcamp && (
                 <a href={data.links.bandcamp} target="_blank" rel="noopener" class="link-btn bandcamp">
-                  <span class="link-icon">🎸</span>
+                  <img src="/images/logo/bandcamp-button-bc-circle-green-64.png" alt="Bandcamp" class="link-icon" />
                   <span>Bandcamp</span>
                 </a>
               )}
               {data.links.soundcloud && (
                 <a href={data.links.soundcloud} target="_blank" rel="noopener" class="link-btn soundcloud">
-                  <span class="link-icon">☁️</span>
+                  <img src="/images/logo/soundcloud-2.svg" alt="SoundCloud" class="link-icon" />
                   <span>SoundCloud</span>
                 </a>
               )}
               {data.links.music_video && (
                 <a href={data.links.music_video} target="_blank" rel="noopener" class="link-btn music-video">
-                  <span class="link-icon">🎬</span>
+                  <img src="/images/logo/icons8-youtube.svg" alt="Music Video" class="link-icon" />
                   <span>Music Video</span>
                 </a>
               )}
@@ -398,7 +406,9 @@ const validTracks = trackEntries.filter((t): t is NonNullable<typeof t> => t !==
     }
 
     .link-icon {
-      font-size: 1.2rem;
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
     }
 
     .link-btn.spotify { background: #1DB954; color: white; }
@@ -637,4 +647,3 @@ const validTracks = trackEntries.filter((t): t is NonNullable<typeof t> => t !==
     }
   </script>
 </Base>
-
