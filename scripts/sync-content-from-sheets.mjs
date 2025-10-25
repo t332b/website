@@ -166,27 +166,29 @@ function buildTracksFrontmatterAndBody(record) {
     mix_by = "",
     mastering_by = "",
     links = "",
+    release_id = "", // 追加
     body = "",
   } = record;
 
   const fm = {};
-
+  
   if (id) fm.id = id;
+  if (release_id) fm.release_id = release_id; // 追加
   if (title) fm.title = title;
   if (track_number) {
     const num = parseInt(track_number, 10);
     if (!Number.isNaN(num)) fm.track_number = num;
   }
-
+  
   const parsedDate = parseDate(release_date);
   if (parsedDate) fm.release_date = parsedDate;
-
+  
   if (track_type) fm.track_type = track_type;
   if (lyrics_by) fm.lyrics_by = lyrics_by;
   if (music_by) fm.music_by = music_by;
   if (mix_by) fm.mix_by = mix_by;
   if (mastering_by) fm.mastering_by = mastering_by;
-
+  
   const linksObj = parseJsonField(links);
   if (Object.keys(linksObj).length > 0) fm.links = linksObj;
 
