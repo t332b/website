@@ -3,14 +3,12 @@ name: Actions Build & FTP deploy (Lolipop)
 on:
   push:
     branches: [ "main" ]
-    # 必要に応じて paths フィルタを追加
-    # paths:
-    #   - "src/**"
-    #   - "public/**"
-    #   - "package.json"
-    #   - "package-lock.json"
-    #   - "astro.config.*"
-    #   - "src/content/**"
+    paths:
+      - "src/content/**"
+      - "public/**"
+      - "package.json"
+      - "package-lock.json"
+      - "astro.config.*"
   workflow_dispatch:
 
 jobs:
