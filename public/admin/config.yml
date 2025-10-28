@@ -8,37 +8,8 @@ backend:
 site_url: https://pr0p0se.com
 display_url: https://pr0p0se.com
 
-# Cloudinary設定
-# 署名なしアップロードを使用（upload_preset必須）
-# Cloudinaryダッシュボードで作成したプリセット名を指定してください
-media_library:
-  name: cloudinary
-  config:
-    cloud_name: djzxpyzu3
-    api_key: 719521938943924
-    
-    # アップロードプリセット（署名なしアップロード用）
-    # Cloudinaryダッシュボードで以下の手順で作成:
-    # 1. Settings → Upload → Upload presets
-    # 2. Add upload preset
-    # 3. Signing Mode: Unsigned を選択
-    # 4. プリセット名を設定
-    upload_preset: pr0p0se
-    
-    # 複数の画像を扱う場合
-    multiple: true
-    
-    # 最大ファイルサイズ（5MB）
-    max_file_size: 5242880
-    
-    # アップロードのみ（メディアライブラリ表示を簡略化）
-    output_filename_only: false
-    
-    # デフォルトのソースタブ（ローカルアップロードを最初に表示）
-    default_transformations: []
-    
-    # 署名なしアップロードを強制
-    unsigned: true
+media_folder: "public/uploads"
+public_folder: "/uploads"
 
 collections:
   - name: "blog"
@@ -80,7 +51,7 @@ collections:
         hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
       - label: "カバー画像"
         name: "cover"
-        widget: "image"
+        widget: "cldupload"
         required: false
         hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
       - label: "本文"
@@ -123,7 +94,7 @@ collections:
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - label: "アイコン画像"
         name: "avatar"
-        widget: "image"
+        widget: "cldupload"
         required: false
 
   # 曲
@@ -164,7 +135,7 @@ collections:
       - { label: "日付", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
       - { label: "カテゴリ", name: "category", widget: "select", options: ["release","feature","remix","appearance"], default: "release" }
       - { label: "種別（任意）", name: "type", widget: "select", options: ["single","EP","album"], required: false }
-      - { label: "カバー画像", name: "cover", widget: "image", required: false }
+      - { label: "カバー画像", name: "cover", widget: "cldupload", required: false }
       - label: "トラックリスト"
         name: "tracks"
         widget: "relation"
