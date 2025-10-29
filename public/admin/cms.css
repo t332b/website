@@ -1,31 +1,4 @@
-/* Decap CMS カスタムスタイル */
-
-/* 画像プレビューのサイズ調整 */
-.cms-image-preview {
-  max-width: 200px !important;
-  max-height: 200px !important;
-  width: auto !important;
-  height: auto !important;
-}
-
-/* 画像アップロードエリアのサイズ調整 */
-.cms-image-upload {
-  max-width: 300px !important;
-}
-
-/* メンバーアバター画像の表示サイズ */
-[data-field-name="avatar"] .cms-image-preview {
-  max-width: 150px !important;
-  max-height: 150px !important;
-}
-
-/* 画像プレビューの枠線 */
-.cms-image-preview img {
-  border-radius: 8px !important;
-  border: 2px solid #e1e8ed !important;
-}
-
-/* ヒントテキストのスタイル */
+/* Decap CMS 用（最小構成） */
 .cms-hint {
   font-size: 0.9rem !important;
   color: #666 !important;

@@ -15,9 +15,16 @@
           folder: "pr0p0se-website",               // 任意: 事前に作成推奨
         },
         (err, result) => {
-          if (!err && result && result.event === "success") {
-            // secure_url をCMSのフィールド値に保存
-            this.props.onChange(result.info.secure_url);
+          if (err) {
+            console.error("Cloudinaryアップロードエラー:", err);
+          }
+          if (!err && result) {
+            console.log("Cloudinaryアップロード結果:", result);
+            if (result.event === "success") {
+              console.log("アップロード成功! URL:", result.info.secure_url);
+              // secure_url をCMSのフィールド値に保存
+              this.props.onChange(result.info.secure_url);
+            }
           }
         }
       );
