@@ -12,7 +12,7 @@
           multiple: false,
           sources: ["local", "url"],
           maxFileSize: 5242880,        // 5MB
-          folder: "cms",               // 任意: 事前に作成推奨
+          folder: "pr0p0se-website",               // 任意: 事前に作成推奨
         },
         (err, result) => {
           if (!err && result && result.event === "success") {
