@@ -11,6 +11,21 @@ display_url: https://pr0p0se.com
 media_folder: "public/uploads"
 public_folder: "/uploads"
 
+media_library:
+  name: cloudinary
+  config:
+    cloud_name: djzxpyzu3
+    api_key: 719521938943924
+    # 画像のデフォルト変換（目安として500KB以下になりやすい設定）
+    # - f_auto: 最適なフォーマット自動選択（WebP/AVIF等）
+    # - q_auto: 品質自動最適化（必要に応じて q_auto:eco に調整可）
+    # - width + crop:limit: 幅上限を設定（解像度を抑えてサイズ削減）
+    default_transformations:
+      - - fetch_format: auto
+          quality: auto
+          width: 1600
+          crop: limit
+
 collections:
   - name: "blog"
     label: "Blog"
@@ -51,7 +66,7 @@ collections:
         hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
       - label: "カバー画像"
         name: "cover"
-        widget: "cldupload"
+        widget: "image"
         required: false
         hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
       - label: "本文"
@@ -59,6 +74,12 @@ collections:
         widget: "markdown"
         required: true
         hint: "記事の本文をマークダウン形式で入力してください"
+
+      - label: "動画URL（任意）"
+        name: "video"
+        widget: "string"
+        required: false
+        hint: "Cloudinaryの動画URL（メディアから動画を選択/アップロード可）"
 
   # ライブ
   - name: "live"
@@ -94,7 +115,7 @@ collections:
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - label: "アイコン画像"
         name: "avatar"
-        widget: "cldupload"
+        widget: "image"
         required: false
 
   # 曲
@@ -135,7 +156,7 @@ collections:
       - { label: "日付", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
       - { label: "カテゴリ", name: "category", widget: "select", options: ["release","feature","remix","appearance"], default: "release" }
       - { label: "種別（任意）", name: "type", widget: "select", options: ["single","EP","album"], required: false }
-      - { label: "カバー画像", name: "cover", widget: "cldupload", required: false }
+      - { label: "カバー画像", name: "cover", widget: "image", required: false }
       - label: "トラックリスト"
         name: "tracks"
         widget: "relation"
@@ -159,4 +180,6 @@ collections:
         value_field: "slug"
         required: false
       - { label: "本文（任意）", name: "body", widget: "markdown", required: false }
+
+      - { label: "動画URL（任意）", name: "video", widget: "string", required: false, hint: "Cloudinaryの動画URL（メディアから動画を選択/アップロード可）" }
 
