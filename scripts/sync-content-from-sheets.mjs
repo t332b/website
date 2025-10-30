@@ -139,6 +139,7 @@ function buildWorksFrontmatterAndBody(record) {
     cover_illustration_by = "",
     cover_design_by = "",
     cover_photography_by = "",
+    cover_url_list = "",
     links = "",
     release_artist_name = "",
     is_primary_release = "",
@@ -167,6 +168,10 @@ function buildWorksFrontmatterAndBody(record) {
   if (cover_illustration_by) fm.cover_illustration_by = cover_illustration_by;
   if (cover_design_by) fm.cover_design_by = cover_design_by;
   if (cover_photography_by) fm.cover_photography_by = cover_photography_by;
+
+  // カバー制作等の外部URL（配列）をそのまま frontmatter へ
+  const coverUrls = parseArrayField(cover_url_list);
+  if (coverUrls.length > 0) fm.cover_url_list = coverUrls;
 
   const linksObj = parseJsonField(links);
   if (Object.keys(linksObj).length > 0) fm.links = linksObj;
