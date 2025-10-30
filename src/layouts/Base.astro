@@ -12,15 +12,8 @@ import Navigation from "../components/Navigation.astro";
     <title>PR0P0SE</title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
 
-    <!-- Google Fonts（見出し=Spectral / 本文=Figtree） -->
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Spectral:wght@700;800&display=swap"
-      rel="stylesheet"
-    />
-    
     <!-- View Transitions でページ遷移時も再生状態を維持 -->
     <ViewTransitions />
   </head>
@@ -52,7 +45,7 @@ import Navigation from "../components/Navigation.astro";
           </div>
           <!-- オーディオプレイヤー -->
           <div class="global-player-wrap" transition:persist="audio-player">
-            <AudioPlayer audioSrc="/music/intro.mp3" trackSlug="sample-track" />
+            <AudioPlayer />
           </div>
         </div>
         
@@ -75,7 +68,7 @@ import Navigation from "../components/Navigation.astro";
   /* ヘッダー全体の設定 */
   .header {
     width: 100%;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
     padding: 1rem 0;
   }
 
@@ -107,10 +100,32 @@ import Navigation from "../components/Navigation.astro";
   }
 
   .header-social {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(24px, 1.5vw, 50px);
     align-items: center;
+    justify-items: center;
+  }
+
+  /* 3個の時は三角形配置（上1個、下2個） */
+  .header-social:has(:nth-child(3):last-child) {
+    grid-template-columns: 1fr 1fr;
+    width: fit-content;
+  }
+
+  .header-social:has(:nth-child(3):last-child) :nth-child(1) {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  /* 5個の時は上から2・1・2配置 */
+  .header-social:has(:nth-child(5):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .header-social:has(:nth-child(5):last-child) :nth-child(3) {
+    grid-column: 1 / -1;
+    justify-self: center;
   }
 
   .social-link {
@@ -167,8 +182,15 @@ import Navigation from "../components/Navigation.astro";
     }
 
     .header-social {
+      display: flex;
       flex-direction: row;
       gap: 8px;
+    }
+
+    .header-social:has(:nth-child(3):last-child) :nth-child(1),
+    .header-social:has(:nth-child(5):last-child) :nth-child(3) {
+      grid-column: auto;
+      justify-self: auto;
     }
 
     .main {

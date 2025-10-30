@@ -54,8 +54,7 @@ html,body{
   position: relative;
   min-height: auto;
   overflow: visible;
-  border-bottom: 2px solid var(--wa-butter);
-  margin-bottom: 0;
+  margin-bottom: 0.5rem;
   padding: 1rem 0;
 }
 

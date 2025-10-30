@@ -1,29 +1,42 @@
 ---
 import { getCollection } from "astro:content";
 
-const { audioSrc = "/music/intro.mp3", trackSlug } = Astro.props;
+// public/musicフォルダ内のMP3ファイルリスト（手動で追加）
+const musicFiles = [
+  "citrus"
+  // 他の楽曲もここに追加
+];
 
-// トラックのslugが指定されている場合、対応するworksのジャケット画像を取得
-let jacketSrc = "/images/citrus.jpg"; // デフォルト画像
+const musicList = musicFiles.map(f => `/music/${f}.mp3`);
 
-if (trackSlug) {
-  try {
-    // トラックのMDXファイルを読み込み
-    const tracks = await getCollection("tracks");
-    const track = tracks.find(t => t.slug === trackSlug);
-    
-    if (track && track.data.release_id) {
-      // 対応するworksのMDXファイルを読み込み
-      const works = await getCollection("works");
-      const work = works.find(w => w.data.id === track.data.release_id);
+// リストをランダムにシャッフル
+const shuffledList = [...musicList].sort(() => Math.random() - 0.5);
+
+// 初期画像を取得
+let initialJacketSrc = "/images/uploads/default-album.png";
+
+try {
+  const tracks = await getCollection("tracks");
+  const works = await getCollection("works");
+  
+  // 最初の楽曲からジャケット画像を取得
+  if (shuffledList.length > 0) {
+    const firstSrc = shuffledList[0];
+    const match = firstSrc.match(/\/music\/(.+)\.mp3$/);
+    if (match) {
+      const slugFromAudio = match[1];
+      const track = tracks.find(t => t.slug === slugFromAudio);
       
-      if (work && work.data.cover_images && work.data.cover_images.length > 0) {
-        jacketSrc = work.data.cover_images[0];
+      if (track && track.data.release_id) {
+        const work = works.find(w => w.data.id === track.data.release_id);
+        if (work && work.data.cover_url_list && work.data.cover_url_list.length > 0) {
+          initialJacketSrc = work.data.cover_url_list[0];
+        }
       }
     }
-  } catch (error) {
-    console.warn("Failed to load track/works data:", error);
   }
+} catch (error) {
+  console.warn("[AudioPlayer] Failed to load initial track/works data:", error);
 }
 ---
 
@@ -39,7 +52,7 @@ if (trackSlug) {
       aria-valuenow="0"
       tabindex="0"
     >
-      <img class="jacket" src={jacketSrc} alt="cover image" loading="lazy" />
+      <img class="jacket" src={initialJacketSrc} alt="cover image" loading="lazy" />
       <svg viewBox="0 0 100 100">
         <!-- トラック（未再生） -->
         <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="1.5" fill="none"></circle>
@@ -77,6 +90,12 @@ if (trackSlug) {
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="playlist-dots">
+    {shuffledList.map((_, idx) => (
+      <button class={`dot ${idx === 0 ? 'active' : ''}`} data-index={idx} aria-label={`Track ${idx + 1}`}></button>
+    ))}
   </div>
 
   <!-- 非表示のaudio要素（プログラム制御用） -->
@@ -396,9 +415,32 @@ if (trackSlug) {
       min-width: 39.6px !important;
     }
   }
+
+  .playlist-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .playlist-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d0d0d0;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .playlist-dots .dot.active {
+    background: #6f42c1;
+    width: 24px;
+    border-radius: 6px;
+  }
 </style>
 
-<script define:vars={{ audioSrc }}>
+<script define:vars={{ shuffledList }}>
   const audio = document.getElementById("audio");
   const playBtn = document.getElementById("play");
   const playIcon = document.getElementById("playIcon");
@@ -410,14 +452,72 @@ if (trackSlug) {
   const vol = document.getElementById("vol");
   const muteBtn = document.getElementById("muteBtn");
   const muteIcon = document.getElementById("muteIcon");
+  const jacketImg = document.querySelector(".jacket");
+  const dots = Array.from(document.querySelectorAll('.playlist-dots .dot'));
+
+  // 楽曲リスト
+  const musicList = shuffledList;
+  let currentIndex = 0;
 
   // 初期音量
   audio.volume = parseFloat(vol.value);
   let lastVolume = audio.volume; // 消音前の音量を保存
 
-  // 音源を設定
-  audio.src = audioSrc;
-  audio.load();
+  // 次の曲へ
+  function nextTrack() {
+    currentIndex = (currentIndex + 1) % musicList.length;
+    loadTrack(musicList[currentIndex]);
+  }
+
+  // 前の曲へ
+  function prevTrack() {
+    currentIndex = (currentIndex - 1 + musicList.length) % musicList.length;
+    loadTrack(musicList[currentIndex]);
+  }
+
+  // トラックを読み込み
+  async function loadTrack(src) {
+    const wasPlaying = !audio.paused;
+    audio.src = src;
+    audio.load();
+    
+    // ジャケット画像を更新
+    const match = src.match(/\/music\/(.+)\.mp3$/);
+    if (match) {
+      const slug = match[1];
+      try {
+        // 楽曲ごとにジャケット画像を取得する処理を追加可能
+        // 現状は初期画像を維持
+      } catch (err) {
+        console.warn(`Failed to load jacket for ${slug}:`, err);
+      }
+    }
+    
+    if (wasPlaying) {
+      await audio.play();
+    }
+    updateActiveDot();
+  }
+
+  // 初期曲を読み込み
+  if (musicList.length > 0) {
+    audio.src = musicList[0];
+    audio.load();
+    updateActiveDot();
+  }
+
+  function updateActiveDot() {
+    dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+  }
+
+  dots.forEach((d) => {
+    d.addEventListener('click', () => {
+      const idx = parseInt(d.getAttribute('data-index')) || 0;
+      currentIndex = idx;
+      loadTrack(musicList[currentIndex]);
+      updateActiveDot();
+    });
+  });
 
   // 音量バーの背景を更新する関数（定義を前に移動）
   function updateVolumeBackground() {
@@ -720,9 +820,45 @@ if (trackSlug) {
   // 初期アイコン設定
   updateMuteIcon();
 
-  // 再生終了時: 0に戻す
+  // 再生終了時: 次の曲へ
   audio.addEventListener("ended", () => {
     updateProgress();
     setPlayingUI(false);
+    nextTrack(); // 次の曲へ自動移動
+  });
+
+  // スワイプ検出（左右で次の曲/前の曲）
+  let touchStartX = 0;
+  let touchEndX = 0;
+  
+  circleEl.addEventListener("touchstart", (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+  
+  circleEl.addEventListener("touchend", (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const swipeDistance = touchStartX - touchEndX;
+    
+    // スワイプ距離が50px以上の時
+    if (Math.abs(swipeDistance) > 50) {
+      if (swipeDistance > 0) {
+        // 左スワイプ: 次の曲
+        nextTrack();
+      } else {
+        // 右スワイプ: 前の曲
+        prevTrack();
+      }
+    }
+  }, { passive: true });
+
+  // キーボードショートカット: 左右矢印で次の曲/前の曲
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "MediaTrackNext" || (e.shiftKey && e.key === "ArrowRight")) {
+      nextTrack();
+      e.preventDefault();
+    } else if (e.key === "MediaTrackPrevious" || (e.shiftKey && e.key === "ArrowLeft")) {
+      prevTrack();
+      e.preventDefault();
+    }
   });
 </script>
