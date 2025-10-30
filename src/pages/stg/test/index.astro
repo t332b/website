@@ -81,7 +81,7 @@ function getAvatarUrl(member: any) {
     <!-- 最新リリースセクション -->
     {latestWorks.length > 0 && (
       <section class="releases-section">
-        <h4 class="section-title">LATEST RELEASES</h4>
+        <h4 class="section-title">LATEST latestWorks</h4>
         <div class="releases-grid">
           {latestWorks.map(release => (
             <a href={`/works/${release.slug}`} class="release-card">

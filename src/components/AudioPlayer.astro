@@ -1,16 +1,14 @@
 ---
 import { getCollection } from "astro:content";
+import { musicItems } from "../data/musicList.generated";
 
-// public/musicフォルダ内のMP3ファイルリスト（手動で追加）
-const musicFiles = [
-  "citrus"
-  // 他の楽曲もここに追加
-];
-
-const musicList = musicFiles.map(f => `/music/${f}.mp3`);
+// 生成されたアイテム
+const items = musicItems as Array<{ slug: string; src: string; cover?: string }>;
+const musicList = items.map((it) => it.src);
 
 // リストをランダムにシャッフル
-const shuffledList = [...musicList].sort(() => Math.random() - 0.5);
+const shuffledItems = [...items].sort(() => Math.random() - 0.5);
+const shuffledList = shuffledItems.map((it) => it.src);
 
 // 初期画像を取得
 let initialJacketSrc = "/images/uploads/default-album.png";
@@ -20,17 +18,21 @@ try {
   const works = await getCollection("works");
   
   // 最初の楽曲からジャケット画像を取得
-  if (shuffledList.length > 0) {
-    const firstSrc = shuffledList[0];
-    const match = firstSrc.match(/\/music\/(.+)\.mp3$/);
-    if (match) {
-      const slugFromAudio = match[1];
-      const track = tracks.find(t => t.slug === slugFromAudio);
-      
-      if (track && track.data.release_id) {
-        const work = works.find(w => w.data.id === track.data.release_id);
-        if (work && work.data.cover_url_list && work.data.cover_url_list.length > 0) {
-          initialJacketSrc = work.data.cover_url_list[0];
+  if (shuffledItems.length > 0) {
+    const first = shuffledItems[0];
+    if (first.cover) {
+      initialJacketSrc = first.cover;
+    } else {
+      const match = first.src.match(/\/music\/(.+)\.mp3$/);
+      if (match) {
+        const slugFromAudio = match[1];
+        const track = tracks.find(t => t.slug === slugFromAudio);
+        
+        if (track && track.data.release_id) {
+          const work = works.find(w => w.data.id === track.data.release_id);
+          if (work && work.data.cover_url_list && work.data.cover_url_list.length > 0) {
+            initialJacketSrc = work.data.cover_url_list[0];
+          }
         }
       }
     }
@@ -89,11 +91,23 @@ try {
           </div>
         </div>
       </div>
+      <div class="controls">
+        <button class="skip-btn prev" id="prevBtn" aria-label="前の曲">
+          <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
+            <polygon points="16,6 8,36 16,66"/>
+          </svg>
+        </button>
+        <button class="skip-btn next" id="nextBtn" aria-label="次の曲">
+          <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
+            <polygon points="8,6 16,36 8,66"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
   <div class="playlist-dots">
-    {shuffledList.map((_, idx) => (
+    {shuffledItems.map((_, idx) => (
       <button class={`dot ${idx === 0 ? 'active' : ''}`} data-index={idx} aria-label={`Track ${idx + 1}`}></button>
     ))}
   </div>
@@ -420,27 +434,57 @@ try {
     display: flex;
     justify-content: center;
     gap: 8px;
-    margin-top: 8px;
+    margin-top: clamp(10px, 2.5vw, 18px); /* 円の外側下に余白 */
   }
 
   .playlist-dots .dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #d0d0d0;
+    background: #c8c8c8; /* 灰色 */
     border: none;
     padding: 0;
     cursor: pointer;
   }
 
   .playlist-dots .dot.active {
-    background: #6f42c1;
+    background: #111; /* アクティブは黒 */
     width: 24px;
     border-radius: 6px;
   }
+
+  .player { position: relative; }
+
+  .controls {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none; /* 透過: ボタン以外は操作無効 */
+    padding: 0 clamp(16px, 6vw, 56px); /* もう少し左右にオフセット */
+  }
+ 
+  .skip-btn {
+    appearance: none;
+    border: none;
+    background: transparent; /* 塗りつぶし無し */
+    color: #111; /* 黒（再生バー系の黒に合わせる） */
+    width: 28px;
+    height: clamp(60px, 24vw, 132px); /* 縦長 */
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto; /* クリック可能 */
+  }
+ 
+  .skip-btn svg { height: 100%; width: auto; }
+  .skip-btn:hover { color: #000; }
+  .skip-btn:active { transform: scale(0.98); }
 </style>
 
-<script define:vars={{ shuffledList }}>
+<script define:vars={{ shuffledItems }}>
   const audio = document.getElementById("audio");
   const playBtn = document.getElementById("play");
   const playIcon = document.getElementById("playIcon");
@@ -454,9 +498,12 @@ try {
   const muteIcon = document.getElementById("muteIcon");
   const jacketImg = document.querySelector(".jacket");
   const dots = Array.from(document.querySelectorAll('.playlist-dots .dot'));
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
 
   // 楽曲リスト
-  const musicList = shuffledList;
+  const items = shuffledItems;
+  const musicList = items.map((it) => it.src);
   let currentIndex = 0;
 
   // 初期音量
@@ -486,8 +533,13 @@ try {
     if (match) {
       const slug = match[1];
       try {
-        // 楽曲ごとにジャケット画像を取得する処理を追加可能
-        // 現状は初期画像を維持
+        const item = items.find((it) => it.src === src);
+        if (item && item.cover) {
+          jacketImg.setAttribute('src', item.cover);
+        } else {
+          // 生成にカバーが無い場合は初期画像を維持
+          jacketImg.setAttribute('src', jacketImg.getAttribute('src') || '');
+        }
       } catch (err) {
         console.warn(`Failed to load jacket for ${slug}:`, err);
       }
@@ -505,6 +557,10 @@ try {
     audio.load();
     updateActiveDot();
   }
+
+  // ボタン操作
+  prevBtn?.addEventListener('click', (e) => { e.stopPropagation(); prevTrack(); });
+  nextBtn?.addEventListener('click', (e) => { e.stopPropagation(); nextTrack(); });
 
   function updateActiveDot() {
     dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
