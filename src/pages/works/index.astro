@@ -34,10 +34,10 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
     <div class="releases-grid">
       {allReleases.map(item => (
         <a href={`/works/${item.slug}`} class="release-card" data-type={item.data.release_type}>
-          {item.data.cover_images && item.data.cover_images.length > 0 && (
+          {item.data.cover_url_list && item.data.cover_url_list.length > 0 && (
             <div class="carousel-container">
               <div class="carousel-images">
-                {item.data.cover_images.map((img, idx) => (
+                {item.data.cover_url_list.map((img, idx) => (
                   <img 
                     src={img} 
                     alt={`${item.data.title} - Image ${idx + 1}`}
@@ -46,12 +46,12 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
                   />
                 ))}
               </div>
-              {item.data.cover_images.length > 1 && (
+              {item.data.cover_url_list.length > 1 && (
                 <>
-                  <button class="carousel-btn prev" aria-label="前の画像">‹</button>
-                  <button class="carousel-btn next" aria-label="次の画像">›</button>
+                  <button class="carousel-btn prev" aria-label="prev">‹</button>
+                  <button class="carousel-btn next" aria-label="next">›</button>
                   <div class="carousel-dots">
-                    {item.data.cover_images.map((_, idx) => (
+                    {item.data.cover_url_list.map((_, idx) => (
                       <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
                     ))}
                   </div>
@@ -68,14 +68,14 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
                 {item.data.release_artist_name}
               </div>
             )}
-            <div class="card-date">
-              {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+            <div class="meta-row">
+              <div class="card-date">
+                {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+              </div>
+              {item.data.release_type && (
+                <span class="type-text">{item.data.release_type}</span>
+              )}
             </div>
-            {item.data.release_type && (
-              <span class={`badge badge-${item.data.release_type}`}>
-                {item.data.release_type.toUpperCase()}
-              </span>
-            )}
           </div>
         </a>
       ))}
@@ -83,8 +83,7 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
 
     {allReleases.length === 0 && (
       <div style="text-align: center; padding: 3rem; color: #666;">
-        <p style="font-size: 1.2rem;">現在、リリース情報はありません。</p>
-        <p>今後の作品をお楽しみに！</p>
+        <p style="font-size: 1.2rem;">N0NE</p>
       </div>
     )}
   </div>
@@ -117,16 +116,15 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
 
     .releases-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 2rem;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
     }
 
     .release-card {
       background: white;
-      border: 1px solid #e1e8ed;
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
-      transition: all 0.3s ease;
+      transition: all 0.25s ease;
       text-decoration: none;
       color: inherit;
       display: block;
@@ -179,10 +177,10 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
       background: rgba(0, 0, 0, 0.5);
       color: white;
       border: none;
-      width: 40px;
-      height: 40px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      font-size: 1.5rem;
+      font-size: 1.2rem;
       cursor: pointer;
       z-index: 2;
       transition: all 0.3s ease;
@@ -235,70 +233,58 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
     }
 
     .card-content {
-      padding: 1.5rem;
+      padding: 0.6rem 0.7rem;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
     }
 
+
     .card-title {
-      font-size: 1.2rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 0.2rem 0;
       color: #333;
+      line-height: 1.25;
     }
 
     .card-artist {
-      font-size: 0.95rem;
+      font-size: 0.8rem;
       color: #666;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
       font-weight: 500;
+      line-height: 1.25;
     }
 
     .card-date {
-      font-size: 0.9rem;
+      font-size: 0.78rem;
       color: #666;
-      margin-bottom: 1rem;
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
     }
 
-    .badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge-single {
-      background: #6f42c1;
-      color: white;
-    }
-
-    .badge-ep {
-      background: #fd7e14;
-      color: white;
-    }
-
-    .badge-album {
-      background: #20c997;
-      color: white;
-    }
-
-    .badge-compilation {
-      background: #e83e8c;
-      color: white;
+    .type-text {
+      font-size: 0.72rem;
+      color: #888;
+      text-transform: lowercase;
     }
 
     @media (max-width: 768px) {
       .releases-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
       }
-      
+
       h1 {
-        font-size: 2rem !important;
+        font-size: 1.4rem !important;
       }
-      
+
       .filter-btn {
-        font-size: 0.8rem;
-        padding: 0.4rem 1rem;
+        font-size: 0.75rem;
+        padding: 0.35rem 0.8rem;
       }
     }
   </style>

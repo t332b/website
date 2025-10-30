@@ -51,7 +51,7 @@ const works = defineCollection({
     release_date: z.date(),
     release_artist_name: z.string().optional(),
     is_primary_release: z.boolean().default(true),
-    cover_images: z.array(z.string()).default([]), // 複数画像対応
+    cover_url_list: z.array(z.string()).default([]), // ジャケット画像URL配列
     cover_illustration_by: z.string().optional(),
     cover_design_by: z.string().optional(),
     cover_photography_by: z.string().optional(),
