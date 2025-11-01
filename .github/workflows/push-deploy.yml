@@ -4,8 +4,9 @@ on:
   push:
     branches: [ "main" ]
     paths:
-      - "src/content/**"
+      - "src/**"
       - "public/**"
+      - "scripts/**"
       - "package.json"
       - "package-lock.json"
       - "astro.config.*"
