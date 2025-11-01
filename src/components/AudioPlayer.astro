@@ -2,8 +2,8 @@
 import { getCollection } from "astro:content";
 import { musicItems } from "../data/musicList.generated";
 
-// 生成されたアイテム
-const items = musicItems as Array<{ slug: string; src: string; cover?: string }>;
+// 生成されたアイテム（releaseSlug と cover を含む）
+const items = musicItems as Array<{ filename: string; releaseSlug: string; src: string; cover?: string }>;
 const musicList = items.map((it) => it.src);
 
 // リストをランダムにシャッフル
@@ -12,33 +12,8 @@ const shuffledList = shuffledItems.map((it) => it.src);
 
 // 初期画像を取得
 let initialJacketSrc = "/images/uploads/default-album.png";
-
-try {
-  const tracks = await getCollection("tracks");
-  const works = await getCollection("works");
-  
-  // 最初の楽曲からジャケット画像を取得
-  if (shuffledItems.length > 0) {
-    const first = shuffledItems[0];
-    if (first.cover) {
-      initialJacketSrc = first.cover;
-    } else {
-      const match = first.src.match(/\/music\/(.+)\.mp3$/);
-      if (match) {
-        const slugFromAudio = match[1];
-        const track = tracks.find(t => t.slug === slugFromAudio);
-        
-        if (track && track.data.release_id) {
-          const work = works.find(w => w.data.id === track.data.release_id);
-          if (work && work.data.cover_url_list && work.data.cover_url_list.length > 0) {
-            initialJacketSrc = work.data.cover_url_list[0];
-          }
-        }
-      }
-    }
-  }
-} catch (error) {
-  console.warn("[AudioPlayer] Failed to load initial track/works data:", error);
+if (shuffledItems.length > 0 && shuffledItems[0].cover) {
+  initialJacketSrc = shuffledItems[0].cover;
 }
 ---
 
@@ -465,9 +440,9 @@ try {
     justify-content: center;
   }
  
-  .skip-btn svg { height: 100%; width: auto; }
-  .skip-btn:hover { color: #000; }
-  .skip-btn:active { transform: scale(0.98); }
+  .track-navigation-btn svg { height: 100%; width: auto; }
+  .track-navigation-btn:hover { color: #000; }
+  .track-navigation-btn:active { transform: scale(0.98); }
 </style>
 
 <script define:vars={{ shuffledItems }}>
