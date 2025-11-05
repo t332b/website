@@ -4,8 +4,8 @@ import AudioPlayer from "../../../components/AudioPlayer.astro";
 import { getCollection } from 'astro:content';
 
 const latestPosts = (await getCollection('blog')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
-const latestWorks = (await getCollection('works')).sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()).slice(0, 6);
-const upcomingLive = (await getCollection('live')).filter(event => event.data.status === 'scheduled').sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
+const latestWorks = (await getCollection('works')).filter(w => w.data.is_primary_release).sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()).slice(0, 4);
+const upcomingLive = (await getCollection('live')).sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
 
 // メンバー情報を取得
 const members = await getCollection('member');
@@ -85,9 +85,9 @@ function getAvatarUrl(member: any) {
         <div class="releases-grid">
           {latestWorks.map(release => (
             <a href={`/works/${release.slug}`} class="release-card">
-              {release.data.cover_images && release.data.cover_images.length > 0 && (
+              {release.data.cover_url_list && release.data.cover_url_list.length > 0 && (
                 <div class="release-cover">
-                  <img src={release.data.cover_images[0]} alt={release.data.title} />
+                  <img src={release.data.cover_url_list[0]} alt={release.data.title} />
                 </div>
               )}
               <div class="release-info">
@@ -424,7 +424,7 @@ function getAvatarUrl(member: any) {
     /* ブログセクション */
     .blog-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 4rem;
     }

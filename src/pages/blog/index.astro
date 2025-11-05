@@ -22,8 +22,9 @@ function getAvatarUrl(member: any) {
 ---
 
 <Base title="PR0P0SE Blog">
-  <!-- 絞り込みUI -->
-  <div class="filters-wrapper">
+  <div class="blog-container">
+    <!-- 絞り込みUI -->
+    <div class="filters-wrapper">
     <!-- 著者ボタン（常時表示） -->
     <div class="author-buttons">
       <button class="author-btn active" data-author="ALL">ALL</button>
@@ -129,6 +130,7 @@ function getAvatarUrl(member: any) {
       )
     })}
   </div>
+  </div>
 
   <script>
     // シンプルなバニラJS絞り込み
@@ -197,8 +199,8 @@ function getAvatarUrl(member: any) {
       items.forEach(item => {
         (item as HTMLElement).addEventListener('click', (e) => {
           const target = e.target as HTMLElement;
-          // アバターがクリックされた場合は記事詳細に遷移しない
-          if (target.classList.contains('author-avatar')) {
+          // アバターまたは著者名がクリックされた場合は記事詳細に遷移しない
+          if (target.classList.contains('author-avatar') || target.classList.contains('author-clickable')) {
             return;
           }
           const slug = (item as HTMLElement).dataset.slug;
@@ -261,10 +263,18 @@ function getAvatarUrl(member: any) {
   </script>
 
   <style>
+    /* ブログコンテナ */
+    .blog-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+
     /* 絞り込みUIラッパー */
     .filters-wrapper {
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 0.75rem;
       margin-bottom: 1rem;
       flex-wrap: wrap;
@@ -558,21 +568,10 @@ function getAvatarUrl(member: any) {
     /* レスポンシブ */
     @media (max-width: 768px) {
       .filters-wrapper {
-        flex-direction: column;
-        align-items: stretch;
         gap: 0.5rem;
       }
 
       .author-buttons {
-        justify-content: center;
-      }
-
-      .detail-filter-container {
-        width: 100%;
-      }
-
-      .detail-toggle {
-        width: 100%;
         justify-content: center;
       }
 

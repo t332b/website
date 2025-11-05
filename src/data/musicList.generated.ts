@@ -3,14 +3,15 @@
 export type MusicItem = { filename: string; releaseSlug: string; src: string; cover?: string };
 export const musicItems: MusicItem[] = [
   {
-    "filename": "citrus.mp3",
-    "releaseSlug": "citrus",
-    "src": "/music/citrus.mp3"
+    "filename": "citrus-single_シトラス.mp3",
+    "releaseSlug": "citrus-single",
+    "src": "/music/citrus-single_シトラス.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1760692036/citrus_vkmnqa.jpg"
   },
   {
-    "filename": "distant-light-single.mp3",
+    "filename": "distant-light-single_遠灯.mp3",
     "releaseSlug": "distant-light-single",
-    "src": "/music/distant-light-single.mp3",
+    "src": "/music/distant-light-single_遠灯.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761729726/IMG_0750_te5d3r.jpg"
   }
 ];
