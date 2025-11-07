@@ -13,5 +13,17 @@ export const musicItems: MusicItem[] = [
     "releaseSlug": "distant-light-single",
     "src": "/music/distant-light-single_遠灯.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761729726/IMG_0750_te5d3r.jpg"
+  },
+  {
+    "filename": "liner2-single_Liner2.mp3",
+    "releaseSlug": "liner2-single",
+    "src": "/music/liner2-single_Liner2.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1762332974/liner2_mco1zg.png"
+  },
+  {
+    "filename": "siawase_しあわせになろうよ.mp3",
+    "releaseSlug": "siawase",
+    "src": "/music/siawase_しあわせになろうよ.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761794801/siawase_ni_sf3rro.png"
   }
 ];

@@ -5,11 +5,48 @@ import { getCollection } from 'astro:content';
 const works = (await getCollection('works'))
   .sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()); // 新しい順
 
-// release_typeでフィルタリング用
-const allReleases = works.filter(w => w.data.is_primary_release);
-const singles = allReleases.filter(w => w.data.release_type === 'single');
-const eps = allReleases.filter(w => w.data.release_type === 'ep');
-const albums = allReleases.filter(w => w.data.release_type === 'album');
+const servicePriority = ['spotify', 'apple', 'bandcamp', 'youtube'] as const;
+const serviceIcons: Record<typeof servicePriority[number], string> = {
+  spotify: '/images/logo/spotify-icon.svg',
+  apple: '/images/logo/Apple_logo_black.svg',
+  bandcamp: '/images/logo/bandcamp-button-bc-circle-green-64.png',
+  youtube: '/images/logo/icons8-red-youtube.svg',
+};
+
+function getEmbedUrl(service: string, url: string): string | null {
+  try {
+    if (service === 'spotify') {
+      const match = url.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+      if (match) {
+        return `https://open.spotify.com/embed/${match[1]}/${match[2]}`;
+      }
+    }
+    if (service === 'bandcamp') {
+      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
+      if (match) {
+        return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${match[2]}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
+      }
+      return url;
+    }
+    if (service === 'apple') {
+      const match = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
+      if (match) {
+        return `https://embed.music.apple.com/${match[2]}`;
+      }
+    }
+    if (service === 'youtube') {
+      const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+      if (match) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+const singles = works.filter(w => w.data.release_type === 'single');
+const eps = works.filter(w => w.data.release_type === 'ep');
+const albums = works.filter(w => w.data.release_type === 'album');
 ---
 
 <Base title="PR0P0SE Works">
@@ -17,7 +54,7 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
     <!-- フィルタボタン -->
     <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
       <button class="filter-btn active" data-filter="all">
-        すべて ({allReleases.length})
+        すべて ({works.length})
       </button>
       <button class="filter-btn" data-filter="single">
         Single ({singles.length})
@@ -32,56 +69,134 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
 
     <!-- リリース一覧 -->
     <div class="releases-grid">
-      {allReleases.map(item => (
-        <a href={`/works/${item.slug}`} class="release-card" data-type={item.data.release_type}>
-          {item.data.cover_url_list && item.data.cover_url_list.length > 0 && (
-            <div class="carousel-container">
-              <div class="carousel-images">
-                {item.data.cover_url_list.map((img, idx) => (
-                  <img 
-                    src={img} 
-                    alt={`${item.data.title} - Image ${idx + 1}`}
-                    class={`carousel-image ${idx === 0 ? 'active' : ''}`}
-                    loading="lazy"
-                  />
-                ))}
-              </div>
-              {item.data.cover_url_list.length > 1 && (
-                <>
-                  <button class="carousel-btn prev" aria-label="prev">‹</button>
-                  <button class="carousel-btn next" aria-label="next">›</button>
-                  <div class="carousel-dots">
-                    {item.data.cover_url_list.map((_, idx) => (
-                      <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+      {works.map(item => {
+        const links = item.data.links ?? {};
+        const availableServices = servicePriority.filter(service => typeof links?.[service] === 'string' && links?.[service]);
+        const embedSources = availableServices
+          .map(service => {
+            const rawUrl = links?.[service];
+            const embedUrl = rawUrl ? getEmbedUrl(service, rawUrl) : null;
+            if (!embedUrl) return null;
+            return { service, embedUrl, rawUrl };
+          })
+          .filter((source): source is { service: typeof servicePriority[number]; embedUrl: string; rawUrl: string } => Boolean(source));
+        const hasEmbeds = embedSources.length > 0;
+        const defaultService = embedSources[0]?.service;
+        const isPrimary = Boolean(item.data.is_primary_release);
+
+        return (
+          <article class={`release-card ${isPrimary ? '' : 'release-card--secondary'}`} data-type={item.data.release_type ?? 'other'}>
+            <div class="card-media">
+              {isPrimary ? (
+                item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
+                  <div class="carousel-container">
+                    <div class="carousel-images">
+                      {item.data.cover_url_list.map((img, idx) => (
+                        <img
+                          src={img}
+                          alt={`${item.data.title} - Image ${idx + 1}`}
+                          class={`carousel-image ${idx === 0 ? 'active' : ''}`}
+                          loading="lazy"
+                        />
+                      ))}
+                    </div>
+                    {item.data.cover_url_list.length > 1 && (
+                      <>
+                        <button class="carousel-btn prev" aria-label="prev">‹</button>
+                        <button class="carousel-btn next" aria-label="next">›</button>
+                        <div class="carousel-dots">
+                          {item.data.cover_url_list.map((_, idx) => (
+                            <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div class="no-cover"></div>
+                )
+              ) : hasEmbeds ? (
+                <div class="embed-wrapper" data-default={defaultService}>
+                  {embedSources.length > 1 && (
+                    <div class="embed-tabs" role="tablist">
+                      {embedSources.map(({ service }) => (
+                        <button
+                          type="button"
+                          class={`embed-tab ${service === defaultService ? 'active' : ''}`}
+                          data-service={service}
+                          aria-selected={service === defaultService}
+                          aria-label={`${service} のプレイヤーを表示`}
+                        >
+                          <img src={serviceIcons[service]} alt={service} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div class="embed-frames">
+                    {embedSources.map(({ service, embedUrl }) => (
+                      <iframe
+                        src={embedUrl}
+                        data-service={service}
+                        class={`embed-frame ${service === defaultService ? 'active' : ''}`}
+                        title={`${item.data.title} ${service} embed`}
+                        width="100%"
+                        height={service === 'spotify' ? '352' : service === 'apple' ? '352' : service === 'bandcamp' ? '200' : '315'}
+                        frameborder="0"
+                        allow="encrypted-media; clipboard-write; fullscreen"
+                        loading="lazy"
+                        allowfullscreen="true"
+                      ></iframe>
                     ))}
                   </div>
-                </>
+                </div>
+              ) : (
+                <div class="no-cover secondary-placeholder"></div>
               )}
             </div>
-          )}
-          <div class="card-content">
-            <h3 class="card-title">
-              {item.data.title}
-            </h3>
-            {item.data.release_artist_name && (
-              <div class="card-artist">
-                {item.data.release_artist_name}
-              </div>
-            )}
-            <div class="meta-row">
-              <div class="card-date">
-                {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-              </div>
-              {item.data.release_type && (
-                <span class="type-text">{item.data.release_type}</span>
+
+            <div class="card-content">
+              <h3 class="card-title">
+                <a href={`/works/${item.slug}`} class="card-title-link">
+                  {item.data.title}
+                </a>
+              </h3>
+              {item.data.release_artist_name && (
+                <div class="card-artist">
+                  {item.data.release_artist_name}
+                </div>
               )}
+              <div class="meta-row">
+                <div class="card-date">
+                  {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                </div>
+                {item.data.release_type && (
+                  <span class="type-text">{item.data.release_type}</span>
+                )}
+              </div>
+              {!isPrimary && embedSources.length > 0 && (
+                <div class="service-links">
+                  {embedSources.map(({ service, rawUrl }) => (
+                    <a
+                      href={rawUrl}
+                      target="_blank"
+                      rel="noopener"
+                      class={`service-link service-link--${service}`}
+                    >
+                      <img src={serviceIcons[service]} alt={service} />
+                    </a>
+                  ))}
+                </div>
+              )}
+              <div class="card-detail">
+                <a href={`/works/${item.slug}`} class="card-detail-link">詳細を見る</a>
+              </div>
             </div>
-          </div>
-        </a>
-      ))}
+          </article>
+        );
+      })}
     </div>
 
-    {allReleases.length === 0 && (
+    {works.length === 0 && (
       <div style="text-align: center; padding: 3rem; color: #666;">
         <p style="font-size: 1.2rem;">N0NE</p>
       </div>
@@ -116,28 +231,41 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
 
     .releases-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.2rem;
     }
 
     .release-card {
       background: white;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
       transition: all 0.25s ease;
-      text-decoration: none;
-      color: inherit;
-      display: block;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      position: relative;
     }
-    
+
     .release-card:hover {
       border-color: #6f42c1;
       box-shadow: 0 8px 24px rgba(111, 66, 193, 0.15);
       transform: translateY(-4px);
     }
-    
+
+    .release-card--secondary {
+      border-color: rgba(111, 66, 193, 0.25);
+      box-shadow: 0 6px 18px rgba(111, 66, 193, 0.16);
+    }
+
     .release-card.hidden {
       display: none;
+    }
+
+    .card-media {
+      position: relative;
+      width: 100%;
+      background: #f5f5f5;
     }
 
     .carousel-container {
@@ -233,8 +361,13 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
     }
 
     .card-content {
-      padding: 0.6rem 0.7rem;
+      padding: 0.9rem 1rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      min-height: 160px;
     }
+
     .meta-row {
       display: flex;
       justify-content: space-between;
@@ -242,19 +375,27 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
       gap: 0.5rem;
     }
 
-
     .card-title {
       font-size: 0.95rem;
       font-weight: 600;
-      margin: 0 0 0.2rem 0;
+      margin: 0;
       color: #333;
       line-height: 1.25;
+    }
+
+    .card-title-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-block;
+    }
+
+    .card-title-link:hover {
+      color: #6f42c1;
     }
 
     .card-artist {
       font-size: 0.8rem;
       color: #666;
-      margin-bottom: 0.25rem;
       font-weight: 500;
       line-height: 1.25;
     }
@@ -270,6 +411,136 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
       font-size: 0.72rem;
       color: #888;
       text-transform: lowercase;
+    }
+
+    .service-links {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .service-link {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(111, 66, 193, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .service-link img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+    }
+
+    .service-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+    }
+
+    .card-detail {
+      margin-top: auto;
+    }
+
+    .card-detail-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6f42c1;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    .card-detail-link::after {
+      content: '›';
+      font-size: 0.9rem;
+      transform: translateY(1px);
+    }
+
+    .card-detail-link:hover {
+      color: #563097;
+    }
+
+    .embed-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0.85rem 0.85rem 1rem;
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.18), rgba(111, 66, 193, 0.05));
+    }
+
+    .embed-tabs {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+
+    .embed-tab {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .embed-tab img {
+      width: 18px;
+      height: 18px;
+    }
+
+    .embed-tab.active {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.25);
+      background: #6f42c1;
+    }
+
+    .embed-tab.active img {
+      filter: brightness(0) invert(1);
+    }
+
+    .embed-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .embed-frames {
+      position: relative;
+      width: 100%;
+    }
+
+    .embed-frame {
+      width: 100%;
+      border: none;
+      display: none;
+      border-radius: 8px;
+      background: #000;
+    }
+
+    .embed-frame.active {
+      display: block;
+    }
+
+    .no-cover {
+      width: 100%;
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+    }
+
+    .secondary-placeholder {
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.1));
     }
 
     @media (max-width: 768px) {
@@ -325,67 +596,99 @@ const albums = allReleases.filter(w => w.data.release_type === 'album');
         const prevBtn = card.querySelector('.carousel-btn.prev');
         const nextBtn = card.querySelector('.carousel-btn.next');
         
-        if (images.length <= 1) return;
-        
-        let currentIndex = 0;
-        
-        function showImage(index) {
-          images.forEach((img, i) => {
-            img.classList.toggle('active', i === index);
-          });
-          dots.forEach((dot, i) => {
-            dot.classList.toggle('active', i === index);
-          });
-        }
-        
-        function nextImage(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          currentIndex = (currentIndex + 1) % images.length;
-          showImage(currentIndex);
-        }
-        
-        function prevImage(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          currentIndex = (currentIndex - 1 + images.length) % images.length;
-          showImage(currentIndex);
-        }
-        
-        nextBtn?.addEventListener('click', nextImage);
-        prevBtn?.addEventListener('click', prevImage);
-        
-        dots.forEach((dot, index) => {
-          dot.addEventListener('click', (e) => {
+        if (images.length > 1) {
+          let currentIndex = 0;
+          
+          function showImage(index) {
+            images.forEach((img, i) => {
+              img.classList.toggle('active', i === index);
+            });
+            dots.forEach((dot, i) => {
+              dot.classList.toggle('active', i === index);
+            });
+          }
+          
+          function nextImage(e) {
             e.preventDefault();
             e.stopPropagation();
-            currentIndex = index;
-            showImage(currentIndex);
-          });
-        });
-        
-        // タッチスワイプ対応
-        let touchStartX = 0;
-        let touchEndX = 0;
-        
-        card.addEventListener('touchstart', (e) => {
-          touchStartX = e.changedTouches[0].screenX;
-        }, { passive: true });
-        
-        card.addEventListener('touchend', (e) => {
-          touchEndX = e.changedTouches[0].screenX;
-          handleSwipe();
-        }, { passive: true });
-        
-        function handleSwipe() {
-          if (touchEndX < touchStartX - 50) {
             currentIndex = (currentIndex + 1) % images.length;
             showImage(currentIndex);
           }
-          if (touchEndX > touchStartX + 50) {
+          
+          function prevImage(e) {
+            e.preventDefault();
+            e.stopPropagation();
             currentIndex = (currentIndex - 1 + images.length) % images.length;
             showImage(currentIndex);
           }
+          
+          nextBtn?.addEventListener('click', nextImage);
+          prevBtn?.addEventListener('click', prevImage);
+          
+          dots.forEach((dot, index) => {
+            dot.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              currentIndex = index;
+              showImage(currentIndex);
+            });
+          });
+          
+          // タッチスワイプ対応
+          let touchStartX = 0;
+          let touchEndX = 0;
+          
+          card.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+          }, { passive: true });
+          
+          card.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+          }, { passive: true });
+          
+          function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+              currentIndex = (currentIndex + 1) % images.length;
+              showImage(currentIndex);
+            }
+            if (touchEndX > touchStartX + 50) {
+              currentIndex = (currentIndex - 1 + images.length) % images.length;
+              showImage(currentIndex);
+            }
+          }
+        }
+
+        const embedWrapper = card.querySelector('.embed-wrapper');
+        if (embedWrapper) {
+          const frames = Array.from(embedWrapper.querySelectorAll('.embed-frame'));
+          const tabs = Array.from(embedWrapper.querySelectorAll('.embed-tab'));
+          const defaultService = embedWrapper.getAttribute('data-default');
+
+          const activate = (service) => {
+            frames.forEach(frame => {
+              frame.classList.toggle('active', frame.dataset.service === service);
+            });
+            tabs.forEach(tab => {
+              tab.classList.toggle('active', tab.dataset.service === service);
+              tab.setAttribute('aria-selected', tab.dataset.service === service ? 'true' : 'false');
+            });
+          };
+
+          if (defaultService) {
+            activate(defaultService);
+          }
+
+          tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const service = tab.dataset.service;
+              if (service) {
+                activate(service);
+              }
+            });
+          });
         }
       });
     });

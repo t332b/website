@@ -66,30 +66,40 @@ function getEmbedUrl(service: string, url: string): string | null {
     if (service === 'soundcloud') {
       return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}`;
     }
+    if (service === 'youtube') {
+      const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+      if (match) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
+    }
   } catch {}
   return null;
 }
 
-// 埋め込み可能なリンクを抽出
-const embedLinks: { service: string; url: string; embedUrl: string }[] = [];
-if (data.links) {
-  if (data.links.spotify) {
-    const embedUrl = getEmbedUrl('spotify', data.links.spotify);
-    if (embedUrl) embedLinks.push({ service: 'spotify', url: data.links.spotify, embedUrl });
-  }
-  if (data.links.bandcamp) {
-    const embedUrl = getEmbedUrl('bandcamp', data.links.bandcamp);
-    if (embedUrl) embedLinks.push({ service: 'bandcamp', url: data.links.bandcamp, embedUrl });
-  }
-  if (data.links.apple) {
-    const embedUrl = getEmbedUrl('apple', data.links.apple);
-    if (embedUrl) embedLinks.push({ service: 'apple', url: data.links.apple, embedUrl });
-  }
-  if (data.links.soundcloud) {
-    const embedUrl = getEmbedUrl('soundcloud', data.links.soundcloud);
-    if (embedUrl) embedLinks.push({ service: 'soundcloud', url: data.links.soundcloud, embedUrl });
-  }
-}
+const servicePriority = ['spotify', 'apple', 'bandcamp', 'youtube', 'soundcloud'] as const;
+const serviceIcons: Record<typeof servicePriority[number], string> = {
+  spotify: '/images/logo/spotify-icon.svg',
+  apple: '/images/logo/Apple_logo_black.svg',
+  bandcamp: '/images/logo/bandcamp-button-bc-circle-green-64.png',
+  youtube: '/images/logo/icons8-red-youtube.svg',
+  soundcloud: '/images/logo/soundcloud-2.svg',
+};
+
+const embedSources = data.links
+  ? servicePriority
+      .map((service) => {
+        const rawUrl = data.links?.[service];
+        if (!rawUrl) return null;
+        const embedUrl = getEmbedUrl(service, rawUrl);
+        if (!embedUrl) return null;
+        return { service, embedUrl, rawUrl };
+      })
+      .filter((entry): entry is { service: typeof servicePriority[number]; embedUrl: string; rawUrl: string } => Boolean(entry))
+  : [];
+
+const hasEmbeds = embedSources.length > 0;
+const defaultService = embedSources[0]?.service ?? null;
+const isPrimaryRelease = data.is_primary_release !== false;
 ---
 
 <Base title={data.title}>
@@ -134,37 +144,74 @@ if (data.links) {
 
     <!-- メインコンテンツエリア -->
     <div class="content-grid">
-      <!-- 左カラム：画像 -->
+      <!-- 左カラム：画像 or 埋め込み -->
       <div class="cover-section">
-        {data.cover_url_list && data.cover_url_list.length > 0 ? (
-          <div class="cover-carousel">
-            <div class="carousel-images">
-              {data.cover_url_list.map((img, idx) => (
-                <img 
-                  src={img} 
-                  alt={`${data.title} - Image ${idx + 1}`}
-                  class={`carousel-image ${idx === 0 ? 'active' : ''}`}
-                />
+        {isPrimaryRelease ? (
+          data.cover_url_list && data.cover_url_list.length > 0 ? (
+            <div class="cover-carousel">
+              <div class="carousel-images">
+                {data.cover_url_list.map((img, idx) => (
+                  <img 
+                    src={img} 
+                    alt={`${data.title} - Image ${idx + 1}`}
+                    class={`carousel-image ${idx === 0 ? 'active' : ''}`}
+                  />
+                ))}
+              </div>
+              {data.cover_url_list.length > 1 && (
+                <>
+                  <button class="carousel-btn prev" aria-label="前の画像">‹</button>
+                  <button class="carousel-btn next" aria-label="次の画像">›</button>
+                  <div class="carousel-dots">
+                    {data.cover_url_list.map((_, idx) => (
+                      <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div class="no-cover"></div>
+          )
+        ) : hasEmbeds ? (
+          <div class="embed-wrapper embed-wrapper--cover" data-default={defaultService ?? ''}>
+            {embedSources.length > 1 && (
+              <div class="embed-tabs" role="tablist">
+                {embedSources.map(({ service }) => (
+                  <button
+                    type="button"
+                    class={`embed-tab ${service === defaultService ? 'active' : ''}`}
+                    data-service={service}
+                    aria-selected={service === defaultService}
+                    aria-label={`${service} のプレイヤーを表示`}
+                  >
+                    <img src={serviceIcons[service]} alt={`${service} アイコン`} />
+                  </button>
+                ))}
+              </div>
+            )}
+            <div class="embed-frames">
+              {embedSources.map(({ service, embedUrl }) => (
+                <iframe
+                  src={embedUrl}
+                  data-service={service}
+                  class={`embed-frame ${service === defaultService ? 'active' : ''}`}
+                  title={`${data.title} ${service} embed`}
+                  width="100%"
+                  height={service === 'spotify' ? '420' : service === 'apple' ? '420' : service === 'bandcamp' ? '360' : service === 'youtube' ? '360' : '220'}
+                  frameborder="0"
+                  allow="encrypted-media; clipboard-write; fullscreen"
+                  loading="lazy"
+                  allowfullscreen="true"
+                ></iframe>
               ))}
             </div>
-            {data.cover_url_list.length > 1 && (
-              <>
-                <button class="carousel-btn prev" aria-label="前の画像">‹</button>
-                <button class="carousel-btn next" aria-label="次の画像">›</button>
-                <div class="carousel-dots">
-                  {data.cover_url_list.map((_, idx) => (
-                    <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         ) : (
-          <div class="no-cover"></div>
+          <div class="no-cover secondary-detail-placeholder"></div>
         )}
 
-        <!-- クレジット情報 -->
-        {(data.cover_illustration_by || data.cover_design_by || data.cover_photography_by) && (
+        {isPrimaryRelease && (data.cover_illustration_by || data.cover_design_by || data.cover_photography_by) && (
           <div class="credits-box">
             {data.cover_illustration_by && (
               <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
@@ -183,26 +230,61 @@ if (data.links) {
             )}
           </div>
         )}
+
+        {!isPrimaryRelease && hasEmbeds && (
+          <div class="service-links service-links--cover">
+            {embedSources.map(({ service, rawUrl }) => (
+              <a
+                href={rawUrl}
+                target="_blank"
+                rel="noopener"
+                class={`service-link service-link--${service}`}
+              >
+                <img src={serviceIcons[service]} alt={`${service} リンク`} />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
 
       <!-- 右カラム：詳細情報 -->
       <div class="details-section">
         <!-- 埋め込みプレイヤー -->
-        {embedLinks.length > 0 && (
+        {isPrimaryRelease && hasEmbeds && (
           <div class="embeds-section">
-            {embedLinks.map((link) => (
-              <div class="embed-wrapper">
-                <iframe
-                  src={link.embedUrl}
-                  width="100%"
-                  height={link.service === 'soundcloud' ? '166' : link.service === 'bandcamp' ? '42' : '352'}
-                  frameborder="0"
-                  allowtransparency="true"
-                  allow="encrypted-media"
-                  loading="lazy"
-                ></iframe>
+            <div class="embed-wrapper embed-wrapper--detail" data-default={defaultService ?? ''}>
+              {embedSources.length > 1 && (
+                <div class="embed-tabs" role="tablist">
+                  {embedSources.map(({ service }) => (
+                    <button
+                      type="button"
+                      class={`embed-tab ${service === defaultService ? 'active' : ''}`}
+                      data-service={service}
+                      aria-selected={service === defaultService}
+                      aria-label={`${service} のプレイヤーを表示`}
+                    >
+                      <img src={serviceIcons[service]} alt={`${service} アイコン`} />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div class="embed-frames">
+                {embedSources.map(({ service, embedUrl }) => (
+                  <iframe
+                    src={embedUrl}
+                    data-service={service}
+                    class={`embed-frame ${service === defaultService ? 'active' : ''}`}
+                    title={`${data.title} ${service} embed`}
+                    width="100%"
+                    height={service === 'spotify' ? '420' : service === 'apple' ? '420' : service === 'bandcamp' ? '360' : service === 'youtube' ? '360' : '220'}
+                    frameborder="0"
+                    allow="encrypted-media; clipboard-write; fullscreen"
+                    loading="lazy"
+                    allowfullscreen="true"
+                  ></iframe>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         )}
 
@@ -306,6 +388,9 @@ if (data.links) {
       position: sticky;
       top: 2rem;
       align-self: start;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     .cover-carousel {
@@ -414,6 +499,11 @@ if (data.links) {
       margin-bottom: 1.5rem;
     }
 
+    .secondary-detail-placeholder {
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.1));
+      margin-bottom: 0;
+    }
+
     .credits-box {
       background: transparent;
       border-radius: 0;
@@ -428,19 +518,118 @@ if (data.links) {
     .embeds-section {
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.2rem;
     }
 
     .embed-wrapper {
-      width: 100%;
-      border-radius: 8px;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.16), rgba(111, 66, 193, 0.05));
+      box-shadow: 0 4px 14px rgba(111, 66, 193, 0.12);
     }
 
-    .embed-wrapper iframe {
+    .embed-wrapper--cover {
+      padding: 1.1rem 1rem 1.3rem;
+      border-radius: 16px;
+    }
+
+    .embed-tabs {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    .embed-tab {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
       border: none;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .embed-tab img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    .embed-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .embed-tab.active {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(111, 66, 193, 0.25);
+      background: #6f42c1;
+    }
+
+    .embed-tab.active img {
+      filter: brightness(0) invert(1);
+    }
+
+    .embed-frames {
+      position: relative;
       width: 100%;
+    }
+
+    .embed-frame {
+      width: 100%;
+      border: none;
+      display: none;
+      border-radius: 10px;
+      background: #000;
+    }
+
+    .embed-frame.active {
       display: block;
+    }
+
+    .embed-wrapper--detail .embed-frame {
+      border-radius: 12px;
+    }
+
+    .service-links {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .service-links--cover {
+      margin-top: 0.5rem;
+    }
+
+    .service-link {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border: 2px solid rgba(111, 66, 193, 0.3);
+      box-shadow: 0 2px 10px rgba(111, 66, 193, 0.18);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .service-link img {
+      width: 20px;
+      height: 20px;
+      object-fit: contain;
+    }
+
+    .service-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(111, 66, 193, 0.25);
     }
 
     .links-section {
@@ -688,5 +877,39 @@ if (data.links) {
         }
       });
     }
+
+    // 埋め込みタブ切り替え
+    const embedWrappers = document.querySelectorAll('.embed-wrapper');
+    embedWrappers.forEach((wrapper) => {
+      const frames = Array.from(wrapper.querySelectorAll('.embed-frame'));
+      const tabs = Array.from(wrapper.querySelectorAll('.embed-tab'));
+      const defaultService = wrapper.getAttribute('data-default') || frames[0]?.dataset.service;
+
+      const activate = (service) => {
+        frames.forEach((frame) => {
+          frame.classList.toggle('active', frame.dataset.service === service);
+        });
+        tabs.forEach((tab) => {
+          const isActive = tab.dataset.service === service;
+          tab.classList.toggle('active', isActive);
+          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      };
+
+      if (defaultService) {
+        activate(defaultService);
+      }
+
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const service = tab.dataset.service;
+          if (service) {
+            activate(service);
+          }
+        });
+      });
+    });
   </script>
 </Base>
