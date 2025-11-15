@@ -16,9 +16,17 @@ const serviceIcons: Record<typeof servicePriority[number], string> = {
 function getEmbedUrl(service: string, url: string): string | null {
   try {
     if (service === 'spotify') {
-      const match = url.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+      // intl-ja/などの言語パスを含むURLにも対応
+      // track/から?または&まで（つまり曲ID部分）を取得
+      const match = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
       if (match) {
-        return `https://open.spotify.com/embed/${match[1]}/${match[2]}`;
+        const type = match[1]; // track, album, playlist
+        const id = match[2];   // 曲ID（5L7jSdEqM6kxG5GpixS4u4など）
+        const embedUrl = `https://open.spotify.com/embed/${type}/${id}?utm_source=generator`;
+        console.log('[getEmbedUrl] Spotify URL conversion:', { original: url, type, id, embedUrl });
+        return embedUrl;
+      } else {
+        console.log('[getEmbedUrl] Spotify URL did not match pattern:', url);
       }
     }
     if (service === 'bandcamp') {
@@ -82,10 +90,28 @@ const albums = works.filter(w => w.data.release_type === 'album');
           .filter((source): source is { service: typeof servicePriority[number]; embedUrl: string; rawUrl: string } => Boolean(source));
         const hasEmbeds = embedSources.length > 0;
         const defaultService = embedSources[0]?.service;
-        const isPrimary = Boolean(item.data.is_primary_release);
+        const rawIsPrimary = item.data.is_primary_release;
+        const isPrimary = Boolean(rawIsPrimary);
+        const spotifyEmbed = embedSources.find(s => s.service === 'spotify');
+
+        // デバッグ情報をコンソールに出力
+        console.log('=== Debug Info ===');
+        console.log('Title:', item.data.title);
+        console.log('links:', links);
+        console.log('links.spotify:', links?.spotify);
+        console.log('availableServices:', availableServices);
+        console.log('is_primary_release (raw):', rawIsPrimary, typeof rawIsPrimary);
+        console.log('isPrimary (converted):', isPrimary);
+        console.log('hasEmbeds:', hasEmbeds);
+        console.log('embedSources:', embedSources.map(s => ({ service: s.service, embedUrl: s.embedUrl })));
+        console.log('spotifyEmbed:', spotifyEmbed ? 'found' : 'not found');
+        console.log('===================');
 
         return (
-          <article class={`release-card ${isPrimary ? '' : 'release-card--secondary'}`} data-type={item.data.release_type ?? 'other'}>
+          <article 
+            class={`release-card ${isPrimary ? '' : 'release-card--secondary'}`} 
+            data-type={item.data.release_type ?? 'other'}
+          >
             <div class="card-media">
               {isPrimary ? (
                 item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
@@ -116,39 +142,60 @@ const albums = works.filter(w => w.data.release_type === 'album');
                   <div class="no-cover"></div>
                 )
               ) : hasEmbeds ? (
-                <div class="embed-wrapper" data-default={defaultService}>
-                  {embedSources.length > 1 && (
-                    <div class="embed-tabs" role="tablist">
-                      {embedSources.map(({ service }) => (
-                        <button
-                          type="button"
-                          class={`embed-tab ${service === defaultService ? 'active' : ''}`}
-                          data-service={service}
-                          aria-selected={service === defaultService}
-                          aria-label={`${service} のプレイヤーを表示`}
-                        >
-                          <img src={serviceIcons[service]} alt={service} />
-                        </button>
-                      ))}
+                (() => {
+                  if (spotifyEmbed) {
+                    return (
+                      <div class="spotify-embed-container">
+                        <iframe
+                          src={spotifyEmbed.embedUrl}
+                          width="100%"
+                          height="352"
+                          frameborder="0"
+                          allowfullscreen=""
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                          style="border-radius: 12px;"
+                        ></iframe>
+                      </div>
+                    );
+                  }
+                  // Spotifyがない場合は、既存のタブ形式を維持
+                  return (
+                    <div class="embed-wrapper" data-default={defaultService}>
+                      {embedSources.length > 1 && (
+                        <div class="embed-tabs" role="tablist">
+                          {embedSources.map(({ service }) => (
+                            <button
+                              type="button"
+                              class={`embed-tab ${service === defaultService ? 'active' : ''}`}
+                              data-service={service}
+                              aria-selected={service === defaultService}
+                              aria-label={`${service} のプレイヤーを表示`}
+                            >
+                              <img src={serviceIcons[service]} alt={service} />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <div class="embed-frames">
+                        {embedSources.map(({ service, embedUrl }) => (
+                          <iframe
+                            src={embedUrl}
+                            data-service={service}
+                            class={`embed-frame ${service === defaultService ? 'active' : ''}`}
+                            title={`${item.data.title} ${service} embed`}
+                            width="100%"
+                            height={service === 'spotify' ? '352' : service === 'apple' ? '352' : service === 'bandcamp' ? '200' : '315'}
+                            frameborder="0"
+                            allow="encrypted-media; clipboard-write; fullscreen"
+                            loading="lazy"
+                            allowfullscreen="true"
+                          ></iframe>
+                        ))}
+                      </div>
                     </div>
-                  )}
-                  <div class="embed-frames">
-                    {embedSources.map(({ service, embedUrl }) => (
-                      <iframe
-                        src={embedUrl}
-                        data-service={service}
-                        class={`embed-frame ${service === defaultService ? 'active' : ''}`}
-                        title={`${item.data.title} ${service} embed`}
-                        width="100%"
-                        height={service === 'spotify' ? '352' : service === 'apple' ? '352' : service === 'bandcamp' ? '200' : '315'}
-                        frameborder="0"
-                        allow="encrypted-media; clipboard-write; fullscreen"
-                        loading="lazy"
-                        allowfullscreen="true"
-                      ></iframe>
-                    ))}
-                  </div>
-                </div>
+                  );
+                })()
               ) : (
                 <div class="no-cover secondary-placeholder"></div>
               )}
@@ -242,7 +289,6 @@ const albums = works.filter(w => w.data.release_type === 'album');
       transition: all 0.25s ease;
       display: flex;
       flex-direction: column;
-      border: 1px solid rgba(0, 0, 0, 0.05);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
       position: relative;
     }
@@ -365,7 +411,7 @@ const albums = works.filter(w => w.data.release_type === 'album');
       display: flex;
       flex-direction: column;
       gap: 0.55rem;
-      min-height: 160px;
+      min-height: 80px;
     }
 
     .meta-row {
@@ -465,6 +511,22 @@ const albums = works.filter(w => w.data.release_type === 'album');
 
     .card-detail-link:hover {
       color: #563097;
+    }
+
+    .spotify-embed-container {
+      width: 100%;
+      padding: 0;
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.18), rgba(111, 66, 193, 0.05));
+      overflow: hidden;
+      border-radius: 12px;
+    }
+
+    .spotify-embed-container iframe {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      display: block;
+      margin: 0;
     }
 
     .embed-wrapper {
