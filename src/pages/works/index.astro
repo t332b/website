@@ -13,6 +13,51 @@ const serviceIcons: Record<typeof servicePriority[number], string> = {
   youtube: '/images/logo/icons8-red-youtube.svg',
 };
 
+// Spotifyのトラック/アルバム情報を取得する関数（カバー画像用）
+async function getSpotifyCoverImage(url: string): Promise<string | null> {
+  try {
+    const match = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
+    if (!match) return null;
+    
+    const type = match[1]; // track, album, playlist
+    const id = match[2];   // 曲ID
+    
+    // SpotifyのoEmbedエンドポイントから画像を取得を試みる
+    // ただし、Spotifyには公式のoEmbedがないため、Open Graph画像を取得する方法を使用
+    // または、Spotify Web APIを使用する必要がある
+    
+    // 簡易的な方法: Open Graph画像を取得
+    // https://open.spotify.com/track/{id} のOG画像を取得
+    try {
+      const ogUrl = `https://open.spotify.com/${type}/${id}`;
+      const response = await fetch(ogUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
+        },
+      });
+      const html = await response.text();
+      
+      // Open Graph画像のメタタグを探す
+      const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+      if (ogImageMatch && ogImageMatch[1]) {
+        return ogImageMatch[1];
+      }
+      
+      // 代替方法: Twitter Card画像
+      const twitterImageMatch = html.match(/<meta\s+name=["']twitter:image["']\s+content=["']([^"']+)["']/i);
+      if (twitterImageMatch && twitterImageMatch[1]) {
+        return twitterImageMatch[1];
+      }
+    } catch (error) {
+      console.error('Failed to fetch Spotify cover image:', error);
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 function getEmbedUrl(service: string, url: string): string | null {
   try {
     if (service === 'spotify') {
@@ -23,10 +68,7 @@ function getEmbedUrl(service: string, url: string): string | null {
         const type = match[1]; // track, album, playlist
         const id = match[2];   // 曲ID（5L7jSdEqM6kxG5GpixS4u4など）
         const embedUrl = `https://open.spotify.com/embed/${type}/${id}?utm_source=generator`;
-        console.log('[getEmbedUrl] Spotify URL conversion:', { original: url, type, id, embedUrl });
         return embedUrl;
-      } else {
-        console.log('[getEmbedUrl] Spotify URL did not match pattern:', url);
       }
     }
     if (service === 'bandcamp') {
@@ -52,9 +94,27 @@ function getEmbedUrl(service: string, url: string): string | null {
   return null;
 }
 
-const singles = works.filter(w => w.data.release_type === 'single');
-const eps = works.filter(w => w.data.release_type === 'ep');
-const albums = works.filter(w => w.data.release_type === 'album');
+// is_primary_releaseがfalseの場合、Spotifyのカバー画像を取得
+const worksWithSpotifyImages = await Promise.all(
+  works.map(async (item) => {
+    const rawIsPrimary = item.data.is_primary_release;
+    const isPrimary = Boolean(rawIsPrimary);
+    
+    if (!isPrimary) {
+      const links = item.data.links ?? {};
+      const spotifyUrl = links?.spotify;
+      if (spotifyUrl && typeof spotifyUrl === 'string') {
+        const spotifyCoverImage = await getSpotifyCoverImage(spotifyUrl);
+        return { ...item, spotifyCoverImage };
+      }
+    }
+    return { ...item, spotifyCoverImage: null };
+  })
+);
+
+const singles = worksWithSpotifyImages.filter(w => w.data.release_type === 'single');
+const eps = worksWithSpotifyImages.filter(w => w.data.release_type === 'ep');
+const albums = worksWithSpotifyImages.filter(w => w.data.release_type === 'album');
 ---
 
 <Base title="PR0P0SE Works">
@@ -77,7 +137,7 @@ const albums = works.filter(w => w.data.release_type === 'album');
 
     <!-- リリース一覧 -->
     <div class="releases-grid">
-      {works.map(item => {
+      {worksWithSpotifyImages.map(item => {
         const links = item.data.links ?? {};
         const availableServices = servicePriority.filter(service => typeof links?.[service] === 'string' && links?.[service]);
         const embedSources = availableServices
@@ -94,58 +154,141 @@ const albums = works.filter(w => w.data.release_type === 'album');
         const isPrimary = Boolean(rawIsPrimary);
         const spotifyEmbed = embedSources.find(s => s.service === 'spotify');
 
-        // デバッグ情報をコンソールに出力
-        console.log('=== Debug Info ===');
-        console.log('Title:', item.data.title);
-        console.log('links:', links);
-        console.log('links.spotify:', links?.spotify);
-        console.log('availableServices:', availableServices);
-        console.log('is_primary_release (raw):', rawIsPrimary, typeof rawIsPrimary);
-        console.log('isPrimary (converted):', isPrimary);
-        console.log('hasEmbeds:', hasEmbeds);
-        console.log('embedSources:', embedSources.map(s => ({ service: s.service, embedUrl: s.embedUrl })));
-        console.log('spotifyEmbed:', spotifyEmbed ? 'found' : 'not found');
-        console.log('===================');
 
         return (
-          <article 
-            class={`release-card ${isPrimary ? '' : 'release-card--secondary'}`} 
-            data-type={item.data.release_type ?? 'other'}
-          >
-            <div class="card-media">
-              {isPrimary ? (
-                item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
-                  <div class="carousel-container">
-                    <div class="carousel-images">
-                      {item.data.cover_url_list.map((img, idx) => (
-                        <img
-                          src={img}
-                          alt={`${item.data.title} - Image ${idx + 1}`}
-                          class={`carousel-image ${idx === 0 ? 'active' : ''}`}
-                          loading="lazy"
-                        />
-                      ))}
+          <>
+            <article 
+              class={`release-card ${isPrimary ? '' : 'release-card--secondary'} ${!isPrimary ? 'release-card--clickable' : ''}`}
+              data-type={item.data.release_type ?? 'other'}
+              data-slug={item.slug}
+              {...(!isPrimary && { 'data-modal': 'true' })}
+            >
+              <div class="card-media">
+                {isPrimary ? (
+                  item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
+                    <div class="carousel-container">
+                      <div class="carousel-images">
+                        {item.data.cover_url_list.map((img, idx) => (
+                          <img
+                            src={img}
+                            alt={`${item.data.title} - Image ${idx + 1}`}
+                            class={`carousel-image ${idx === 0 ? 'active' : ''}`}
+                            loading="lazy"
+                          />
+                        ))}
+                      </div>
+                      {item.data.cover_url_list.length > 1 && (
+                        <>
+                          <button class="carousel-btn prev" aria-label="prev">‹</button>
+                          <button class="carousel-btn next" aria-label="next">›</button>
+                          <div class="carousel-dots">
+                            {item.data.cover_url_list.map((_, idx) => (
+                              <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
+                            ))}
+                          </div>
+                        </>
+                      )}
                     </div>
-                    {item.data.cover_url_list.length > 1 && (
-                      <>
-                        <button class="carousel-btn prev" aria-label="prev">‹</button>
-                        <button class="carousel-btn next" aria-label="next">›</button>
-                        <div class="carousel-dots">
-                          {item.data.cover_url_list.map((_, idx) => (
-                            <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
-                          ))}
-                        </div>
-                      </>
+                  ) : (
+                    <div class="no-cover"></div>
+                  )
+                ) : (
+                  // is_primary_releaseがfalseの場合: Spotifyなどのストリーミングサービスのカバー画像とSpotifyマークを表示
+                  <div class="secondary-cover-container">
+                    {(item.data.cover_url_list && item.data.cover_url_list.length > 0) || (item as any).spotifyCoverImage ? (
+                      <img
+                        src={(item.data.cover_url_list && item.data.cover_url_list.length > 0) 
+                          ? item.data.cover_url_list[0] 
+                          : (item as any).spotifyCoverImage}
+                        alt={item.data.title}
+                        class="secondary-cover-image"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div class="no-cover secondary-placeholder"></div>
+                    )}
+                    {spotifyEmbed && (
+                      <div class="spotify-badge">
+                        <img src={serviceIcons.spotify} alt="Spotify" class="spotify-badge-icon" />
+                        <span class="spotify-badge-text"></span>
+                      </div>
                     )}
                   </div>
-                ) : (
-                  <div class="no-cover"></div>
-                )
-              ) : hasEmbeds ? (
-                (() => {
-                  if (spotifyEmbed) {
-                    return (
-                      <div class="spotify-embed-container">
+                )}
+              </div>
+
+              <div class="card-content">
+                <h3 class="card-title">
+                  {isPrimary ? (
+                    <a href={`/works/${item.slug}`} class="card-title-link">
+                      {item.data.title}
+                    </a>
+                  ) : (
+                    <span class="card-title-text">{item.data.title}</span>
+                  )}
+                </h3>
+                {item.data.release_artist_name && (
+                  <div class="card-artist">
+                    {item.data.release_artist_name}
+                  </div>
+                )}
+                <div class="meta-row">
+                  <div class="card-date">
+                    {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                  </div>
+                  {item.data.release_type && (
+                    <span class="type-text">{item.data.release_type}</span>
+                  )}
+                </div>
+                {isPrimary && (
+                  <div class="card-detail">
+                    <a href={`/works/${item.slug}`} class="card-detail-link">詳細を見る</a>
+                  </div>
+                )}
+              </div>
+            </article>
+
+            {/* ポップオーバー（モーダル） */}
+            {!isPrimary && (
+              <div 
+                class="release-modal" 
+                id={`modal-${item.slug}`}
+                data-slug={item.slug}
+                role="dialog"
+                aria-labelledby={`modal-title-${item.slug}`}
+                aria-hidden="true"
+              >
+                <div class="modal-backdrop"></div>
+                <div class="modal-content">
+                  <button class="modal-close" aria-label="閉じる">&times;</button>
+                  <button class="modal-nav modal-nav--prev" aria-label="前のリリース">‹</button>
+                  <button class="modal-nav modal-nav--next" aria-label="次のリリース">›</button>
+                  <div class="modal-header">
+                    {item.data.cover_url_list && item.data.cover_url_list.length > 0 && (
+                      <img
+                        src={item.data.cover_url_list[0]}
+                        alt={item.data.title}
+                        class="modal-cover"
+                      />
+                    )}
+                    <div class="modal-header-info">
+                      <h2 id={`modal-title-${item.slug}`} class="modal-title">{item.data.title}</h2>
+                      {item.data.release_artist_name && (
+                        <div class="modal-artist">{item.data.release_artist_name}</div>
+                      )}
+                      <div class="modal-meta">
+                        <span class="modal-date">
+                          {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
+                        </span>
+                        {item.data.release_type && (
+                          <span class="modal-type">{item.data.release_type}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-body">
+                    {spotifyEmbed && (
+                      <div class="modal-player">
                         <iframe
                           src={spotifyEmbed.embedUrl}
                           width="100%"
@@ -157,88 +300,27 @@ const albums = works.filter(w => w.data.release_type === 'album');
                           style="border-radius: 12px;"
                         ></iframe>
                       </div>
-                    );
-                  }
-                  // Spotifyがない場合は、既存のタブ形式を維持
-                  return (
-                    <div class="embed-wrapper" data-default={defaultService}>
-                      {embedSources.length > 1 && (
-                        <div class="embed-tabs" role="tablist">
-                          {embedSources.map(({ service }) => (
-                            <button
-                              type="button"
-                              class={`embed-tab ${service === defaultService ? 'active' : ''}`}
-                              data-service={service}
-                              aria-selected={service === defaultService}
-                              aria-label={`${service} のプレイヤーを表示`}
-                            >
-                              <img src={serviceIcons[service]} alt={service} />
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      <div class="embed-frames">
-                        {embedSources.map(({ service, embedUrl }) => (
-                          <iframe
-                            src={embedUrl}
-                            data-service={service}
-                            class={`embed-frame ${service === defaultService ? 'active' : ''}`}
-                            title={`${item.data.title} ${service} embed`}
-                            width="100%"
-                            height={service === 'spotify' ? '352' : service === 'apple' ? '352' : service === 'bandcamp' ? '200' : '315'}
-                            frameborder="0"
-                            allow="encrypted-media; clipboard-write; fullscreen"
-                            loading="lazy"
-                            allowfullscreen="true"
-                          ></iframe>
+                    )}
+                    {embedSources.length > 0 && (
+                      <div class="modal-service-links">
+                        {embedSources.map(({ service, rawUrl }) => (
+                          <a
+                            href={rawUrl}
+                            target="_blank"
+                            rel="noopener"
+                            class={`modal-service-link modal-service-link--${service}`}
+                          >
+                            <img src={serviceIcons[service]} alt={service} />
+                            <span>{service}で開く</span>
+                          </a>
                         ))}
                       </div>
-                    </div>
-                  );
-                })()
-              ) : (
-                <div class="no-cover secondary-placeholder"></div>
-              )}
-            </div>
-
-            <div class="card-content">
-              <h3 class="card-title">
-                <a href={`/works/${item.slug}`} class="card-title-link">
-                  {item.data.title}
-                </a>
-              </h3>
-              {item.data.release_artist_name && (
-                <div class="card-artist">
-                  {item.data.release_artist_name}
+                    )}
+                  </div>
                 </div>
-              )}
-              <div class="meta-row">
-                <div class="card-date">
-                  {item.data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                </div>
-                {item.data.release_type && (
-                  <span class="type-text">{item.data.release_type}</span>
-                )}
               </div>
-              {!isPrimary && embedSources.length > 0 && (
-                <div class="service-links">
-                  {embedSources.map(({ service, rawUrl }) => (
-                    <a
-                      href={rawUrl}
-                      target="_blank"
-                      rel="noopener"
-                      class={`service-link service-link--${service}`}
-                    >
-                      <img src={serviceIcons[service]} alt={service} />
-                    </a>
-                  ))}
-                </div>
-              )}
-              <div class="card-detail">
-                <a href={`/works/${item.slug}`} class="card-detail-link">詳細を見る</a>
-              </div>
-            </div>
-          </article>
+            )}
+          </>
         );
       })}
     </div>
@@ -311,7 +393,10 @@ const albums = works.filter(w => w.data.release_type === 'album');
     .card-media {
       position: relative;
       width: 100%;
+      max-width: 100%;
       background: #f5f5f5;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .carousel-container {
@@ -515,18 +600,23 @@ const albums = works.filter(w => w.data.release_type === 'album');
 
     .spotify-embed-container {
       width: 100%;
+      max-width: 100%;
       padding: 0;
       background: linear-gradient(135deg, rgba(111, 66, 193, 0.18), rgba(111, 66, 193, 0.05));
       overflow: hidden;
       border-radius: 12px;
+      box-sizing: border-box;
     }
 
     .spotify-embed-container iframe {
-      width: 100%;
+      width: 100% !important;
+      max-width: 100% !important;
       border: none;
       border-radius: 12px;
       display: block;
       margin: 0;
+      height: 352px;
+      box-sizing: border-box;
     }
 
     .embed-wrapper {
@@ -605,6 +695,263 @@ const albums = works.filter(w => w.data.release_type === 'album');
       background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.1));
     }
 
+    .release-card--clickable {
+      cursor: pointer;
+    }
+
+    .secondary-cover-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 12px;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .secondary-cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .spotify-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .release-card--clickable:hover .spotify-badge {
+      background: rgba(30, 215, 96, 0.9);
+      transform: scale(1.05);
+    }
+
+    .spotify-badge-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0) invert(1);
+    }
+
+    .release-card--clickable:hover .spotify-badge-icon {
+      filter: none;
+    }
+
+    .spotify-badge-text {
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .card-title-text {
+      color: inherit;
+    }
+
+    /* モーダルスタイル */
+    .release-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1000;
+      overflow-y: auto;
+    }
+
+    .release-modal.active {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-content {
+      position: relative;
+      background: white;
+      border-radius: 16px;
+      max-width: 800px;
+      width: 90%;
+      margin: 2rem auto;
+      padding: 2rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: #666;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+      z-index: 1002;
+    }
+
+    .modal-close:hover {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .modal-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      color: #333;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+      z-index: 1003;
+    }
+
+    .modal-nav:hover {
+      background: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .modal-nav--prev {
+      left: 1rem;
+    }
+
+    .modal-nav--next {
+      right: 1rem;
+    }
+
+    .modal-header {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .modal-cover {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
+    .modal-header-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      color: #333;
+    }
+
+    .modal-artist {
+      font-size: 1rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-meta {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .modal-date {
+      font-size: 0.9rem;
+      color: #888;
+    }
+
+    .modal-type {
+      font-size: 0.85rem;
+      color: #aaa;
+      text-transform: lowercase;
+    }
+
+    .modal-body {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .modal-player {
+      width: 100%;
+    }
+
+    .modal-player iframe {
+      width: 100%;
+      border-radius: 12px;
+    }
+
+    .modal-service-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .modal-service-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #333;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .modal-service-link:hover {
+      background: #e0e0e0;
+      transform: translateY(-2px);
+    }
+
+    .modal-service-link img {
+      width: 24px;
+      height: 24px;
+    }
+
     @media (max-width: 768px) {
       .releases-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -618,6 +965,53 @@ const albums = works.filter(w => w.data.release_type === 'album');
       .filter-btn {
         font-size: 0.75rem;
         padding: 0.35rem 0.8rem;
+      }
+
+      .spotify-embed-container {
+        border-radius: 8px;
+      }
+
+      .spotify-embed-container iframe,
+      .spotify-embed-iframe {
+        width: 100% !important;
+        height: 352px !important;
+        border-radius: 8px;
+      }
+
+      .modal-content {
+        padding: 1.5rem;
+        margin: 1rem;
+        width: calc(100% - 2rem);
+      }
+
+      .modal-header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .modal-cover {
+        width: 100%;
+        height: auto;
+        max-width: 200px;
+        margin: 0 auto;
+      }
+
+      .modal-title {
+        font-size: 1.25rem;
+      }
+
+      .modal-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+      }
+
+      .modal-nav--prev {
+        left: 0.5rem;
+      }
+
+      .modal-nav--next {
+        right: 0.5rem;
       }
     }
   </style>
@@ -751,6 +1145,186 @@ const albums = works.filter(w => w.data.release_type === 'album');
               }
             });
           });
+        }
+      });
+
+      // ポップオーバー（モーダル）の開閉機能
+      const clickableCards = document.querySelectorAll('.release-card--clickable');
+      const modals = document.querySelectorAll('.release-modal');
+      
+      // 現在表示されている（フィルタリングされた）リリースカードを取得
+      function getVisibleReleaseCards() {
+        return Array.from(document.querySelectorAll('.release-card--clickable:not(.hidden)'));
+      }
+
+      // 現在開いているモーダルのインデックスを取得
+      function getCurrentModalIndex() {
+        const activeModal = document.querySelector('.release-modal.active');
+        if (!activeModal) return -1;
+        
+        const slug = activeModal.dataset.slug;
+        const visibleCards = getVisibleReleaseCards();
+        return visibleCards.findIndex(card => card.dataset.slug === slug);
+      }
+
+      // 前後のリリースのスラッグを取得
+      function getAdjacentReleaseSlug(direction) {
+        const visibleCards = getVisibleReleaseCards();
+        if (visibleCards.length === 0) return null;
+        
+        const currentIndex = getCurrentModalIndex();
+        if (currentIndex === -1) return null;
+        
+        let newIndex;
+        if (direction === 'prev') {
+          newIndex = currentIndex > 0 ? currentIndex - 1 : visibleCards.length - 1;
+        } else {
+          newIndex = currentIndex < visibleCards.length - 1 ? currentIndex + 1 : 0;
+        }
+        
+        return visibleCards[newIndex]?.dataset.slug || null;
+      }
+
+      function openModal(slug) {
+        // 全てのモーダルを閉じる
+        closeAllModals();
+        
+        const modal = document.getElementById(`modal-${slug}`);
+        if (modal) {
+          modal.classList.add('active');
+          modal.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+          
+          // ナビゲーションボタンの表示/非表示を制御
+          updateNavButtons(modal);
+        }
+      }
+
+      function closeModal(modal) {
+        if (modal) {
+          modal.classList.remove('active');
+          modal.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        }
+      }
+
+      function closeAllModals() {
+        modals.forEach(modal => closeModal(modal));
+      }
+
+      // ナビゲーションボタンの表示/非表示を更新
+      function updateNavButtons(modal) {
+        const visibleCards = getVisibleReleaseCards();
+        const prevBtn = modal.querySelector('.modal-nav--prev');
+        const nextBtn = modal.querySelector('.modal-nav--next');
+        
+        if (visibleCards.length <= 1) {
+          // リリースが1つ以下の場合は非表示
+          if (prevBtn) prevBtn.style.display = 'none';
+          if (nextBtn) nextBtn.style.display = 'none';
+        } else {
+          // リリースが2つ以上ある場合は表示
+          if (prevBtn) prevBtn.style.display = 'flex';
+          if (nextBtn) nextBtn.style.display = 'flex';
+        }
+      }
+
+      // 前後のリリースに移動
+      function navigateModal(direction) {
+        const slug = getAdjacentReleaseSlug(direction);
+        if (slug) {
+          openModal(slug);
+        }
+      }
+
+      // カードクリックでモーダルを開く
+      clickableCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+          // リンクやボタン内のクリックは無視
+          if (e.target.closest('a, button')) {
+            return;
+          }
+          const slug = card.dataset.slug;
+          if (slug) {
+            openModal(slug);
+          }
+        });
+      });
+
+      // モーダルを閉じる
+      modals.forEach(modal => {
+        const closeBtn = modal.querySelector('.modal-close');
+        const backdrop = modal.querySelector('.modal-backdrop');
+        const prevBtn = modal.querySelector('.modal-nav--prev');
+        const nextBtn = modal.querySelector('.modal-nav--next');
+
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeModal(modal);
+          });
+        }
+
+        if (backdrop) {
+          backdrop.addEventListener('click', () => closeModal(modal));
+        }
+
+        if (prevBtn) {
+          prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateModal('prev');
+          });
+        }
+
+        if (nextBtn) {
+          nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigateModal('next');
+          });
+        }
+
+        // スワイプジェスチャー（タッチデバイス用）
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        modal.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        modal.addEventListener('touchend', (e) => {
+          touchEndX = e.changedTouches[0].screenX;
+          handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+          const swipeThreshold = 50;
+          const diff = touchStartX - touchEndX;
+          
+          if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+              // 左にスワイプ = 次のリリース
+              navigateModal('next');
+            } else {
+              // 右にスワイプ = 前のリリース
+              navigateModal('prev');
+            }
+          }
+        }
+      });
+
+      // キーボードショートカット
+      document.addEventListener('keydown', (e) => {
+        const activeModal = document.querySelector('.release-modal.active');
+        if (!activeModal) return;
+
+        if (e.key === 'Escape') {
+          closeAllModals();
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          navigateModal('prev');
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          navigateModal('next');
         }
       });
     });
