@@ -253,8 +253,23 @@ const albums = worksWithSpotifyImages.filter(w => w.data.release_type === 'album
                   ) : (
                     <div class="no-cover"></div>
                   )
+                ) : spotifyEmbed ? (
+                  // is_primary_releaseがfalseの場合: Spotifyの埋め込みプレーヤーを直接表示（クリック不要）
+                  <div class="spotify-embed-container">
+                    <iframe
+                      src={spotifyEmbed.embedUrl}
+                      width="100%"
+                      height="352"
+                      frameborder="0"
+                      allowfullscreen=""
+                      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                      loading="lazy"
+                      class="spotify-embed-iframe"
+                      style="border-radius: 12px;"
+                    ></iframe>
+                  </div>
                 ) : (
-                  // is_primary_releaseがfalseの場合: Spotifyなどのストリーミングサービスのカバー画像とSpotifyマークを表示
+                  // Spotifyがない場合: カバー画像またはプレースホルダー
                   <div class="secondary-cover-container">
                     {(item.data.cover_url_list && item.data.cover_url_list.length > 0) || (item as any).spotifyCoverImage ? (
                       <img
@@ -267,12 +282,6 @@ const albums = worksWithSpotifyImages.filter(w => w.data.release_type === 'album
                       />
                     ) : (
                       <div class="no-cover secondary-placeholder"></div>
-                    )}
-                    {spotifyEmbed && (
-                      <div class="spotify-badge">
-                        <img src={serviceIcons.spotify} alt="Spotify" class="spotify-badge-icon" />
-                        <span class="spotify-badge-text"></span>
-                      </div>
                     )}
                   </div>
                 )}
@@ -426,13 +435,10 @@ const albums = worksWithSpotifyImages.filter(w => w.data.release_type === 'album
     }
 
     .release-card {
-      background: white;
-      border-radius: 12px;
       overflow: hidden;
       transition: all 0.25s ease;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
       position: relative;
     }
 
@@ -554,6 +560,8 @@ const albums = worksWithSpotifyImages.filter(w => w.data.release_type === 'album
 
     .card-content {
       padding: 0.9rem 1rem 1.1rem;
+      border-radius: 12px;
+      margin-top: 0.4rem;
       display: flex;
       flex-direction: column;
       gap: 0.55rem;

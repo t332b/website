@@ -23,7 +23,6 @@ export const musicItems: MusicItem[] = [
   {
     "filename": "siawase_しあわせになろうよ.mp3",
     "releaseSlug": "siawase",
-    "src": "/music/siawase_しあわせになろうよ.mp3",
-    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761794801/siawase_ni_sf3rro.png"
+    "src": "/music/siawase_しあわせになろうよ.mp3"
   }
 ];
