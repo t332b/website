@@ -23,10 +23,11 @@ import Navigation from "../components/Navigation.astro";
         <!-- タイトル行 -->
         <div class="header-title">
           <a class="brand" href="/">
-            <span>PR0P0SE</span>
+            <img src="/images/logo/PR0P0SE - Lighthouse EP LOGO green.png" alt="PR0P0SE" class="brand-logo" />
           </a>
-          <div class="header-image">
-            <!-- 将来的に絵を配置 -->
+          <div class="header-illust">
+            <img src="/images/illust/daijin.png" alt="" class="header-illust-img daijin" />
+            <img src="/images/illust/thames.png" alt="" class="header-illust-img thames" />
           </div>
         </div>
         
@@ -81,10 +82,25 @@ import Navigation from "../components/Navigation.astro";
     margin-bottom: 1.5rem;
   }
 
-  .header-image {
-    width: 60px;
-    height: 60px;
-    /* 将来的に絵を配置するためのプレースホルダー */
+  .brand-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+  }
+
+  .header-illust {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .header-illust-img {
+    height: 48px;
+    width: auto;
+    display: block;
+    object-fit: contain;
   }
 
   /* ソーシャルリンクとオーディオプレーヤー行 */
@@ -194,5 +210,19 @@ import Navigation from "../components/Navigation.astro";
     .main {
       margin-top: 1rem;
     }
+
+    .brand-logo {
+      height: 28px;
+    }
+
+    .header-illust {
+      margin-left: 0;
+      align-self: flex-end;
+    }
+
+    .header-illust-img {
+      height: 36px;
+    }
+
   }
 </style>
