@@ -31,7 +31,7 @@
          height: fit-content;
          padding-bottom: 10px;
     }
-    /* Hide Blog Post Title From Navbar */
+    /* Hide Note Post Title From Navbar */
     [class*=BackCollection]{
         display: none;
     }

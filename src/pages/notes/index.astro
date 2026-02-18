@@ -2,7 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
-const posts = (await getCollection('blog'))
+const posts = (await getCollection('notes'))
   .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
 
 // メンバー情報を取得
@@ -21,8 +21,8 @@ function getAvatarUrl(member: any) {
 }
 ---
 
-<Base title="PR0P0SE Blog">
-  <div class="blog-container">
+<Base title="PR0P0SE Notes">
+  <div class="notes-container">
     <!-- 絞り込みUI -->
     <div class="filters-wrapper">
     <!-- 著者ボタン（常時表示） -->
@@ -86,7 +86,7 @@ function getAvatarUrl(member: any) {
       const preview = cleanBody.length > 50 ? cleanBody.substring(0, 50) + '...' : cleanBody;
       
       return (
-        <article class="item blog-card"
+        <article class="item notes-card"
             data-author={p.data.author}
             data-date={d}
             data-title={p.data.title.toLowerCase()}
@@ -205,7 +205,7 @@ function getAvatarUrl(member: any) {
           }
           const slug = (item as HTMLElement).dataset.slug;
           if (slug) {
-            window.location.href = `/blog/${slug}/`;
+            window.location.href = `/notes/${slug}/`;
           }
         });
       });
@@ -263,8 +263,8 @@ function getAvatarUrl(member: any) {
   </script>
 
   <style>
-    /* ブログコンテナ */
-    .blog-container {
+    /* ノートコンテナ */
+    .notes-container {
       max-width: 500px;
       margin: 0 auto;
       padding: 0 1rem;
@@ -466,7 +466,7 @@ function getAvatarUrl(member: any) {
     }
 
     /* 記事カード */
-    .blog-card {
+    .notes-card {
       background: white;
       border: 2px solid var(--wa-butter);
       border-radius: 12px;
@@ -475,7 +475,7 @@ function getAvatarUrl(member: any) {
       cursor: pointer;
     }
 
-    .blog-card:hover {
+    .notes-card:hover {
       transform: translateY(-2px);
       border-color: var(--accent);
       box-shadow: 0 4px 12px rgba(45, 122, 120, 0.1);
@@ -593,7 +593,7 @@ function getAvatarUrl(member: any) {
         font-size: 0.75rem;
       }
       
-      .blog-card {
+      .notes-card {
         padding: 0.75rem;
       }
 

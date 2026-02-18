@@ -19,9 +19,9 @@
     const editorContainer = document.querySelector('[class*="EditorContainer"]');
     if (!editorContainer || document.querySelector('.mobile-format-toggle-btn')) return;
     
-    // ブログ編集画面かどうかをチェック
-    const isBlogEditPage = window.location.hash.includes('/collections/') && window.location.hash.includes('/entries/');
-    if (!isBlogEditPage) return;
+    // ノート（コンテンツ）編集画面かどうかをチェック
+    const isNotesEditPage = window.location.hash.includes('/collections/') && window.location.hash.includes('/entries/');
+    if (!isNotesEditPage) return;
     
     // 書式設定トグルボタンと書式設定ツールバーを作成
     createFormatToolbar();
