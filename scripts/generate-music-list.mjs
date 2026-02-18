@@ -17,15 +17,6 @@ function ensureDirSync(dir) {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-function listMp3Slugs() {
-  if (!fs.existsSync(publicMusicDir)) return [];
-  const files = fs.readdirSync(publicMusicDir, { withFileTypes: true });
-  return files
-    .filter((d) => d.isFile() && /\.mp3$/i.test(d.name))
-    .map((d) => d.name.replace(/\.mp3$/i, ''))
-    .sort((a, b) => a.localeCompare(b));
-}
-
 function readFrontmatter(filePath) {
   if (!fs.existsSync(filePath)) return {};
   const raw = fs.readFileSync(filePath, 'utf8');
@@ -38,7 +29,6 @@ function readFrontmatter(filePath) {
     if (kv) {
       const key = kv[1].trim();
       let val = kv[2].trim();
-      // strip quotes
       if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
         val = val.slice(1, -1);
       }
@@ -48,17 +38,44 @@ function readFrontmatter(filePath) {
   return fm;
 }
 
-function buildWorksSlugToCover() {
-  const map = new Map(); // slug -> cover
-  if (!fs.existsSync(worksDir)) return map;
+/**
+ * track slug（MDXファイル名）→ works_id のマップを構築
+ */
+function buildTrackSlugToWorksId() {
+  const map = new Map();
+  if (!fs.existsSync(tracksDir)) return map;
+  const files = fs.readdirSync(tracksDir).filter((f) => f.endsWith('.mdx'));
+  for (const f of files) {
+    const trackSlug = f.replace(/\.mdx$/i, '');
+    const p = path.join(tracksDir, f);
+    const fm = readFrontmatter(p);
+    const worksId = (fm.works_id || fm.release_id || '').trim();
+    if (worksId) map.set(trackSlug, worksId);
+  }
+  return map;
+}
+
+/**
+ * works id → cover URL と id → works slug のマップを構築
+ */
+function buildWorksIdToCoverAndSlug() {
+  const idToCover = new Map();
+  const idToSlug = new Map();
+  if (!fs.existsSync(worksDir)) return { idToCover, idToSlug };
   const files = fs.readdirSync(worksDir).filter((f) => f.endsWith('.mdx'));
   for (const f of files) {
-    const releaseSlug = f.replace(/\.mdx$/i, '');
+    const worksSlug = f.replace(/\.mdx$/i, '');
     const p = path.join(worksDir, f);
     const raw = fs.readFileSync(p, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
     if (!m) continue;
     const block = m[1];
+    const idMatch = block.match(/^id:\s*(.+)$/m);
+    const worksId = idMatch ? idMatch[1].trim() : null;
+    if (!worksId) continue;
+
+    idToSlug.set(worksId, worksSlug);
+
     const coverListMatch = block.match(/^cover_url_list:\s*\n([\s\S]*?)(?=\n[A-Za-z_]|$)/m);
     let cover;
     if (coverListMatch) {
@@ -68,15 +85,13 @@ function buildWorksSlugToCover() {
         cover = firstUrl.replace(/^"|"$/g, '').replace(/^'|'$/g, '');
       }
     }
-    if (cover) {
-      map.set(releaseSlug, cover);
-    }
+    if (cover) idToCover.set(worksId, cover);
   }
-  return map;
+  return { idToCover, idToSlug };
 }
 
-function extractReleaseSlug(filename) {
-  // ファイル名から "_" 前までを抽出（例: "citrus-single_citrus.mp3" → "citrus-single"）
+/** mp3 ファイル名から track slug（"_" の前）を取得 */
+function extractTrackSlug(filename) {
   const base = filename.replace(/\.mp3$/i, '');
   const parts = base.split('_');
   return parts[0];
@@ -89,17 +104,29 @@ function generate(items) {
 }
 
 function main() {
+  if (!fs.existsSync(publicMusicDir)) {
+    ensureDirSync(outDir);
+    fs.writeFileSync(outFile, generate([]), 'utf8');
+    console.log('[music] No public/music dir -> empty list');
+    return;
+  }
+
   const files = fs.readdirSync(publicMusicDir, { withFileTypes: true })
     .filter((d) => d.isFile() && /\.mp3$/i.test(d.name))
     .map((d) => d.name)
     .sort((a, b) => a.localeCompare(b));
-  
-  const slugToCover = buildWorksSlugToCover();
+
+  const trackSlugToWorksId = buildTrackSlugToWorksId();
+  const { idToCover, idToSlug } = buildWorksIdToCoverAndSlug();
+
   const items = files.map((filename) => {
-    const releaseSlug = extractReleaseSlug(filename);
-    const cover = slugToCover.get(releaseSlug);
+    const trackSlug = extractTrackSlug(filename);
+    const worksId = trackSlugToWorksId.get(trackSlug);
+    const cover = worksId ? idToCover.get(worksId) : undefined;
+    const releaseSlug = worksId ? (idToSlug.get(worksId) ?? trackSlug) : trackSlug;
     return { filename, releaseSlug, src: `/music/${filename}`, cover };
   });
+
   ensureDirSync(outDir);
   fs.writeFileSync(outFile, generate(items), 'utf8');
   console.log(`[music] Found ${items.length} tracks -> ${path.relative(projectRoot, outFile)}`);

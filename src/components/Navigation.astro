@@ -8,6 +8,10 @@ function isActive(path: string) {
   if (path === '/notes/') {
     return currentPath.startsWith('/notes');
   }
+  // /shop または /shop/ で完全マッチ
+  if (path === '/shop') {
+    return currentPath === '/shop' || currentPath === '/shop/';
+  }
   // /works または /works/ で完全マッチ
   if (path === '/works') {
     return currentPath === '/works' || currentPath === '/works/' || currentPath.startsWith('/works/');
@@ -21,9 +25,10 @@ function isActive(path: string) {
 ---
 
 <nav class="main-nav">
-  <a href="/notes/" class={`nav-item ${isActive('/notes/') ? 'active' : ''}`}>NOTES</a>
   <a href="/works" class={`nav-item ${isActive('/works') ? 'active' : ''}`}>WORKS</a>
   <a href="/live" class={`nav-item ${isActive('/live') ? 'active' : ''}`}>LIVE</a>
+  <a href="/shop/" class={`nav-item ${isActive('/shop') ? 'active' : ''}`}>SHOP</a>
+  <a href="/notes/" class={`nav-item ${isActive('/notes/') ? 'active' : ''}`}>NOTES</a>
 </nav>
 
 <style>

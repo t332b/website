@@ -30,10 +30,10 @@ function getMainTrack(item: any) {
   }
 
   // secondary（is_primary_release === false）の場合:
-  // works.id と tracks.release_id を突き合わせて紐づくトラックを探す
+  // works.id と tracks.works_id を突き合わせて紐づくトラックを探す
   const workId = item.data.id;
   if (!workId) return null;
-  return tracks.find((track) => track.data.release_id === workId) ?? null;
+  return tracks.find((track) => track.data.works_id === workId) ?? null;
 }
 
 function getEmbedUrl(service: string, url: string): string | null {

@@ -25,7 +25,7 @@ const tracks = defineCollection({
   type: "content",
   schema: z.object({
     id: z.string().optional(),
-    release_id: z.string().optional(), // worksのidとリンク
+    works_id: z.string().optional(), // worksのidとリンク
     title: z.string(),
     track_type: z.string().optional(), // featuring / remix など参加形態
     duration: z.string().optional(),

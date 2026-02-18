@@ -49,7 +49,7 @@ function normalizeSlug(s) {
 }
 
 // 内部照合用 idKey（小文字・空白→-）
-// ※ Works.id と Tracks.release_id の照合に使用（ファイル名には使わない）
+// ※ Works.id と Tracks.works_id の照合に使用（ファイル名には使わない）
 function normalizeIdKey(s) {
   return String(s || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
@@ -195,14 +195,16 @@ function buildTracksFrontmatterAndBody(record) {
     mix_by = "",
     mastering_by = "",
     links = "",
-    release_id = "",
+    works_id = "",
+    release_id = "", // 後方互換: シート列が release_id のままの場合
     body = "",
   } = record;
 
   const fm = {};
   if (id) fm.id = id;               // 内部キー（生値）
   if (slug) fm.slug = slug;         // 表示/URL用
-  if (release_id) fm.release_id = release_id;
+  const wid = (works_id || release_id || "").trim();
+  if (wid) fm.works_id = wid;
 
   if (title) fm.title = title;
   if (track_number) {
@@ -280,7 +282,7 @@ async function processWorksSheet(sheets, spreadsheetId) {
 
     await fs.writeFile(filePath, toMdx(frontmatter, finalBody), "utf8");
 
-    // release_id で引くために idKey で登録
+    // works_id で引くために idKey で登録
     worksMap.set(idKey, { fileBase: workFileBase, frontmatter });
 
     if (exists) {
@@ -310,11 +312,13 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
   const headers = values[0].map(normalizeHeader);
   const idIdx = headers.indexOf("id");
   const titleIdx = headers.indexOf("title");
-  const releaseIdIdx = headers.indexOf("release_id");
+  const worksIdIdx = headers.indexOf("works_id");
+  const releaseIdIdx = headers.indexOf("release_id"); // 後方互換
+  const releaseIdColIdx = worksIdIdx !== -1 ? worksIdIdx : releaseIdIdx;
   // slug は任意（無ければ id を代用してファイル名にする）
-  if (idIdx === -1 || titleIdx === -1 || releaseIdIdx === -1) {
+  if (idIdx === -1 || titleIdx === -1 || releaseIdColIdx === -1) {
     throw new Error(
-      `Tracks sheet is missing required columns: need 'id', 'title', 'release_id' (slug optional). Got: ${headers.join(", ")}`
+      `Tracks sheet is missing required columns: need 'id', 'title', 'works_id' (or 'release_id') (slug optional). Got: ${headers.join(", ")}`
     );
   }
 
@@ -327,11 +331,11 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
 
     const idRaw = (rec.id || "").trim();
     const titleValue = (rec.title || "").trim();
-    const releaseIdRaw = (rec.release_id || "").trim();
+    const releaseIdRaw = (rec.works_id || rec.release_id || "").trim();
     const slugRaw = (rec.slug || "").trim();
 
     if (!idRaw || !titleValue || !releaseIdRaw) {
-      console.warn(`[WARN] Tracks Row ${r + 1}: Missing required fields (id, title, or release_id). Skipped.`);
+      console.warn(`[WARN] Tracks Row ${r + 1}: Missing required fields (id, title, or works_id). Skipped.`);
       totalSkipped += 1;
       continue;
     }
@@ -352,7 +356,7 @@ async function processTracksSheet(sheets, spreadsheetId, worksMap) {
 
     await fs.writeFile(filePath, toMdx(frontmatter, finalBody), "utf8");
 
-    // 紐づけは id / release_id（どちらも生値）だが、Works 検索だけ idKey を使う
+    // 紐づけは id / works_id（どちらも生値）だが、Works 検索だけ idKey を使う
     const releaseIdKey = normalizeIdKey(releaseIdRaw);
     if (!tracksByRelease.has(releaseIdKey)) tracksByRelease.set(releaseIdKey, []);
     tracksByRelease.get(releaseIdKey).push(idRaw); // ← Works.tracks には Track の「id（生値）」を格納

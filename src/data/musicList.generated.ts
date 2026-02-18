@@ -15,15 +15,33 @@ export const musicItems: MusicItem[] = [
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761729726/IMG_0750_te5d3r.jpg"
   },
   {
-    "filename": "liner2-single_Liner2.mp3",
-    "releaseSlug": "liner2-single",
-    "src": "/music/liner2-single_Liner2.mp3",
-    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1762332974/liner2_mco1zg.png"
+    "filename": "fanfare_ファンファーレ.mp3",
+    "releaseSlug": "lighthouse-ep",
+    "src": "/music/fanfare_ファンファーレ.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1769833921/Scan_61sfl1_rqpcyy.jpg"
+  },
+  {
+    "filename": "kobe-girl_Kobe Girl.mp3",
+    "releaseSlug": "lighthouse-ep",
+    "src": "/music/kobe-girl_Kobe Girl.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1769833921/Scan_61sfl1_rqpcyy.jpg"
+  },
+  {
+    "filename": "rain_雨模様.mp3",
+    "releaseSlug": "st",
+    "src": "/music/rain_雨模様.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   },
   {
     "filename": "siawase_しあわせになろうよ.mp3",
     "releaseSlug": "siawase",
     "src": "/music/siawase_しあわせになろうよ.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1770439381/siawase_isupe4.png"
+  },
+  {
+    "filename": "take-a-ride_ テイク・ア・ライド.mp3",
+    "releaseSlug": "st",
+    "src": "/music/take-a-ride_ テイク・ア・ライド.mp3",
+    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   }
 ];
