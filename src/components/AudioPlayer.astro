@@ -15,6 +15,14 @@ let initialJacketSrc = "/images/uploads/default-album.png";
 if (shuffledItems.length > 0 && shuffledItems[0].cover) {
   initialJacketSrc = shuffledItems[0].cover;
 }
+
+// ファイル名から曲名を取得（"_" の後ろ、.mp3 除く）
+function titleFromFilename(filename: string): string {
+  const base = filename.replace(/\.mp3$/i, "");
+  const i = base.indexOf("_");
+  return i >= 0 ? base.slice(i + 1).trim() : base;
+}
+const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[0].filename) : "";
 ---
 
 <div class="audio-player-wrapper">
@@ -46,6 +54,7 @@ if (shuffledItems.length > 0 && shuffledItems[0].cover) {
 
       <div class="center-ui">
         <div class="stack">
+          <div class="track-title" id="trackTitle" aria-live="polite">{initialTitle}</div>
           <button id="play" class="play" aria-label="再生/一時停止" title="スペースキーでも操作可">
             <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M8 5v14l11-7-11-7z"></path>
@@ -226,6 +235,24 @@ if (shuffledItems.length > 0 && shuffledItems[0].cover) {
   .audio-player-wrapper .play svg {
     width: clamp(0.9rem, 3.6vw, 1.35rem);
     height: clamp(0.9rem, 3.6vw, 1.35rem);
+  }
+
+  .audio-player-wrapper .track-title {
+    font-family: "Menlo", "PT Mono", "Courier New", monospace;
+    font-size: clamp(0.48rem, 1.92vw, 0.804rem);
+    font-weight: bold;
+    color: #333333;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* 上方向のオフセット（数値を大きくするとさらに上へ） */
+    transform: translate(-50%, calc(-1.35 * var(--time-shift, 0.32) * var(--circle-size)));
+    text-align: center;
+    max-width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .audio-player-wrapper .time {
@@ -458,7 +485,14 @@ if (shuffledItems.length > 0 && shuffledItems[0].cover) {
   const muteBtn = document.getElementById("muteBtn");
   const muteIcon = document.getElementById("muteIcon");
   const jacketImg = document.querySelector(".jacket");
+  const trackTitleEl = document.getElementById("trackTitle");
   const dots = Array.from(document.querySelectorAll('.playlist-dots .dot'));
+
+  function titleFromFilename(filename) {
+    const base = filename.replace(/\.mp3$/i, "");
+    const i = base.indexOf("_");
+    return i >= 0 ? base.slice(i + 1).trim() : base;
+  }
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
 
@@ -489,21 +523,13 @@ if (shuffledItems.length > 0 && shuffledItems[0].cover) {
     audio.src = src;
     audio.load();
     
-    // ジャケット画像を更新
-    const match = src.match(/\/music\/(.+)\.mp3$/);
-    if (match) {
-      const slug = match[1];
-      try {
-        const item = items.find((it) => it.src === src);
-        if (item && item.cover) {
-          jacketImg.setAttribute('src', item.cover);
-        } else {
-          // 生成にカバーが無い場合は初期画像を維持
-          jacketImg.setAttribute('src', jacketImg.getAttribute('src') || '');
-        }
-      } catch (err) {
-        console.warn(`Failed to load jacket for ${slug}:`, err);
-      }
+    // ジャケット画像と曲名を更新
+    const item = items.find((it) => it.src === src);
+    if (item) {
+      if (item.cover) jacketImg.setAttribute('src', item.cover);
+      if (trackTitleEl) trackTitleEl.textContent = titleFromFilename(item.filename);
+    } else {
+      if (trackTitleEl) trackTitleEl.textContent = '';
     }
     
     if (wasPlaying) {

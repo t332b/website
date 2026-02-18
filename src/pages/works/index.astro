@@ -10,12 +10,13 @@ const works = (await getCollection("works")).sort(
 const tracks = await getCollection("tracks");
 const trackById = new Map(tracks.map((track) => [track.data.id, track]));
 
-const servicePriority = ["spotify", "apple", "bandcamp", "youtube"] as const;
+const servicePriority = ["spotify", "apple", "bandcamp", "youtube", "other"] as const;
 const serviceIcons: Record<(typeof servicePriority)[number], string> = {
   spotify: "/images/logo/spotify-icon.svg",
   apple: "/images/logo/Apple_logo_black.svg",
   bandcamp: "/images/logo/bandcamp-button-bc-circle-green-64.png",
   youtube: "/images/logo/icons8-red-youtube.svg",
+  other: "/images/logo/globe_asia_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.svg",
 };
 
 // 各リリースに紐づくメイントラックを取得
@@ -108,7 +109,7 @@ const remixWorks = works.filter((item) => {
 ---
 
 <Base title="PR0P0SE Works">
-  <div style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+  <div id="works-page-root" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
     <!-- フィルタボタン -->
     <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
       <button class="filter-btn active" data-filter="all">
@@ -163,6 +164,16 @@ const remixWorks = works.filter((item) => {
             ? item.data.release_type ?? "other"
             : mainTrackData?.track_type ??  "other";
           const spotifyEmbed = embedSources.find((s) => s.service === "spotify");
+          const trackIds = Array.isArray(item.data.tracks) ? item.data.tracks : [];
+          const releaseTracks = trackIds
+            .map((trackId) => trackById.get(trackId))
+            .filter((track): track is (typeof tracks)[number] => Boolean(track));
+          const coverDesignBy = item.data.cover_design_by?.trim();
+          const coverIllustrationBy = item.data.cover_illustration_by?.trim();
+          const coverCreditLabel =
+            coverDesignBy && coverIllustrationBy && coverDesignBy === coverIllustrationBy
+              ? "イラスト＆デザイン"
+              : null;
 
           return (
             <>
@@ -285,12 +296,6 @@ const remixWorks = works.filter((item) => {
                   <button class="modal-close" aria-label="閉じる">
                     &times;
                   </button>
-                  <button class="modal-nav modal-nav--prev" aria-label="前のリリース">
-                    ‹
-                  </button>
-                  <button class="modal-nav modal-nav--next" aria-label="次のリリース">
-                    ›
-                  </button>
                   <div class="modal-header">
                     {item.data.cover_url_list && item.data.cover_url_list.length > 0 && (
                       <img src={item.data.cover_url_list[0]} alt={item.data.title} class="modal-cover" />
@@ -300,6 +305,16 @@ const remixWorks = works.filter((item) => {
                         {item.data.title}
                       </h2>
                       {item.data.release_artist_name && <div class="modal-artist">{item.data.release_artist_name}</div>}
+                      {coverCreditLabel ? (
+                        <div class="modal-credit">
+                          {coverCreditLabel}: {coverDesignBy}
+                        </div>
+                      ) : (
+                        <>
+                          {coverIllustrationBy && <div class="modal-credit">イラスト: {coverIllustrationBy}</div>}
+                          {coverDesignBy && <div class="modal-credit">デザイン: {coverDesignBy}</div>}
+                        </>
+                      )}
                       <div class="modal-meta">
                         <span class="modal-date">
                           {item.data.release_date.toLocaleDateString("ja-JP", {
@@ -313,6 +328,19 @@ const remixWorks = works.filter((item) => {
                     </div>
                   </div>
                   <div class="modal-body">
+                    {releaseTracks.length > 0 && (
+                      <div class="modal-tracklist" aria-label="収録曲">
+                        <h3 class="modal-section-title">収録曲</h3>
+                        <ol class="modal-tracks">
+                          {releaseTracks.map((track, index) => (
+                            <li class="modal-track">
+                              <span class="modal-track-no">{track.data.track_number ?? index + 1}.</span>
+                              <span class="modal-track-title">{track.data.title}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
                     {spotifyEmbed && (
                       <div class="modal-player">
                         <iframe
@@ -325,23 +353,30 @@ const remixWorks = works.filter((item) => {
                         />
                       </div>
                     )}
-                    {embedSources.length > 0 && (
+                    {availableServices.length > 0 && (
                       <div class="modal-service-links">
-                        {embedSources.map(({ service, rawUrl }) => (
+                        {availableServices.map((service) => (
                           <a
-                            href={rawUrl}
+                            href={links?.[service]}
                             target="_blank"
                             rel="noopener"
                             class={`modal-service-link modal-service-link--${service}`}
                           >
                             <img src={serviceIcons[service]} alt={service} />
-                            <span>{service}で開く</span>
+                            <span>{service === "other" ? "外部リンク" : `${service}`}</span>
                           </a>
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
+
+                <button class="modal-nav modal-nav--prev" aria-label="前のリリース">
+                  ‹
+                </button>
+                <button class="modal-nav modal-nav--next" aria-label="次のリリース">
+                  ›
+                </button>
               </div>
             </>
           );
@@ -801,7 +836,7 @@ const remixWorks = works.filter((item) => {
       justify-content: center;
       border-radius: 50%;
       transition: all 0.2s ease;
-      z-index: 1002;
+      z-index: 1003;
     }
 
     .modal-close:hover {
@@ -810,7 +845,7 @@ const remixWorks = works.filter((item) => {
     }
 
     .modal-nav {
-      position: absolute;
+      position: fixed;
       top: 50%;
       transform: translateY(-50%);
       background: rgba(255, 255, 255, 0.9);
@@ -826,7 +861,7 @@ const remixWorks = works.filter((item) => {
       justify-content: center;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
       transition: all 0.2s ease;
-      z-index: 1003;
+      z-index: 1002;
     }
 
     .modal-nav:hover {
@@ -862,6 +897,7 @@ const remixWorks = works.filter((item) => {
       display: flex;
       flex-direction: column;
       justify-content: center;
+      padding-right: 3.5rem;
     }
 
     .modal-title {
@@ -883,6 +919,12 @@ const remixWorks = works.filter((item) => {
       align-items: center;
     }
 
+    .modal-credit {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
     .modal-date {
       font-size: 0.9rem;
       color: #888;
@@ -898,6 +940,43 @@ const remixWorks = works.filter((item) => {
       display: flex;
       flex-direction: column;
       gap: 1.5rem;
+    }
+
+    .modal-section-title {
+      font-size: 1rem;
+      margin: 0;
+      color: #333;
+    }
+
+    .modal-tracklist {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .modal-tracks {
+      margin: 0;
+      padding-left: 1.25rem;
+      color: #333;
+    }
+
+    .modal-track {
+      display: flex;
+      gap: 0.5rem;
+      align-items: baseline;
+      line-height: 1.4;
+    }
+
+    .modal-track-no {
+      color: #888;
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+      min-width: 2.2rem;
+      text-align: right;
+    }
+
+    .modal-track-title {
+      flex: 1 1 auto;
     }
 
     .modal-player {
@@ -920,7 +999,6 @@ const remixWorks = works.filter((item) => {
       align-items: center;
       gap: 0.5rem;
       padding: 0.75rem 1rem;
-      background: #f5f5f5;
       border-radius: 8px;
       text-decoration: none;
       color: #333;
@@ -1018,7 +1096,11 @@ const remixWorks = works.filter((item) => {
   </style>
 
   <script is:inline>
-    document.addEventListener("DOMContentLoaded", () => {
+    function initWorksPage() {
+      const root = document.getElementById("works-page-root");
+      if (!root || root.hasAttribute("data-works-inited")) return;
+      root.setAttribute("data-works-inited", "");
+
       const filterBtns = document.querySelectorAll(".filter-btn");
       const cards = document.querySelectorAll(".release-card");
 
@@ -1374,6 +1456,15 @@ const remixWorks = works.filter((item) => {
           navigateModal("next");
         }
       });
-    });
+    }
+
+    // 初回ロード（直接 /works を開いた場合）
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initWorksPage);
+    } else {
+      initWorksPage();
+    }
+    // View Transitions で他ページから遷移してきた場合
+    document.addEventListener("astro:page-load", initWorksPage);
   </script>
 </Base>
