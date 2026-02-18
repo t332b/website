@@ -10,7 +10,7 @@ const member = defineCollection({
   }),
 });
 
-const blog = defineCollection({
+const notes = defineCollection({
   type: "content",
   schema: z.object({
     title: z.string(),
@@ -85,4 +85,4 @@ const live = defineCollection({
   }),
 });
 
-export const collections = { tracks, works, live, member, blog };
+export const collections = { tracks, works, live, member, notes };

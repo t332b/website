@@ -3,7 +3,7 @@ import Base from "../../../layouts/Base.astro";
 import AudioPlayer from "../../../components/AudioPlayer.astro";
 import { getCollection } from 'astro:content';
 
-const latestPosts = (await getCollection('blog')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
+const latestPosts = (await getCollection('notes')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
 const latestWorks = (await getCollection('works')).filter(w => w.data.is_primary_release).sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()).slice(0, 4);
 const upcomingLive = (await getCollection('live')).sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
 
@@ -25,11 +25,11 @@ function getAvatarUrl(member: any) {
 
 <Base title="PR0P0SE">
   <div class="main-container">
-    <!-- ブログセクション -->
+    <!-- ノートセクション -->
     {latestPosts.length > 0 && (
-      <section class="blog-section">
-        <h4 class="section-title">LATEST BLOG</h4>
-        <div class="blog-grid">
+      <section class="notes-section">
+        <h4 class="section-title">LATEST NOTES</h4>
+        <div class="notes-grid">
           {latestPosts.map(p => {
             const d = p.data.date.toISOString().slice(0,10); // YYYY-MM-DD
             const member = memberMap.get(p.data.author);
@@ -47,25 +47,25 @@ function getAvatarUrl(member: any) {
             const preview = cleanBody.length > 50 ? cleanBody.substring(0, 50) + '...' : cleanBody;
             
             return (
-              <article class="blog-card" data-slug={p.slug}>
+              <article class="notes-card" data-slug={p.slug}>
                 <div class="card-layout">
-                  <img src={avatarUrl} alt="" class="blog-avatar" data-author={p.data.author} />
+                  <img src={avatarUrl} alt="" class="notes-avatar" data-author={p.data.author} />
                   
                   <div class="card-content">
                     <div class="card-header">
-                      <span class="blog-author-name" data-author={p.data.author}>
+                      <span class="notes-author-name" data-author={p.data.author}>
                         {member?.name || p.data.author}
                       </span>
-                      <span class="blog-post-date">{d}</span>
+                      <span class="notes-post-date">{d}</span>
                     </div>
                     
-                    <div class="blog-card-title">{p.data.title}</div>
-                    <div class="blog-card-preview">{preview}</div>
+                    <div class="notes-card-title">{p.data.title}</div>
+                    <div class="notes-card-preview">{preview}</div>
                     
                     {p.data.tags && p.data.tags.length > 0 && (
-                      <div class="blog-card-tags">
+                      <div class="notes-card-tags">
                         {p.data.tags.map((tag: string) => (
-                          <span class="blog-tag">#{tag}</span>
+                          <span class="notes-tag">#{tag}</span>
                         ))}
                       </div>
                     )}
@@ -139,25 +139,25 @@ function getAvatarUrl(member: any) {
   </div>
 
   <script>
-    // ブログカードのクリック機能
-    const blogCards = document.querySelectorAll('.blog-card');
-    blogCards.forEach(card => {
+    // ノートカードのクリック機能
+    const notesCards = document.querySelectorAll('.notes-card');
+    notesCards.forEach(card => {
       (card as HTMLElement).addEventListener('click', (e) => {
         const target = e.target as HTMLElement;
-        // アバターか名前がクリックされた場合はブログ一覧ページへ
-        if (target.classList.contains('blog-avatar') || target.classList.contains('blog-author-name')) {
+        // アバターか名前がクリックされた場合はノート一覧ページへ
+        if (target.classList.contains('notes-avatar') || target.classList.contains('notes-author-name')) {
           const authorId = target.dataset.author;
           if (authorId) {
-            // TODO: ブログ一覧ページで著者フィルター付きURLに遷移
-            // 現時点では通常のブログ一覧へ
-            window.location.href = '/blog/';
+            // TODO: ノート一覧ページで著者フィルター付きURLに遷移
+            // 現時点では通常のノート一覧へ
+            window.location.href = '/notes/';
           }
           return;
         }
         // それ以外は記事詳細へ
         const slug = (card as HTMLElement).dataset.slug;
         if (slug) {
-          window.location.href = `/blog/${slug}/`;
+          window.location.href = `/notes/${slug}/`;
         }
       });
     });
@@ -421,15 +421,15 @@ function getAvatarUrl(member: any) {
       background: var(--wa-forest);
     }
 
-    /* ブログセクション */
-    .blog-grid {
+    /* ノートセクション */
+    .notes-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1rem;
       margin-bottom: 4rem;
     }
 
-    .blog-card {
+    .notes-card {
       background: white;
       border: 2px solid var(--wa-butter);
       border-radius: 12px;
@@ -438,7 +438,7 @@ function getAvatarUrl(member: any) {
       cursor: pointer;
     }
 
-    .blog-card:hover {
+    .notes-card:hover {
       transform: translateY(-2px);
       border-color: var(--accent);
       box-shadow: 0 4px 12px rgba(45, 122, 120, 0.1);
@@ -449,7 +449,7 @@ function getAvatarUrl(member: any) {
       gap: 0.75rem;
     }
 
-    .blog-avatar {
+    .notes-avatar {
       width: 48px;
       height: 48px;
       border-radius: 50%;
@@ -459,7 +459,7 @@ function getAvatarUrl(member: any) {
       transition: all 0.2s ease;
     }
 
-    .blog-avatar:hover {
+    .notes-avatar:hover {
       border-color: var(--accent);
       transform: scale(1.05);
     }
@@ -476,7 +476,7 @@ function getAvatarUrl(member: any) {
       margin-bottom: 0.25rem;
     }
 
-    .blog-author-name {
+    .notes-author-name {
       font-weight: 600;
       font-size: 0.9rem;
       color: var(--fg);
@@ -485,16 +485,16 @@ function getAvatarUrl(member: any) {
       transition: color 0.2s ease;
     }
 
-    .blog-author-name:hover {
+    .notes-author-name:hover {
       color: var(--accent);
     }
 
-    .blog-post-date {
+    .notes-post-date {
       font-size: 0.8rem;
       color: var(--muted);
     }
 
-    .blog-card-title {
+    .notes-card-title {
       font-weight: 600;
       font-size: 0.9rem;
       color: var(--fg);
@@ -502,20 +502,20 @@ function getAvatarUrl(member: any) {
       line-height: 1.3;
     }
 
-    .blog-card-preview {
+    .notes-card-preview {
       font-size: 0.875rem;
       color: var(--muted);
       margin-bottom: 0.5rem;
       line-height: 1.5;
     }
 
-    .blog-card-tags {
+    .notes-card-tags {
       display: flex;
       gap: 0.375rem;
       flex-wrap: wrap;
     }
 
-    .blog-tag {
+    .notes-tag {
       background: var(--wa-cream);
       color: var(--accent);
       padding: 0.125rem 0.5rem;
@@ -596,7 +596,7 @@ function getAvatarUrl(member: any) {
         justify-content: center;
       }
 
-      .blog-card {
+      .notes-card {
         padding: 0.75rem;
       }
 
@@ -604,21 +604,21 @@ function getAvatarUrl(member: any) {
         gap: 0.5rem;
       }
 
-      .blog-avatar {
+      .notes-avatar {
         width: 40px;
         height: 40px;
       }
 
-      .blog-author-name,
-      .blog-card-title {
+      .notes-author-name,
+      .notes-card-title {
         font-size: 0.85rem;
       }
 
-      .blog-post-date {
+      .notes-post-date {
         font-size: 0.75rem;
       }
 
-      .blog-card-preview {
+      .notes-card-preview {
         font-size: 0.8rem;
       }
 

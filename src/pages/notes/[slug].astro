@@ -1,11 +1,11 @@
 ---
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
-import BlogPost from '../../layouts/BlogPost.astro';
+import NotePost from '../../layouts/NotePost.astro';
 
-// すべてのブログ記事を取得
+// すべてのノート記事を取得
 export const getStaticPaths = (async () => {
-  const posts = await getCollection('blog');
+  const posts = await getCollection('notes');
   return posts.map(post => ({
     params: { slug: post.slug },
     props: { post },
@@ -14,14 +14,14 @@ export const getStaticPaths = (async () => {
 
 // ページのプロパティ
 interface Props {
-  post: CollectionEntry<'blog'>;
+  post: CollectionEntry<'notes'>;
 }
 
 const { post } = Astro.props as Props;
 const { Content } = await post.render();
 ---
 
-<BlogPost 
+<NotePost 
   title={post.data.title}
   date={post.data.date}
   author={post.data.author}
@@ -29,4 +29,4 @@ const { Content } = await post.render();
   cover={post.data.cover}
 >
   <Content />
-</BlogPost>
+</NotePost>

@@ -29,16 +29,16 @@ collections:
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - { label: "アイコン画像", name: "avatar", widget: "image", required: false }
 
-  # ★ ブログ記事
-  - name: "blog"
-    label: "ブログ記事"
-    folder: "src/content/blog"
+  # ★ ノート記事
+  - name: "notes"
+    label: "ノート記事"
+    folder: "src/content/notes"
     extension: "mdx"
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     format: "frontmatter"
     fields:
-      - { label: "レイアウト", name: "layout", widget: "hidden", default: "blog" }
+      - { label: "レイアウト", name: "layout", widget: "hidden", default: "notes" }
       - { label: "タイトル", name: "title", widget: "string", required: true }
       - {
           label: "公開日", name: "date", widget: "datetime",

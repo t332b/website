@@ -4,9 +4,9 @@ const { currentPath } = Astro.props;
 
 function isActive(path: string) {
   if (!currentPath) return false;
-  // /blog/ または /blog で始まる場合にマッチ
-  if (path === '/blog/') {
-    return currentPath.startsWith('/blog');
+  // /notes/ または /notes で始まる場合にマッチ
+  if (path === '/notes/') {
+    return currentPath.startsWith('/notes');
   }
   // /works または /works/ で完全マッチ
   if (path === '/works') {
@@ -21,7 +21,7 @@ function isActive(path: string) {
 ---
 
 <nav class="main-nav">
-  <a href="/blog/" class={`nav-item ${isActive('/blog/') ? 'active' : ''}`}>BLOG</a>
+  <a href="/notes/" class={`nav-item ${isActive('/notes/') ? 'active' : ''}`}>NOTES</a>
   <a href="/works" class={`nav-item ${isActive('/works') ? 'active' : ''}`}>WORKS</a>
   <a href="/live" class={`nav-item ${isActive('/live') ? 'active' : ''}`}>LIVE</a>
 </nav>
