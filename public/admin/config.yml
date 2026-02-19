@@ -1,9 +1,10 @@
+# Sveltia CMS 用設定（try-sveltia-cms ブランチ）
+# 認証: base_url に Decap 互換の OAuth プロキシを指定するか、ログイン画面で「Sign in with Token」で GitHub PAT を入力
 backend:
   name: github
   repo: t332b/website
   branch: main
-  base_url: https://cms-login-proxy.pages.dev   # ← Cloudflare Pages(プロキシ)のURL
-  auth_endpoint: /auth
+  base_url: https://cms-login-proxy.pages.dev   # OAuth 用（Decap 互換プロキシが使える場合）
 
 site_url: https://pr0p0se.com
 display_url: https://pr0p0se.com
@@ -11,20 +12,17 @@ display_url: https://pr0p0se.com
 media_folder: "public/uploads"
 public_folder: "/uploads"
 
-media_library:
-  name: cloudinary
-  config:
-    cloud_name: djzxpyzu3
-    api_key: 719521938943924
-    # 画像のデフォルト変換（目安として500KB以下になりやすい設定）
-    # - f_auto: 最適なフォーマット自動選択（WebP/AVIF等）
-    # - q_auto: 品質自動最適化（必要に応じて q_auto:eco に調整可）
-    # - width + crop:limit: 幅上限を設定（解像度を抑えてサイズ削減）
-    default_transformations:
-      - - fetch_format: auto
-          quality: auto
-          width: 1600
-          crop: limit
+# Sveltia は media_libraries で Cloudinary をネイティブ対応（API secret は不要）
+media_libraries:
+  cloudinary:
+    config:
+      cloud_name: djzxpyzu3
+      api_key: 719521938943924
+      default_transformations:
+        - - fetch_format: auto
+            quality: auto
+            width: 1600
+            crop: limit
 
 collections:
   - name: "notes"
