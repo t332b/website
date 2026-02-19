@@ -1,6 +1,6 @@
-# Sveltia CMS トライアル（try-sveltia-cms ブランチ）
+# Sveltia CMS
 
-このブランチでは管理画面を Decap CMS から **Sveltia CMS** に差し替えています。
+管理画面は **Sveltia CMS** を使用しています（旧 Decap CMS から乗り換え済み）。
 
 ## 前提
 
