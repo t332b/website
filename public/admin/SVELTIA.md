@@ -32,6 +32,30 @@
 - `index.html`: Decap のスクリプトを Sveltia の CDN に差し替え、Cloudinary 用の custom-widgets.js は削除（Sveltia が Cloudinary を内蔵）
 - GitHub Actions は変更なし（push で従来どおりビルド＆FTP）
 
+## テスト手順（乗り換え前に確認）
+
+1. **ログイン**
+   - 「Sign in with Token」→ GitHub の PAT（scope: `repo`）を入力してログインできるか。
+
+2. **記事投稿**
+   - **Notes** を開く → **New Notes** で新規作成。
+   - タイトル・公開日・著者・タグ・本文を入力して **Publish**。
+   - GitHub の `main`（config の branch）にコミットされているか確認。
+
+3. **画像（Cloudinary）連携**
+   - 本文で画像を挿入（Image またはメディア選択）→ **Cloudinary** から選ぶ or アップロードできるか。
+   - 既存の Notes で画像入り記事を編集して、画像が表示・差し替えできるか。
+
+4. **他コレクション（任意）**
+   - **Member** のアイコン画像（Cloudinary）が使えるか。
+   - **Works** のカバー画像・動画URL が問題ないか。
+
+5. **ビルド・表示**
+   - 投稿後に `npm run build` が通るか。
+   - 該当記事のページが意図どおり表示されるか（画像 URL 形式が Decap と違う場合は要確認）。
+
+ここまで問題なければ、`main` にマージして Sveltia に乗り換えてよし。
+
 ## 戻し方
 
-Decap に戻す場合は `main` にチェックアウトするか、このブランチの `public/admin/` を `main` の内容で上書きしてください。
+Decap に戻す場合は `main` にチェックアウトするか、このブランチの `public/admin/` と `src/pages/admin.astro` を `main` の内容で上書きしてください。
