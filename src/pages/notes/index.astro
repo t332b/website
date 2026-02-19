@@ -22,7 +22,7 @@ function getAvatarUrl(member: any) {
 ---
 
 <Base title="PR0P0SE Notes">
-  <div class="notes-container">
+  <div id="notes-page-root" class="notes-container">
     <!-- 絞り込みUI -->
     <div class="filters-wrapper">
     <!-- 著者ボタン（常時表示） -->
@@ -133,133 +133,122 @@ function getAvatarUrl(member: any) {
   </div>
 
   <script>
-    // シンプルなバニラJS絞り込み
-    const list = document.getElementById('list');
-    if (!list) {
-      console.error('List element not found');
-    } else {
-      const items = Array.from(list.querySelectorAll('.item'));
+    function initNotesPage() {
+      const root = document.getElementById('notes-page-root');
+      if (!root || root.hasAttribute('data-notes-inited')) return;
+      root.setAttribute('data-notes-inited', '');
 
+      const list = document.getElementById('list');
+      if (!list) return;
+
+      const items = Array.from(list.querySelectorAll('.item'));
       const detailToggle = document.getElementById('detailToggle');
       const detailPopover = document.getElementById('detailPopover');
-      
       const authorBtns = document.querySelectorAll('.author-btn');
-      const fromInput = document.getElementById('fromDate') as HTMLInputElement;
-      const toInput = document.getElementById('toDate') as HTMLInputElement;
+      const fromInput = document.getElementById('fromDate');
+      const toInput = document.getElementById('toDate');
       const clearDates = document.getElementById('clearDates');
-      const q = document.getElementById('q') as HTMLInputElement;
+      const q = document.getElementById('q');
       const clearQ = document.getElementById('clearQ');
 
       let author = 'ALL';
 
-      // ポップオーバーの開閉
       detailToggle?.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isOpen = detailPopover!.style.display !== 'none';
-        detailPopover!.style.display = isOpen ? 'none' : 'block';
+        const isOpen = detailPopover?.style.display !== 'none';
+        if (detailPopover) detailPopover.style.display = isOpen ? 'none' : 'block';
       });
 
-      // ポップオーバー外をクリックしたら閉じる
       document.addEventListener('click', (e) => {
         if (detailPopover && detailPopover.style.display !== 'none') {
-          const target = e.target as HTMLElement;
-          if (!detailPopover.contains(target) && target !== detailToggle) {
+          const target = e.target as Node | null;
+          if (target && !detailPopover.contains(target) && target !== detailToggle) {
             detailPopover.style.display = 'none';
           }
         }
       });
 
-      // ポップオーバー内のクリックは伝播させない
-      detailPopover?.addEventListener('click', (e) => {
-        e.stopPropagation();
-      });
+      detailPopover?.addEventListener('click', (e) => e.stopPropagation());
 
-      // 著者フィルタリング関数
       function filterByAuthor(authorId: string) {
         author = authorId;
-        // 対応するボタンをアクティブに
         authorBtns.forEach(btn => {
-          const btnAuthor = (btn as HTMLElement).dataset.author;
-          if (btnAuthor === authorId) {
-            (btn as HTMLElement).classList.add('active');
-          } else {
-            (btn as HTMLElement).classList.remove('active');
-          }
+          const b = btn as HTMLElement;
+          const btnAuthor = b.dataset.author;
+          if (btnAuthor === authorId) b.classList.add('active');
+          else b.classList.remove('active');
         });
         applyFilters();
       }
 
       authorBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          filterByAuthor((btn as HTMLElement).dataset.author || 'ALL');
-        });
+        btn.addEventListener('click', () => filterByAuthor((btn as HTMLElement).dataset.author || 'ALL'));
       });
 
-      // 記事カード全体のクリック → 記事詳細に移動
       items.forEach(item => {
-        (item as HTMLElement).addEventListener('click', (e) => {
-          const target = e.target as HTMLElement;
-          // アバターまたは著者名がクリックされた場合は記事詳細に遷移しない
-          if (target.classList.contains('author-avatar') || target.classList.contains('author-clickable')) {
-            return;
-          }
-          const slug = (item as HTMLElement).dataset.slug;
-          if (slug) {
-            window.location.href = `/notes/${slug}/`;
-          }
+        const el = item as HTMLElement;
+        el.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.classList?.contains('author-avatar') || target?.classList?.contains('author-clickable')) return;
+          const slug = el.dataset.slug;
+          if (slug) window.location.href = `/notes/${slug}/`;
         });
       });
 
-      // アバター画像とユーザー名のクリック → 著者フィルタリング
-      const authorClickables = document.querySelectorAll('.author-avatar, .author-clickable');
-      authorClickables.forEach(element => {
-        (element as HTMLElement).addEventListener('click', (e) => {
-          e.stopPropagation(); // カード全体のクリックイベントを止める
-          const authorId = (element as HTMLElement).dataset.authorFilter;
-          if (authorId) {
-            filterByAuthor(authorId);
-          }
+      document.querySelectorAll('.author-avatar, .author-clickable').forEach(el => {
+        const elem = el as HTMLElement;
+        elem.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const authorId = elem.dataset.authorFilter;
+          if (authorId) filterByAuthor(authorId);
         });
       });
 
-      fromInput.addEventListener('change', applyFilters);
-      toInput.addEventListener('change', applyFilters);
+      const fromEl = fromInput as HTMLInputElement | null;
+      const toEl = toInput as HTMLInputElement | null;
+      const qEl = q as HTMLInputElement | null;
+      if (fromEl) fromEl.addEventListener('change', applyFilters);
+      if (toEl) toEl.addEventListener('change', applyFilters);
       clearDates?.addEventListener('click', () => {
-        fromInput.value = '';
-        toInput.value = '';
+        if (fromEl) fromEl.value = '';
+        if (toEl) toEl.value = '';
         applyFilters();
       });
 
-      q.addEventListener('input', applyFilters);
+      if (qEl) qEl.addEventListener('input', applyFilters);
       clearQ?.addEventListener('click', () => {
-        q.value = '';
+        if (qEl) qEl.value = '';
         applyFilters();
       });
 
       function applyFilters() {
-        const from = fromInput.value ? new Date(fromInput.value) : null;
-        const to = toInput.value ? new Date(toInput.value) : null;
-        const query = q.value.trim().toLowerCase();
+        const from = fromEl?.value ? new Date(fromEl.value) : null;
+        const to = toEl?.value ? new Date(toEl.value) : null;
+        const query = (qEl?.value ?? '').trim().toLowerCase();
 
-        items.forEach(el => {
-          const a = (el as HTMLElement).dataset.author;
-          const d = new Date((el as HTMLElement).dataset.date || '');
-          const text = ((el as HTMLElement).dataset.title + ' ' + (el as HTMLElement).dataset.tags).toLowerCase();
-
+        items.forEach(item => {
+          const el = item as HTMLElement;
+          const a = el.dataset.author;
+          const d = new Date(el.dataset.date || '');
+          const text = ((el.dataset.title || '') + ' ' + (el.dataset.tags || '')).toLowerCase();
           let ok = true;
-
           if (author !== 'ALL' && a !== author) ok = false;
           if (from && d < from) ok = false;
           if (to && d > to) ok = false;
           if (query && !text.includes(query)) ok = false;
-
-          (el as HTMLElement).style.display = ok ? '' : 'none';
+          el.style.display = ok ? '' : 'none';
         });
       }
 
-      // 初期フィルター適用
       applyFilters();
     }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initNotesPage);
+    } else {
+      initNotesPage();
+    }
+    document.addEventListener('astro:page-load', initNotesPage);
   </script>
 
   <style>
