@@ -17,7 +17,6 @@ const notes = defineCollection({
     date: z.date(),
     author: z.string(),          // member.id を入れる
     tags: z.array(z.string()).optional(),
-    cover: z.string().optional(),
   }),
 });
 

@@ -7,10 +7,9 @@ export interface Props {
   date: Date;
   author: string;
   tags?: string[];
-  cover?: string;
 }
 
-const { title, date, author, tags, cover } = Astro.props;
+const { title, date, author, tags } = Astro.props;
 
 // メンバー情報を取得
 const members = await getCollection('member');
@@ -42,13 +41,6 @@ const member = members.find(m => m.data.id === author);
       )}
     </header>
 
-    <!-- カバー画像 -->
-    {cover && (
-      <div class="post-cover">
-        <img src={cover} alt="" />
-      </div>
-    )}
-
     <!-- 本文 -->
     <div class="post-content content">
       <slot />
@@ -62,10 +54,11 @@ const member = members.find(m => m.data.id === author);
 </Base>
 
 <style>
+  /* note.com 風: 記事幅 620px 前後・読みやすい文字サイズ */
   .note-post {
-    max-width: 800px;
+    max-width: 620px;
     margin: 0 auto;
-    padding: 2rem 1rem;
+    padding: 2.5rem 1.25rem;
   }
 
   .post-header {
@@ -73,19 +66,21 @@ const member = members.find(m => m.data.id === author);
   }
 
   .post-title {
-    font-size: 2.5rem;
+    font-size: 1.875rem;
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     color: var(--fg);
-    line-height: 1.2;
+    line-height: 1.35;
+    letter-spacing: 0.02em;
   }
 
   .post-meta {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 1rem;
-    font-size: 1rem;
+    font-size: 0.9375rem;
+    color: var(--muted);
   }
 
   .post-date {
@@ -112,24 +107,40 @@ const member = members.find(m => m.data.id === author);
     color: var(--accent);
     padding: 0.25rem 0.75rem;
     border-radius: 12px;
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     border: 1px solid var(--wa-butter);
   }
 
-  .post-cover {
-    margin-bottom: 2rem;
-  }
-
-  .post-cover img {
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-    border: 2px solid var(--wa-cream);
-  }
-
   .post-content {
-    line-height: 1.8;
-    font-size: 1.1rem;
+    line-height: 1.85;
+    font-size: 17px;
+    color: var(--fg);
+  }
+
+  .post-content :global(p) {
+    margin: 0 0 1em;
+  }
+
+  .post-content :global(h1),
+  .post-content :global(h2),
+  .post-content :global(h3) {
+    margin: 1.75em 0 0.5em;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .post-content :global(h1) { font-size: 1.5rem; }
+  .post-content :global(h2) { font-size: 1.25rem; }
+  .post-content :global(h3) { font-size: 1.125rem; }
+
+  /* 本文中の画像: 記事幅いっぱいで中央、縁なし */
+  .post-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5rem auto;
+    border-radius: 12px;
+    border: none;
   }
 
   .post-footer {
@@ -142,6 +153,7 @@ const member = members.find(m => m.data.id === author);
     color: var(--accent);
     text-decoration: none;
     font-weight: 600;
+    font-size: 0.9375rem;
     transition: color 0.2s ease;
   }
 
@@ -150,12 +162,16 @@ const member = members.find(m => m.data.id === author);
   }
 
   @media (max-width: 768px) {
+    .note-post {
+      padding: 1.5rem 1rem;
+    }
+
     .post-title {
-      font-size: 2rem;
+      font-size: 1.5rem;
     }
 
     .post-content {
-      font-size: 1rem;
+      font-size: 16px;
     }
   }
 </style>

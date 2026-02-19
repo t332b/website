@@ -2,6 +2,8 @@
 import { getCollection, type CollectionEntry } from 'astro:content';
 import type { GetStaticPaths } from 'astro';
 import NotePost from '../../layouts/NotePost.astro';
+import NoteEmbedLink from '../../components/NoteEmbedLink.astro';
+import NoteImage from '../../components/NoteImage.astro';
 
 // すべてのノート記事を取得
 export const getStaticPaths = (async () => {
@@ -26,7 +28,6 @@ const { Content } = await post.render();
   date={post.data.date}
   author={post.data.author}
   tags={post.data.tags}
-  cover={post.data.cover}
 >
-  <Content />
+  <Content components={{ a: NoteEmbedLink, img: NoteImage }} />
 </NotePost>

@@ -1,0 +1,38 @@
+---
+/**
+ * 本文画像。alt の末尾で幅を指定可能。
+ * 例: ![キャプション (50%)](url) → 幅50%
+ *     ![キャプション (100%)](url) → 幅100%
+ * 指定なし → デフォルト50%
+ */
+interface Props {
+  src: string;
+  alt?: string;
+  title?: string;
+}
+
+const { src, alt = "", title } = Astro.props;
+
+const SIZE_MATCH = alt.match(/\s*\((\d+)%\)\s*$/);
+const sizePercent = SIZE_MATCH ? Math.min(100, Math.max(10, parseInt(SIZE_MATCH[1], 10))) : 50;
+const cleanAlt = SIZE_MATCH ? alt.slice(0, SIZE_MATCH.index).trim() : alt;
+---
+
+<img
+  src={src}
+  alt={cleanAlt}
+  title={title}
+  class="note-img"
+  style={`max-width: ${sizePercent}%`}
+  loading="lazy"
+/>
+
+<style>
+  .note-img {
+    height: auto;
+    display: block;
+    margin: 1.5rem auto;
+    border-radius: 12px;
+    border: none;
+  }
+</style>

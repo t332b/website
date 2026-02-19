@@ -64,16 +64,11 @@ collections:
         widget: "list"
         required: false
         hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
-      - label: "カバー画像"
-        name: "cover"
-        widget: "image"
-        required: false
-        hint: "記事のトップ画像をアップロードしてください（推奨サイズ：1200x630px）"
       - label: "本文"
         name: "body"
         widget: "markdown"
         required: true
-        hint: "記事の本文をマークダウン形式で入力してください"
+        hint: "記事の本文をマークダウン形式で入力してください。画像の幅は、代替テキストの末尾に (50%) (100%) などと書くと指定できます（省略時は50%）。"
 
       - label: "動画URL（任意）"
         name: "video"
