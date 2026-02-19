@@ -167,18 +167,83 @@
          z-index: 1 !important;
      }
      
-     /* ツールバーを常に表示 */
+    /* ===== 書式バーを画面下端に固定（flex は使わず fixed のみ・本文レイアウトはそのまま） ===== 
+    →これを入れるとタグ・本文が崩れるのでコメントアウト
+    */
+    /* .cms-editor-visual [class*="EditorControlBar"] {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        background: white !important;
+        z-index: 500 !important;
+        padding: 10px 12px !important;
+        border-top: 1px solid #e1e8ed !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.08) !important;
+    } */
+
+    /* .cms-editor-visual [class*="EditorControlBar"] + div {
+        padding-bottom: 64px !important;
+    } */
+     
      [class*=ToolbarContainer] {
          position: relative !important;
-         background: white !important;
-         z-index: 1000 !important;
-         padding: 8px !important;
-         border-bottom: 1px solid #e1e8ed !important;
+         background: transparent !important;
+         z-index: 1 !important;
+         padding: 0 !important;
+         border: none !important;
      }
      
      /* マークダウンエディタの調整 */
      [class*=MarkdownEditor] {
          margin-top: 0 !important;
+     }
+     
+     /* ===== リッチテキスト（Slate）本文: 改行・段落の余白を詰める ===== */
+     [data-slate-editor="true"],
+     .cms-editor-visual [role="textbox"] {
+         line-height: 1.5 !important;
+     }
+     
+     [data-slate-editor="true"] p,
+     [data-slate-editor="true"] [class*="StyledP"],
+     .cms-editor-visual [class*="StyledP"] {
+         margin-top: 0 !important;
+         margin-bottom: 0.35em !important;
+         line-height: 1.5 !important;
+     }
+     
+     [data-slate-editor="true"] p + p,
+     .cms-editor-visual [class*="StyledP"] + [class*="StyledP"] {
+         margin-top: 0.35em !important;
+     }
+     
+     /* マークダウン用 textarea（切替時） */
+     [class*=MarkdownEditor] textarea,
+     [class*=EditorContainer] textarea {
+         line-height: 1.5 !important;
+         padding: 12px !important;
+     }
+     
+     /* プレビュー側の段落・改行の余白を詰める */
+     [class*=PreviewPaneContainer] p,
+     [class*=PreviewPaneContainer] .markdown-body p {
+         margin-top: 0 !important;
+         margin-bottom: 0.5em !important;
+         line-height: 1.6 !important;
+     }
+     
+     [class*=PreviewPaneContainer] p + p,
+     [class*=PreviewPaneContainer] .markdown-body p + p {
+         margin-top: 0.5em !important;
+     }
+     
+     [class*=PreviewPaneContainer] br,
+     [class*=PreviewPaneContainer] .markdown-body br {
+         display: block !important;
+         content: "" !important;
+         margin-top: 0.25em !important;
      }
      
      /* プレビューペインの調整 */
@@ -189,6 +254,11 @@
      /* コントロールペインの調整 */
      [class*=ControlPaneContainer] {
          margin-top: 0 !important;
+     }
+     
+     /* Rich Text 固定: Markdown 切替トグルを非表示 */
+     .cms-editor-visual [class*="ToolbarToggle"] {
+         display: none !important;
      }
      
      /* エディタのボタンを横並びに */
@@ -213,132 +283,38 @@
          align-items: center !important;
      }
      
-     /* すべてのボタンを確実に表示 */
-     button {
+     /* ツールバー内のボタンのみ確実に表示（フォーム全体の button は触らない） */
+     [class*="EditorControlBar"] button,
+     [class*="ToolbarContainer"] button {
          display: inline-block !important;
          visibility: visible !important;
          opacity: 1 !important;
      }
      
-     
-    /* ===== 書式設定トグルボタン（左下固定） ===== */
-    .mobile-format-toggle-btn {
-        position: fixed !important;
-        bottom: 20px !important;
-        left: 20px !important;
-        width: 56px !important;
-        height: 56px !important;
-        background: #007cba !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 50% !important;
-        box-shadow: 0 4px 12px rgba(0, 124, 186, 0.4) !important;
-        cursor: pointer !important;
-        z-index: 999 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .mobile-format-toggle-btn:active {
-        transform: scale(0.95) !important;
-        box-shadow: 0 2px 8px rgba(0, 124, 186, 0.4) !important;
-    }
-    
-    .mobile-format-toggle-btn svg {
-        width: 28px !important;
-        height: 28px !important;
-    }
-    
-    /* ===== フォーマットツールバー（ボトムシート） ===== */
-    .mobile-format-toolbar {
-        position: fixed !important;
-        bottom: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        background: white !important;
-        border-top-left-radius: 16px !important;
-        border-top-right-radius: 16px !important;
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15) !important;
-        z-index: 1000 !important;
-        transform: translateY(100%) !important;
-        transition: transform 0.3s ease !important;
-        padding: 0 !important;
-        max-height: 70vh !important;
-        overflow-y: auto !important;
-    }
-    
-    .mobile-format-toolbar.active {
-        transform: translateY(0) !important;
-    }
-    
-    .mobile-format-toolbar-header {
-        display: flex !important;
-        justify-content: space-between !important;
-        align-items: center !important;
-        padding: 16px 20px !important;
-        border-bottom: 1px solid #e1e8ed !important;
-        background: #f8f9fa !important;
-        border-top-left-radius: 16px !important;
-        border-top-right-radius: 16px !important;
-    }
-    
-    .mobile-format-toolbar-header span {
-        font-size: 18px !important;
+    /* タグ・タイトル・日付などのラベルを通常サイズに（(optional) を小さく） */
+    [class*="ControlPaneContainer"] [class*="ControlContainer"] label,
+    [class*="ControlPaneContainer"] [class*="ControlTopbar"] label,
+    [class*="FieldLabel"] {
+        font-size: 14px !important;
         font-weight: 600 !important;
-        color: #333 !important;
+        line-height: 1.3 !important;
     }
-    
-    .mobile-format-close {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 32px !important;
-        height: 32px !important;
-        background: transparent !important;
-        border: none !important;
-        border-radius: 50% !important;
-        cursor: pointer !important;
-        font-size: 28px !important;
+    [class*="ControlPaneContainer"] [class*="FieldLabel"] span,
+    [class*="FieldLabel"] span {
+        font-size: 12px !important;
+        font-weight: normal !important;
         color: #666 !important;
-        line-height: 1 !important;
     }
-    
-    .mobile-format-close:hover {
-        background: #e1e8ed !important;
+    /* タグ・著者などの入力欄をコンパクトに（本文以外のフィールド） */
+    [class*="ControlPaneContainer"] input[type="text"],
+    [class*="ControlPaneContainer"] input[type="date"] {
+        min-height: 40px !important;
     }
-    
-    .mobile-format-buttons {
-        display: grid !important;
-        grid-template-columns: repeat(4, 1fr) !important;
-        gap: 12px !important;
-        padding: 20px !important;
+    [class*="ControlHint"] {
+        font-size: 12px !important;
+        margin-top: 4px !important;
     }
-    
-    .mobile-format-button {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 16px 8px !important;
-        background: #f8f9fa !important;
-        border: 2px solid #e1e8ed !important;
-        border-radius: 12px !important;
-        cursor: pointer !important;
-        font-size: 20px !important;
-        color: #333 !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-        min-height: 60px !important;
-    }
-    
-    .mobile-format-button:active {
-        background: #007cba !important;
-        color: white !important;
-        border-color: #007cba !important;
-        transform: scale(0.95) !important;
-    }
+     
      
      /* ===== プレビューエリア ===== */
      .mobile-preview-pane {

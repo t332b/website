@@ -68,13 +68,7 @@ collections:
         name: "body"
         widget: "markdown"
         required: true
-        hint: "記事の本文をマークダウン形式で入力してください。画像の幅は、代替テキストの末尾に (50%) (100%) などと書くと指定できます（省略時は50%）。"
-
-      - label: "動画URL（任意）"
-        name: "video"
-        widget: "string"
-        required: false
-        hint: "Cloudinaryの動画URL（メディアから動画を選択/アップロード可）"
+        hint: "記事の本文を入力してください。画像の幅は、代替テキストの末尾に (50%) (100%) などと書くと指定できます（省略時は50%）。"
 
   # ライブ
   - name: "live"
