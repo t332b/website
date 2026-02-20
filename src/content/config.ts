@@ -75,7 +75,7 @@ const live = defineCollection({
   type: "content",
   schema: z.object({
     title: z.string(), // イベント名（必須）
-    date: z.date().optional(), // 公演日（日付のみ）
+    date: z.coerce.date().optional(), // 公演日（日付のみ・文字列も受け付ける）
     venue: z.string().optional(),
     city: z.string().optional(),
     start: z.string().optional(), // 開始時刻（例: 19:00）

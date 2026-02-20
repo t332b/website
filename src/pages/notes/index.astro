@@ -138,6 +138,8 @@ function getAvatarUrl(member: any) {
   </div>
 
   <script>
+    import { navigate } from 'astro:transitions/client';
+
     function initNotesPage() {
       const root = document.getElementById('notes-page-root');
       if (!root || root.hasAttribute('data-notes-inited')) return;
@@ -196,7 +198,7 @@ function getAvatarUrl(member: any) {
           const target = e.target as HTMLElement | null;
           if (target?.classList?.contains('author-avatar') || target?.classList?.contains('author-clickable')) return;
           const slug = el.dataset.slug;
-          if (slug) window.location.href = `/notes/${slug}/`;
+          if (slug) navigate(`/notes/${slug}/`);
         });
       });
 
