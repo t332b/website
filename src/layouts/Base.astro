@@ -1,8 +1,21 @@
 ---
 import "../styles/theme.css";
 import { ViewTransitions } from "astro:transitions";
+import { getCollection } from "astro:content";
 import AudioPlayer from "../components/AudioPlayer.astro";
 import Navigation from "../components/Navigation.astro";
+
+const members = await getCollection("member");
+const memberById = (id: string) => members.find((m) => m.data.id === id)?.data ?? null;
+const daijinMember = memberById("onomatopedaijin");
+const thamesMember = memberById("thamesbeat");
+
+function avatarUrl(m: { avatar?: string; github?: string } | null): string {
+  if (!m) return "/images/illust/fixed_daijin.svg";
+  if (m.avatar) return m.avatar.startsWith("/") ? m.avatar : `/${m.avatar}`;
+  if (m.github) return `https://github.com/${m.github}.png?size=128`;
+  return "/images/uploads/default-avatar.png";
+}
 ---
 
 <html lang="ja">
@@ -40,11 +53,48 @@ import Navigation from "../components/Navigation.astro";
           </a>
           <div class="header-illust-wrap">
             <div class="header-illust">
-              <img src="/images/illust/fixed_daijin.svg" alt="" class="header-illust-img daijin" />
-              <img src="/images/illust/fixed_thames.svg" alt="" class="header-illust-img thames" />
+              <button type="button" class="header-illust-btn" data-profile-modal="profile-modal-daijin" aria-label="オノマトペ大臣のプロフィールを表示">
+                <img src="/images/illust/fixed_daijin.svg" alt="" class="header-illust-img daijin" />
+              </button>
+              <button type="button" class="header-illust-btn" data-profile-modal="profile-modal-thames" aria-label="テムズビートのプロフィールを表示">
+                <img src="/images/illust/fixed_thames.svg" alt="" class="header-illust-img thames" />
+              </button>
             </div>
             <span class="header-illust-credit" aria-hidden="true">© fuminggg</span>
           </div>
+
+        <!-- プロフィールモーダル（左: オノマトペ大臣） -->
+        <div id="profile-modal-daijin" class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-daijin-title" aria-hidden="true">
+          <div class="profile-modal-backdrop" data-close-modal></div>
+          <div class="profile-modal-content">
+            <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
+            {daijinMember ? (
+              <>
+                <img class="profile-modal-avatar" src={avatarUrl(daijinMember)} alt="" width="120" height="120" />
+                <h2 id="profile-modal-daijin-title" class="profile-modal-name">{daijinMember.name}</h2>
+                {daijinMember.bio && <p class="profile-modal-bio">{daijinMember.bio}</p>}
+              </>
+            ) : (
+              <p class="profile-modal-bio">プロフィールがありません</p>
+            )}
+          </div>
+        </div>
+        <!-- プロフィールモーダル（右: テムズビート） -->
+        <div id="profile-modal-thames" class="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-thames-title" aria-hidden="true">
+          <div class="profile-modal-backdrop" data-close-modal></div>
+          <div class="profile-modal-content">
+            <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
+            {thamesMember ? (
+              <>
+                <img class="profile-modal-avatar" src={avatarUrl(thamesMember)} alt="" width="120" height="120" />
+                <h2 id="profile-modal-thames-title" class="profile-modal-name">{thamesMember.name}</h2>
+                {thamesMember.bio && <p class="profile-modal-bio">{thamesMember.bio}</p>}
+              </>
+            ) : (
+              <p class="profile-modal-bio">プロフィールがありません</p>
+            )}
+          </div>
+        </div>
         </div>
         
         <!-- ソーシャルリンクとオーディオプレーヤー行 -->
@@ -78,6 +128,32 @@ import Navigation from "../components/Navigation.astro";
     <footer class="footer">
       © {new Date().getFullYear()} PR0P0SE
     </footer>
+
+    <script>
+      document.querySelectorAll(".header-illust-btn[data-profile-modal]").forEach((btn) => {
+        const modalId = btn.getAttribute("data-profile-modal");
+        if (!modalId) return;
+        const modal = document.getElementById(modalId) as HTMLElement | null;
+        if (!modal) return;
+        btn.addEventListener("click", () => {
+          modal.setAttribute("aria-hidden", "false");
+          (modal.querySelector(".profile-modal-close") as HTMLElement)?.focus();
+        });
+      });
+      document.querySelectorAll("[data-close-modal]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const modal = el.closest(".profile-modal");
+          if (modal) (modal as HTMLElement).setAttribute("aria-hidden", "true");
+        });
+      });
+      document.querySelectorAll(".profile-modal").forEach((modal) => {
+        modal.addEventListener("keydown", (e: Event) => {
+          if ((e as KeyboardEvent).key === "Escape" && (modal as HTMLElement).getAttribute("aria-hidden") === "false") {
+            (modal as HTMLElement).setAttribute("aria-hidden", "true");
+          }
+        });
+      });
+    </script>
   </body>
 </html>
 
@@ -121,8 +197,18 @@ import Navigation from "../components/Navigation.astro";
     align-items: center;
   }
 
+  .header-illust-btn {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: block;
+    line-height: 0;
+  }
+
   .header-illust-img {
-    height: 40px;
+    height: 48px;
     width: auto;
     display: block;
     object-fit: contain;
@@ -137,6 +223,79 @@ import Navigation from "../components/Navigation.astro";
     width: 100%;
     text-align: right;
     margin-top: 0.1rem;
+  }
+
+  /* プロフィールモーダル */
+  .profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0.2s, opacity 0.2s;
+  }
+  .profile-modal[aria-hidden="false"] {
+    visibility: visible;
+    opacity: 1;
+  }
+  .profile-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+  .profile-modal-content {
+    position: relative;
+    background: var(--bg, var(--wa-paper));
+    color: var(--fg, var(--wa-ink));
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: var(--shadow);
+    border: 2px solid var(--wa-butter);
+    text-align: center;
+  }
+  .profile-modal-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--fg);
+    opacity: 0.7;
+  }
+  .profile-modal-close:hover {
+    opacity: 1;
+  }
+  .profile-modal-avatar {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 50%;
+    margin: 0 auto 0.75rem;
+    display: block;
+    border: 2px solid var(--wa-butter);
+  }
+  .profile-modal-name {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+  }
+  .profile-modal-bio {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-wrap;
   }
 
   /* ソーシャルリンクとオーディオプレーヤー行 */

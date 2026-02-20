@@ -3,10 +3,11 @@ import { defineCollection, z } from "astro:content";
 const member = defineCollection({
   type: "content",
   schema: z.object({
-    id: z.string(),              // "A" / "B"
+    id: z.string(),              // "A" / "B" / "onomatopedaijin" / "thamesbeat" など
     name: z.string(),            // 表示名
+    bio: z.string().optional(),  // 自己紹介
     github: z.string().optional(),
-    avatar: z.string().optional()// /uploads/... or 外部URL
+    avatar: z.string().optional(), // /uploads/... or 外部URL
   }),
 });
 
