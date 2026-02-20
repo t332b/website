@@ -81,7 +81,19 @@ const live = defineCollection({
     endTime: z.string().optional(), // 終了時刻
     venue: z.string().optional(),
     city: z.string().optional(),
-    ticketUrl: z.union([z.string().url(), z.literal("")]).optional(),
+    ticketUrl: z
+      .string()
+      .optional()
+      .transform((s) => {
+        const t = (s ?? "").trim();
+        if (t === "") return undefined;
+        try {
+          new URL(t);
+          return t;
+        } catch {
+          return undefined; // "未定", "TBD" 等は URL なしとして扱う
+        }
+      }),
     flyer: z.string().optional(), // フライヤー画像URL（Cloudinary等）
     body: z.string().optional(), // 備考
   }),
