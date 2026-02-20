@@ -421,6 +421,11 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     filter: brightness(0.98);
   }
 
+  /* ボリュームが効かない環境（iOS等）ではボリュームUIを非表示 */
+  .audio-player-wrapper.volume-unsupported .volume {
+    display: none !important;
+  }
+
   /* モバイル用の調整 */
   @media (max-width: 768px) {
 
@@ -488,6 +493,11 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   const trackTitleEl = document.getElementById("trackTitle");
   const dots = Array.from(document.querySelectorAll('.playlist-dots .dot'));
 
+  // iOSではWebの音量制御が効かないため、ボリュームUIを非表示にする（PCではそのまま表示・動作）
+  const isVolumeSupported = !/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const wrapper = document.querySelector(".audio-player-wrapper");
+  if (wrapper && !isVolumeSupported) wrapper.classList.add("volume-unsupported");
+
   function titleFromFilename(filename) {
     const base = filename.replace(/\.mp3$/i, "");
     const i = base.indexOf("_");
@@ -501,8 +511,10 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   const musicList = items.map((it) => it.src);
   let currentIndex = 0;
 
-  // 初期音量
-  audio.volume = parseFloat(vol.value);
+  // 初期音量（ボリュームUIが有効な環境のみ。iOS等ではデフォルトのまま）
+  if (isVolumeSupported && vol) {
+    audio.volume = parseFloat(vol.value);
+  }
   let lastVolume = audio.volume; // 消音前の音量を保存
 
   // 次の曲へ
@@ -562,24 +574,16 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     });
   });
 
-  // 音量バーの背景を更新する関数（定義を前に移動）
+  // 音量バーの背景を更新する関数（ボリュームUIが有効なときのみ）
   function updateVolumeBackground() {
+    if (!isVolumeSupported || !vol) return;
     const value = parseFloat(vol.value);
     const percentage = value * 100;
-    // 縦型スライダー用：下から上に塗りつぶし
-    // const gradient = `linear-gradient(to top, #000 0%, #000 ${percentage}%, #ddd ${percentage}%, #ddd 100%)`;
-    // vol.style.setProperty('background', gradient, 'important');
-    // vol.style.setProperty('background-color', 'transparent', 'important');
-    // console.log('Volume background updated:', percentage + '%', gradient);
-    // CSS変数でトラックに伝える（擬似要素でも拾える）
     vol.style.setProperty("--vol-pct", `${percentage}%`);
-    // ついでに塗り色・トラック色も変えるなら：
-    // vol.style.setProperty('--vol-fill', '#000');
-    // vol.style.setProperty('--vol-track', '#ddd');
   }
 
-  // 初期表示時に背景を更新
-  updateVolumeBackground();
+  // 初期表示時に背景を更新（PCのみ）
+  if (isVolumeSupported) updateVolumeBackground();
 
   // タッチデバイスかどうかを検知（変数を先に宣言）
   let isTouchDevice = false;
@@ -804,64 +808,62 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
         if (audio.paused) audio.play();
         else audio.pause();
       }
-    } else if (e.key === "ArrowUp") {
-      audio.volume = Math.min(1, audio.volume + 0.05);
-      vol.value = audio.volume.toFixed(2);
-      lastVolume = audio.volume;
-      updateMuteIcon();
-      updateVolumeBackground();
-    } else if (e.key === "ArrowDown") {
-      audio.volume = Math.max(0, audio.volume - 0.05);
-      vol.value = audio.volume.toFixed(2);
-      lastVolume = audio.volume;
-      updateMuteIcon();
-      updateVolumeBackground();
-    } else if (e.key === "m" || e.key === "M") {
-      // Mキーで消音切り替え
-      muteBtn.click();
+    } else if (isVolumeSupported && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "m" || e.key === "M")) {
+      if (e.key === "ArrowUp") {
+        audio.volume = Math.min(1, audio.volume + 0.05);
+        if (vol) vol.value = audio.volume.toFixed(2);
+        lastVolume = audio.volume;
+        updateMuteIcon();
+        updateVolumeBackground();
+      } else if (e.key === "ArrowDown") {
+        audio.volume = Math.max(0, audio.volume - 0.05);
+        if (vol) vol.value = audio.volume.toFixed(2);
+        lastVolume = audio.volume;
+        updateMuteIcon();
+        updateVolumeBackground();
+      } else if (e.key === "m" || e.key === "M") {
+        muteBtn?.click();
+      }
     }
   });
 
-  // 音量
-  vol.addEventListener("input", () => {
-    audio.volume = parseFloat(vol.value);
-    lastVolume = audio.volume; // 音量変更時も保存
-    updateMuteIcon();
-    updateVolumeBackground();
-  });
-
-  // 消音切り替え
+  // 消音切り替え（ボリュームUIが有効なときのみ表示される）
   function updateMuteIcon() {
+    if (!isVolumeSupported || !muteBtn || !muteIcon) return;
     const isMuted = audio.volume === 0;
     muteBtn.setAttribute("aria-pressed", isMuted ? "true" : "false");
     if (isMuted) {
-      // 消音アイコン
       muteIcon.innerHTML =
         '<path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"/><path d="M16 8a5 5 0 010 8" stroke="currentColor" stroke-width="2"/><path d="M2 2l20 20" stroke="currentColor" stroke-width="2"/>';
     } else {
-      // 通常アイコン
       muteIcon.innerHTML =
         '<path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"/><path d="M16 8a5 5 0 010 8" stroke="currentColor"/>';
     }
   }
 
-  muteBtn.addEventListener("click", () => {
-    if (audio.volume === 0) {
-      // 消音解除
-      audio.volume = lastVolume;
-      vol.value = lastVolume;
-    } else {
-      // 消音
+  if (isVolumeSupported) {
+    vol?.addEventListener("input", () => {
+      audio.volume = parseFloat(vol.value);
       lastVolume = audio.volume;
-      audio.volume = 0;
-      vol.value = 0;
-    }
-    updateMuteIcon();
-    updateVolumeBackground();
-  });
+      updateMuteIcon();
+      updateVolumeBackground();
+    });
 
-  // 初期アイコン設定
-  updateMuteIcon();
+    muteBtn?.addEventListener("click", () => {
+      if (audio.volume === 0) {
+        audio.volume = lastVolume;
+        if (vol) vol.value = lastVolume;
+      } else {
+        lastVolume = audio.volume;
+        audio.volume = 0;
+        if (vol) vol.value = 0;
+      }
+      updateMuteIcon();
+      updateVolumeBackground();
+    });
+
+    updateMuteIcon();
+  }
 
   // 再生終了時: 次の曲へ
   audio.addEventListener("ended", () => {

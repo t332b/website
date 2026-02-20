@@ -15,9 +15,9 @@ let liveEvents: Awaited<ReturnType<typeof getCollection<"live">>> = [];
 
 try {
   liveEvents = (await getCollection("live")).sort((a, b) => {
-    const da = a.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    const db = b.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    return da - db;
+    const da = a.data.startDate?.getTime() ?? 0;
+    const db = b.data.startDate?.getTime() ?? 0;
+    return db - da; // 降順（新しい日付が先）
   });
 } catch (_e) {
   collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
@@ -73,20 +73,23 @@ const withContent = await Promise.all(
               )}
             </header>
 
-            {entry.data.flyer && (
-              <div class="live-flyer-wrap">
-                <img
-                  src={entry.data.flyer.startsWith("http") ? entry.data.flyer : entry.data.flyer}
-                  alt={`${entry.data.title} フライヤー`}
-                  class="live-flyer"
-                  width="800"
-                  height="auto"
-                  loading="lazy"
-                />
-              </div>
-            )}
-
             <div class="live-details">
+              {/* フライヤー（URLが文字列で渡るよう明示的に取得） */}
+              {"flyer" in entry.data && (entry.data as { flyer?: string }).flyer && (
+                <div class="live-flyer-wrap">
+                  <img
+                    src={(entry.data as { flyer: string }).flyer}
+                    alt={`${entry.data.title} フライヤー`}
+                    class="live-flyer"
+                    width="400"
+                    height="auto"
+                    loading="lazy"
+                    decoding="async"
+                    referrerpolicy="no-referrer"
+                  />
+                </div>
+              )}
+              {/* 会場・日時など */}
               {(entry.data.venue || entry.data.city) && (
                 <p class="live-venue">
                   {[entry.data.venue, entry.data.city].filter(Boolean).join(" / ")}
@@ -144,9 +147,9 @@ const withContent = await Promise.all(
       padding: 2rem 1rem;
     }
     .live-list {
-      display: flex;
-      flex-direction: column;
-      gap: 2.5rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem;
     }
     .live-card {
       background: var(--card, #fff9f1);
@@ -159,35 +162,42 @@ const withContent = await Promise.all(
       margin-bottom: 1rem;
     }
     .live-title {
-      font-size: 1.4rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin: 0 0 0.35rem 0;
+      line-height: 1.3;
+      margin: 0 0 0.25rem 0;
       color: var(--fg, var(--wa-ink));
     }
     .live-date {
-      font-size: 1rem;
+      font-size: 0.9rem;
       color: var(--muted, #7c6f69);
     }
     .live-flyer-wrap {
-      margin: 1rem 0;
+      margin: 0.75rem 0;
       border-radius: 8px;
       overflow: hidden;
     }
     .live-flyer {
       width: 100%;
-      max-width: 600px;
+      max-width: 280px;
+      max-height: 200px;
       height: auto;
+      object-fit: contain;
       display: block;
     }
     .live-details {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       color: var(--fg);
     }
+    .live-details > .live-flyer-wrap {
+      margin-bottom: 0.75rem;
+    }
     .live-venue {
-      margin: 0 0 0.5rem 0;
+      margin: 0 0 0.35rem 0;
     }
     .live-time {
-      margin: 0 0 0.75rem 0;
+      margin: 0 0 0.5rem 0;
+      font-size: 0.8rem;
       color: var(--muted, #7c6f69);
     }
     .live-ticket-btn {
@@ -203,9 +213,9 @@ const withContent = await Promise.all(
       opacity: 0.8;
     }
     .live-body.content {
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-      line-height: 1.7;
+      margin-top: 0.5rem;
+      font-size: 0.8rem;
+      line-height: 1.6;
     }
     .live-body.content :global(p) {
       margin: 0 0 0.5rem 0;
@@ -242,11 +252,18 @@ const withContent = await Promise.all(
       .live-page {
         padding: 1rem 0.75rem;
       }
+      .live-list {
+        grid-template-columns: 1fr;
+      }
       .live-card {
         padding: 1rem;
       }
       .live-title {
         font-size: 1.2rem;
+      }
+      .live-flyer {
+        max-width: 240px;
+        max-height: 180px;
       }
     }
   </style>

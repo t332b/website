@@ -81,7 +81,7 @@ const live = defineCollection({
     endTime: z.string().optional(), // 終了時刻
     venue: z.string().optional(),
     city: z.string().optional(),
-    ticketUrl: z.string().url().optional(),
+    ticketUrl: z.union([z.string().url(), z.literal("")]).optional(),
     flyer: z.string().optional(), // フライヤー画像URL（Cloudinary等）
     body: z.string().optional(), // 備考
   }),

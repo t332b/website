@@ -14,21 +14,36 @@ const { title, date, author, tags } = Astro.props;
 // メンバー情報を取得
 const members = await getCollection('member');
 const member = members.find(m => m.data.id === author);
+
+function getAvatarUrl(m: { avatar?: string; github?: string } | null): string {
+  if (!m) return '/images/uploads/default-avatar.png';
+  if (m.avatar) {
+    if (m.avatar.startsWith('http://') || m.avatar.startsWith('https://')) return m.avatar;
+    return m.avatar.startsWith('/') ? m.avatar : `/${m.avatar}`;
+  }
+  if (m.github) return `https://github.com/${m.github}.png?size=64`;
+  return '/images/uploads/default-avatar.png';
+}
+
+const avatarUrl = getAvatarUrl(member?.data ?? null);
+const dateStr = date.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' });
+const timeStr = date.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false });
+const dateTimeDisplay = `${dateStr} ${timeStr}`;
 ---
 
 <Base title={title}>
   <article class="note-post">
-    <!-- ヘッダー -->
+    <!-- ヘッダー（note.com 風: タイトル → アイコン・名前・日時） -->
     <header class="post-header">
       <h1 class="post-title">{title}</h1>
       
       <div class="post-meta">
-        <div class="post-date">
-          {date.toLocaleDateString('ja-JP')}
-        </div>
-        <div class="post-separator">・</div>
-        <div class="post-author">
-          {member?.data.name || author}
+        <a href={`/notes/?author=${encodeURIComponent(author)}`} class="post-author-link" aria-label={`${member?.data.name || author}のノート一覧`}>
+          <img src={avatarUrl} alt="" class="post-author-avatar" width="48" height="48" />
+        </a>
+        <div class="post-meta-right">
+          <a href={`/notes/?author=${encodeURIComponent(author)}`} class="post-author">{member?.data.name || author}</a>
+          <time class="post-date" datetime={date.toISOString()}>{dateTimeDisplay}</time>
         </div>
       </div>
       
@@ -76,24 +91,53 @@ const member = members.find(m => m.data.id === author);
 
   .post-meta {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     margin-bottom: 1rem;
     font-size: 0.9375rem;
     color: var(--muted);
   }
 
-  .post-date {
-    color: var(--muted);
+  .post-author-link {
+    flex-shrink: 0;
+    line-height: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
   }
 
-  .post-separator {
-    color: var(--muted);
+  .post-author-link:hover {
+    opacity: 0.85;
+  }
+
+  .post-author-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .post-meta-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
   }
 
   .post-author {
     color: var(--accent);
     font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .post-author:hover {
+    color: var(--wa-forest);
+  }
+
+  .post-date {
+    color: var(--muted);
+    font-size: 0.875rem;
   }
 
   .post-tags {

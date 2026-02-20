@@ -420,6 +420,7 @@ const remixWorks = works.filter((item) => {
 
     .author-buttons {
       display: flex;
+      justify-content: center;
       gap: 0.375rem;
       flex-wrap: wrap;
     }
@@ -449,15 +450,14 @@ const remixWorks = works.filter((item) => {
       border-color: var(--accent);
     }
 
-    /* EP / Featuring / Remix 等のバッジ（小さい文字・丸いピル型・フィルターと同じ緑） */
+    /* EP / Featuring / Remix 等のバッジ（小さい文字・丸いピル型・青系） */
     .traype-text {
       display: inline-block;
       font-size: 0.65rem;
-      font-weight: 600;
       padding: 0.2em 0.5em;
       border-radius: 999px;
-      background: var(--accent);
-      border: 1px solid var(--accent);
+      background: #718bc4;
+      border: 1px solid #718bc4;
       color: white;
       line-height: 1.2;
     }
