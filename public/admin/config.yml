@@ -9,8 +9,9 @@ backend:
 site_url: https://pr0p0se.com
 display_url: https://pr0p0se.com
 
-media_folder: "public/uploads"
-public_folder: "/uploads"
+# 画像は Cloudinary のみ利用。media_folder を省略すると内部（リポジトリ）アップロードが無効になり Cloudinary のみになる
+# media_folder: "public/uploads"
+# public_folder: "/uploads"
 
 # Sveltia は media_libraries で Cloudinary をネイティブ対応（API secret は不要）
 media_libraries:
@@ -62,6 +63,7 @@ collections:
         name: "body"
         widget: "markdown"
         required: true
+        hint: "画像は「メディアを追加」で Cloudinary から選択してください"
 
   # ライブ
   - name: "live"
@@ -99,6 +101,15 @@ collections:
         name: "avatar"
         widget: "image"
         required: false
+        hint: "Cloudinary から選択してください"
+        media_libraries:
+          cloudinary:
+            config:
+              default_transformations:
+                - - fetch_format: auto
+                    quality: auto
+                    width: 400
+                    crop: limit
 
   # 曲
   - name: "tracks"
@@ -138,7 +149,19 @@ collections:
       - { label: "日付", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
       - { label: "カテゴリ", name: "category", widget: "select", options: ["release","feature","remix","appearance"], default: "release" }
       - { label: "種別（任意）", name: "type", widget: "select", options: ["single","EP","album"], required: false }
-      - { label: "カバー画像", name: "cover", widget: "image", required: false }
+      - label: "カバー画像"
+        name: "cover"
+        widget: "image"
+        required: false
+        hint: "Cloudinary から選択してください"
+        media_libraries:
+          cloudinary:
+            config:
+              default_transformations:
+                - - fetch_format: auto
+                    quality: auto
+                    width: 1600
+                    crop: limit
       - label: "トラックリスト"
         name: "tracks"
         widget: "relation"

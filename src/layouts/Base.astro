@@ -12,7 +12,10 @@ const thamesMember = memberById("thamesbeat");
 
 function avatarUrl(m: { avatar?: string; github?: string } | null): string {
   if (!m) return "/images/illust/fixed_daijin.svg";
-  if (m.avatar) return m.avatar.startsWith("/") ? m.avatar : `/${m.avatar}`;
+  if (m.avatar) {
+    if (m.avatar.startsWith("http://") || m.avatar.startsWith("https://")) return m.avatar;
+    return m.avatar.startsWith("/") ? m.avatar : `/${m.avatar}`;
+  }
   if (m.github) return `https://github.com/${m.github}.png?size=128`;
   return "/images/uploads/default-avatar.png";
 }
@@ -69,11 +72,13 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
           <div class="profile-modal-content">
             <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
             {daijinMember ? (
-              <>
-                <img class="profile-modal-avatar" src={avatarUrl(daijinMember)} alt="" width="120" height="120" />
+              <div class="profile-modal-body">
+                <img class="profile-modal-avatar" src={avatarUrl(daijinMember)} alt="" width="72" height="72" />
+                <div class="profile-modal-text">
                 <h2 id="profile-modal-daijin-title" class="profile-modal-name">{daijinMember.name}</h2>
                 {daijinMember.bio && <p class="profile-modal-bio">{daijinMember.bio}</p>}
-              </>
+                </div>
+              </div>
             ) : (
               <p class="profile-modal-bio">プロフィールがありません</p>
             )}
@@ -85,11 +90,13 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
           <div class="profile-modal-content">
             <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
             {thamesMember ? (
-              <>
-                <img class="profile-modal-avatar" src={avatarUrl(thamesMember)} alt="" width="120" height="120" />
+              <div class="profile-modal-body">
+                <img class="profile-modal-avatar" src={avatarUrl(thamesMember)} alt="" width="72" height="72" />
+                <div class="profile-modal-text">
                 <h2 id="profile-modal-thames-title" class="profile-modal-name">{thamesMember.name}</h2>
                 {thamesMember.bio && <p class="profile-modal-bio">{thamesMember.bio}</p>}
-              </>
+                </div>
+              </div>
             ) : (
               <p class="profile-modal-bio">プロフィールがありません</p>
             )}
@@ -217,9 +224,9 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
   /* イラスト作者表記 */
   .header-illust-credit {
     font-family: "Caveat", cursive;
-    font-size: 6px;
+    font-size: 7px;
     color: var(--wa-ink);
-    opacity: 0.6;
+    opacity: 0.8;
     width: 100%;
     text-align: right;
     margin-top: 0.1rem;
@@ -252,23 +259,21 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     position: relative;
     background: var(--bg, var(--wa-paper));
     color: var(--fg, var(--wa-ink));
-    border-radius: 12px;
-    padding: 1.5rem 2rem;
-    max-width: 320px;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    max-width: 260px;
     width: 100%;
     box-shadow: var(--shadow);
-    border: 2px solid var(--wa-butter);
-    text-align: center;
   }
   .profile-modal-close {
     position: absolute;
-    top: 0.5rem;
-    right: 0.75rem;
+    top: 0.25rem;
+    right: 0.5rem;
     padding: 0;
     margin: 0;
     border: none;
     background: none;
-    font-size: 1.5rem;
+    font-size: 1.1rem;
     line-height: 1;
     cursor: pointer;
     color: var(--fg);
@@ -277,25 +282,34 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
   .profile-modal-close:hover {
     opacity: 1;
   }
+  .profile-modal-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+  }
   .profile-modal-avatar {
-    width: 120px;
-    height: 120px;
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
     object-fit: cover;
-    border-radius: 50%;
-    margin: 0 auto 0.75rem;
     display: block;
-    border: 2px solid var(--wa-butter);
+  }
+  .profile-modal-text {
+    flex: 1;
+    min-width: 0;
   }
   .profile-modal-name {
-    font-size: 1.25rem;
-    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    margin: 0 0 0.35rem;
     font-weight: 600;
   }
   .profile-modal-bio {
-    font-size: 0.9rem;
-    line-height: 1.6;
+    font-size: 0.75rem;
+    line-height: 1.5;
     margin: 0;
     white-space: pre-wrap;
+    color: var(--muted, #7c6f69);
   }
 
   /* ソーシャルリンクとオーディオプレーヤー行 */

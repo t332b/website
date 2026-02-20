@@ -5,7 +5,7 @@
 ## 前提
 
 - **投稿フロー**: 管理画面で公開 → GitHub にコミット → GitHub Actions が自動で FTP デプロイ
-- **メディア**: 画像・動画は **Cloudinary** に保存（Sveltia がネイティブ対応）
+- **メディア**: 画像・動画は **Cloudinary** のみ利用。`config.yml` で `media_folder` を省略しており、リポジトリへのアップロードは無効（Cloudinary のみ選択可能）
 
 ## 認証（GitHub）
 
