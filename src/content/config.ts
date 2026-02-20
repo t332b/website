@@ -74,15 +74,15 @@ const works = defineCollection({
 const live = defineCollection({
   type: "content",
   schema: z.object({
-    date: z.date(), // z.string() → z.date() に統一
-    venue: z.string(),
-    city: z.string(),
-    doors: z.string().optional(),
-    start: z.string().optional(),
+    title: z.string(), // イベント名（必須）
+    date: z.date().optional(), // 公演日（日付のみ）
+    venue: z.string().optional(),
+    city: z.string().optional(),
+    start: z.string().optional(), // 開始時刻（例: 19:00）
+    end: z.string().optional(), // 終了時刻
     ticketUrl: z.string().url().optional(),
-    price: z.string().optional(),
-    status: z.enum(["scheduled","soldout","canceled","finished","ongoing"]).default("scheduled"),
-    body: z.string().optional(), // ライブ情報の詳細
+    flyer: z.string().optional(), // フライヤー画像URL（Cloudinary等）
+    body: z.string().optional(), // 備考
   }),
 });
 
