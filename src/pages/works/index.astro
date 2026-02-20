@@ -110,29 +110,17 @@ const remixWorks = works.filter((item) => {
 
 <Base title="PR0P0SE Works">
   <div id="works-page-root" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
-    <!-- フィルタボタン -->
-    <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-      <button class="filter-btn active" data-filter="all">
-        すべて ({works.length})
-      </button>
-      <button class="filter-btn" data-filter="single">
-        Single ({singles.length})
-      </button>
-      <button class="filter-btn" data-filter="ep">
-        EP ({eps.length})
-      </button>
-      <button class="filter-btn" data-filter="album">
-        Album ({albums.length})
-      </button>
-      <button class="filter-btn" data-filter="featuring">
-        Featuring ({featuringWorks.length})
-      </button>
-      <button class="filter-btn" data-filter="remix">
-        Remix ({remixWorks.length})
-      </button>
-      <button class="filter-btn" data-filter="other">
-        Other ({otherWorks.length})
-      </button>
+    <!-- フィルタボタン（notes と同じデザイン） -->
+    <div class="filters-wrapper">
+      <div class="author-buttons">
+        <button class="author-btn active" data-filter="all">すべて ({works.length})</button>
+        <button class="author-btn" data-filter="single">Single ({singles.length})</button>
+        <button class="author-btn" data-filter="ep">EP ({eps.length})</button>
+        <button class="author-btn" data-filter="album">Album ({albums.length})</button>
+        <button class="author-btn" data-filter="featuring">Featuring ({featuringWorks.length})</button>
+        <button class="author-btn" data-filter="remix">Remix ({remixWorks.length})</button>
+        <button class="author-btn" data-filter="other">Other ({otherWorks.length})</button>
+      </div>
     </div>
 
     <!-- リリース一覧 -->
@@ -394,28 +382,58 @@ const remixWorks = works.filter((item) => {
   </div>
 
   <style>
-    .filter-btn {
-      padding: 0.5rem 1.5rem;
-      border: 2px solid #6f42c1;
+    /* フィルターボタン（notes と同一デザイン） */
+    .filters-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .author-buttons {
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .author-btn {
+      appearance: none;
+      border: 1.5px solid var(--wa-butter);
       background: white;
-      color: #6f42c1;
-      border-radius: 24px;
+      color: var(--fg);
+      padding: 0.375rem 0.875rem;
+      border-radius: 999px;
       font-weight: 600;
+      font-size: 0.875rem;
       cursor: pointer;
-      transition: all 0.3s ease;
-      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      font-family: inherit;
     }
 
-    .filter-btn:hover {
-      background: #6f42c1;
-      color: white;
-      transform: translateY(-2px);
+    .author-btn:hover {
+      background: var(--wa-cream);
+      border-color: var(--accent);
     }
 
-    .filter-btn.active {
-      background: #6f42c1;
+    .author-btn.active {
+      background: var(--accent);
       color: white;
-      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
+      border-color: var(--accent);
+    }
+
+    /* EP / Featuring / Remix 等のバッジ（小さい文字・丸いピル型・フィルターと同じ緑） */
+    .traype-text {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.2em 0.5em;
+      border-radius: 999px;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: white;
+      line-height: 1.2;
     }
 
     .releases-grid {
@@ -1046,7 +1064,7 @@ const remixWorks = works.filter((item) => {
         font-size: 1.4rem !important;
       }
 
-      .filter-btn {
+      .author-btn {
         font-size: 0.75rem;
         padding: 0.35rem 0.8rem;
       }
@@ -1101,7 +1119,7 @@ const remixWorks = works.filter((item) => {
       if (!root || root.hasAttribute("data-works-inited")) return;
       root.setAttribute("data-works-inited", "");
 
-      const filterBtns = document.querySelectorAll(".filter-btn");
+      const filterBtns = document.querySelectorAll(".author-btn");
       const cards = document.querySelectorAll(".release-card");
 
       function updateCenteredSingleCards() {

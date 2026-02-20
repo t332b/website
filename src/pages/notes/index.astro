@@ -2,8 +2,9 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
+// 日時で降順（新しい順）
 const posts = (await getCollection('notes'))
-  .sort((a,b) => b.data.date.getTime() - a.data.date.getTime()); // 新しい順
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 
 // メンバー情報を取得
 const members = await getCollection('member');
@@ -69,7 +70,10 @@ function getAvatarUrl(member: any) {
   <!-- 一覧 -->
   <div id="list" style="display:grid; gap:16px;">
     {posts.map(p => {
-      const d = p.data.date.toISOString().slice(0,10); // YYYY-MM-DD
+      const date = p.data.date;
+      const d = date.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }); // YYYY-MM-DD (フィルター用)
+      const timeStr = date.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false });
+      const dateTimeDisplay = `${d} ${timeStr}`; // 表示用「YYYY-MM-DD HH:MM」
       const tags = (p.data.tags ?? []).join(',');
       const member = memberMap.get(p.data.author);
       const avatarUrl = getAvatarUrl(member);
@@ -107,7 +111,7 @@ function getAvatarUrl(member: any) {
                 <span class="author-name author-clickable" data-author-filter={p.data.author}>
                   {member?.name || p.data.author}
                 </span>
-                <span class="post-date">{d}</span>
+                <span class="post-date">{dateTimeDisplay}</span>
               </div>
               
               <!-- タイトル -->

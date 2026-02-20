@@ -38,15 +38,11 @@ collections:
         widget: "string"
         required: true
         hint: "記事のタイトルを入力してください（50文字以内推奨）"
-      - label: "公開日"
+      # 投稿した瞬間の日時を自動で登録（入力欄は出さない）
+      - label: "公開日時"
         name: "date"
-        widget: "datetime"
-        format: "YYYY-MM-DD"
-        date_format: "YYYY-MM-DD"
-        time_format: false
-        required: true
-        default: "{{now}}"
-        hint: "記事の公開日を選択してください"
+        widget: "hidden"
+        default: "{{datetime}}"
       - label: "著者"
         name: "author"
         widget: "relation"
@@ -66,7 +62,6 @@ collections:
         name: "body"
         widget: "markdown"
         required: true
-        hint: "記事の本文を入力してください。画像の幅は、代替テキストの末尾に (50%) (100%) などと書くと指定できます（省略時は50%）。"
 
   # ライブ
   - name: "live"

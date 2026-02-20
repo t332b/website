@@ -11,6 +11,11 @@ import Navigation from "../components/Navigation.astro";
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>PR0P0SE</title>
 
+    <!-- イラストキャプション用手書き風フォント -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&display=swap" rel="stylesheet" />
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
 
@@ -33,9 +38,12 @@ import Navigation from "../components/Navigation.astro";
               <path d="M96.1,44.92c-1.87.83-.03-.26-2.5.94-.58.28-1.08.57-1.62.93-1.86-.03-2.48.31-4.06-.69-1.13-.72-2.24-1.29-3.43-1.88-.14-.1-.43-.37-.58-.45l-1.24-.7c-.59-.33-1.33-.97-1.72-1.54-.35-.51-.94-1.04-1.03-1.66-.22-1.6-.18-.9-.85-2.26s-.29-.57-1.52-1.89c-.48-.51-.78-1.11-.85-1.8-.23-.36-.42-.74-.52-1.16l-.49-2.04-.33-1.61c-.34-1.67-.47-3.44-.13-5.11l.42-2.11c.13-.63.58-1.37.61-2l.12-2.54c.03-.69-.07-1.37.38-1.93.08-2.12,1.39-1.42,1.37-2.84-.01-.77.67-1.21.94-1.78s.48-1.13.91-1.64c.83-.97,1.73-1.87,2.5-2.86.28-.37.47-.7.84-1,.44-.35.86-.76,1.4-1,3.55-1.55,3.21-1.8,7.42-2.02.32-.02,2.12.4,2.65,1.01.6.7,1.43.9,2.28,1.12,1.36.34,2.97.88,3.64,2.16,1.47,2.79,3.92,4.4,4.1,5.17l.28,1.25c.45.52.43.97.55,1.59.09.48.18.91.23,1.41.03.36.3.86.37,1.22.35,2.1.9,1.46,1.1,4.19l.12,1.56.08,1.9c.03.64.03,1.21-.29,1.78.46.82-.44,1.65-.39,2.19l.15,1.65.02,2.71c0,.94-.32,1.22-.3,1.99l-1.03,1.61-.47,1.01c-1.46,3.11-.56.95-2.15,2.77-.45.51-1.34.59-1.86,1.03-1.97,2.46-2.36,1.02-3.28,1.99l-.81.86-.99.44ZM89.19,22.43l1.24-.89c1.78-1.27,1.01-.9,2.7-2.35.43-.37.89-.96,1.51-1.07.5-.09.81-.21,1.22-.53s1.24-.54,1.27-1.23c.03-.64-.14-1.54-.33-2.11-.08-.23-.39-.6-.51-.81-.35-.56-.75-1.13-1.33-1.42-2.28-1.14-1.87-.45-2.92-.69-.72-.16-1.34-.08-1.99.2-.54.24-1.79-.51-3.17,1.81-.23.94-.73,1.69-1.41,2.38-.38.39-.46.87-.6,1.36l-.33,1.15c-.23.8-.32,1.54-.53,2.35-.18.7-.17,1.52-.14,2.17,0,.15-.19.5-.12.62.16.3,1.11.99,1.48.9l1.21-.3,1.05-.67c.58-.37,1.15-.47,1.72-.88ZM90.85,38.21l1.28.05c.52.02,1.21-.25,1.69-.55.6-.37.15-1.24,1.19-2.38.97-1.06.24-.78,1.94-1.65l1.3-1.59c.3-.36.63-.87.82-1.31.85-1.98.2-1.19.53-2.68-.03-.56-.09-1.19.01-1.73l.24-1.22c.07-.38-.01-.95-.37-1.07-.98-.34-1.97-.41-2.78.12l-1.54,1c-.3.19-.82.36-1.14.52-.48.56-.97.96-1.65,1.26-.63.39-.94,1.33-1.5,1.55s-.87.47-1.03,1.08l-1.25.9c-.27,1.03-1.33,1.69-1.33,2.51v.91c0,.65.48,1.28.94,1.72,1.33,1.25.21,1.06,1.57,2.16.33.27.55.41,1.08.43Z"/>
             </svg>
           </a>
-          <div class="header-illust">
-            <img src="/images/illust/fixed_daijin.svg" alt="" class="header-illust-img daijin" />
-            <img src="/images/illust/fixed_thames.svg" alt="" class="header-illust-img thames" />
+          <div class="header-illust-wrap">
+            <div class="header-illust">
+              <img src="/images/illust/fixed_daijin.svg" alt="" class="header-illust-img daijin" />
+              <img src="/images/illust/fixed_thames.svg" alt="" class="header-illust-img thames" />
+            </div>
+            <span class="header-illust-credit" aria-hidden="true">© fuminggg</span>
           </div>
         </div>
         
@@ -91,25 +99,44 @@ import Navigation from "../components/Navigation.astro";
   }
 
   .brand-logo {
-    height: 36px;
+    height: 40px;
     width: auto;
     display: block;
     object-fit: contain;
     color: rgb(123, 166, 176);
   }
 
-  .header-illust {
+  .header-illust-wrap {
     display: flex;
-    gap: 0.5rem;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-end;
     margin-left: auto;
   }
 
+  .header-illust {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
   .header-illust-img {
-    height: 48px;
+    height: 40px;
     width: auto;
     display: block;
     object-fit: contain;
+  }
+
+  /* イラスト作者表記 */
+  .header-illust-credit {
+    font-family: "Caveat", cursive;
+    font-size: 6px;
+    color: var(--wa-ink);
+    opacity: 0.6;
+    width: 100%;
+    text-align: right;
+    margin-top: 0.1rem;
   }
 
   /* ソーシャルリンクとオーディオプレーヤー行 */
@@ -180,9 +207,9 @@ import Navigation from "../components/Navigation.astro";
     align-items: center;
   }
 
-  /* main要素の間隔調整 */
+  /* main要素（ヘッダー直下の余白を詰める） */
   .main {
-    margin-top: 2rem;
+    margin-top: 0;
   }
 
   @media (max-width: 320px) {
@@ -217,20 +244,23 @@ import Navigation from "../components/Navigation.astro";
     }
 
     .main {
-      margin-top: 1rem;
+      margin-top: 0;
     }
 
     .brand-logo {
       height: 28px;
     }
 
-    .header-illust {
-      margin-left: 0;
+    .header-illust-wrap {
       align-self: flex-end;
     }
 
     .header-illust-img {
       height: 36px;
+    }
+
+    .header-illust-credit {
+      font-size: 5px;
     }
 
   }

@@ -38,8 +38,21 @@ jobs:
           node-version: "20"
           cache: npm
 
+      # 依存が変わっていないときは node_modules を復元して npm install のみ（数十秒短縮）
+      - name: Cache node_modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Install deps
-        run: npm ci
+        run: |
+          if [ "${{ steps.node-cache.outputs.cache-hit }}" = "true" ]; then
+            npm install
+          else
+            npm ci
+          fi
 
       - name: Build
         run: npm run build
@@ -54,6 +67,7 @@ jobs:
           fi
           echo "Build verification successful"
 
+      # FTP はサーバー上の .ftp-deploy-sync-state.json で差分だけアップロード（新記事だけ反映）
       - name: FTP Deploy to Lolipop
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
@@ -65,6 +79,7 @@ jobs:
           local-dir: dist/
           server-dir: ${{ secrets.FTP_REMOTE_DIR }}
           timeout: 120000
+          log-level: minimal
           exclude: |
             **/.git*
             **/.git*/**
