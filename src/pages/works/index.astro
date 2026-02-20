@@ -2,12 +2,24 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
 
-const works = (await getCollection("works")).sort(
-  (a, b) => b.data.release_date.getTime() - a.data.release_date.getTime(),
-); // 新しい順
+let collectionError: string | null = null;
+let works: Awaited<ReturnType<typeof getCollection<"works">>> = [];
+let tracks: Awaited<ReturnType<typeof getCollection<"tracks">>> = [];
 
-// トラック情報（曲名や参加形態）を取得
-const tracks = await getCollection("tracks");
+try {
+  works = (await getCollection("works")).sort(
+    (a, b) => b.data.release_date.getTime() - a.data.release_date.getTime(),
+  );
+} catch (_e) {
+  collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
+}
+
+try {
+  tracks = await getCollection("tracks");
+} catch (_e) {
+  tracks = [];
+}
+
 const trackById = new Map(tracks.map((track) => [track.data.id, track]));
 
 const servicePriority = ["spotify", "apple", "bandcamp", "youtube", "other"] as const;
@@ -110,6 +122,11 @@ const remixWorks = works.filter((item) => {
 
 <Base title="PR0P0SE Works">
   <div id="works-page-root" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+    {collectionError && (
+      <div class="content-error-banner" role="alert">
+        {collectionError}
+      </div>
+    )}
     <!-- フィルタボタン（notes と同じデザイン） -->
     <div class="filters-wrapper">
       <div class="author-buttons">
@@ -382,6 +399,15 @@ const remixWorks = works.filter((item) => {
   </div>
 
   <style>
+    .content-error-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
     /* フィルターボタン（notes と同一デザイン） */
     .filters-wrapper {
       display: flex;

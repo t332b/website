@@ -2,12 +2,23 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
-// 日時で降順（新しい順）
-const posts = (await getCollection('notes'))
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+let collectionError: string | null = null;
+let posts: Awaited<ReturnType<typeof getCollection<"notes">>> = [];
+let members: Awaited<ReturnType<typeof getCollection<"member">>> = [];
 
-// メンバー情報を取得
-const members = await getCollection('member');
+try {
+  posts = (await getCollection('notes'))
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+} catch (_e) {
+  collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
+}
+
+try {
+  members = await getCollection('member');
+} catch (_e) {
+  members = [];
+}
+
 const memberMap = new Map(members.map(m => [m.data.id, m.data]));
 
 // アバター画像のURLを生成する関数
@@ -25,6 +36,11 @@ function getAvatarUrl(member: any) {
 
 <Base title="PR0P0SE Notes">
   <div id="notes-page-root" class="notes-container">
+    {collectionError && (
+      <div class="content-error-banner" role="alert">
+        {collectionError}
+      </div>
+    )}
     <!-- 絞り込みUI -->
     <div class="filters-wrapper">
     <!-- 著者ボタン（常時表示） -->
@@ -264,6 +280,15 @@ function getAvatarUrl(member: any) {
       max-width: 500px;
       margin: 0 auto;
       padding: 0 1rem;
+    }
+    .content-error-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
     }
 
     /* 絞り込みUIラッパー */

@@ -2,35 +2,73 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from "astro:content";
 
-const liveEvents = (await getCollection("live")).sort((a, b) => {
-  const da = a.data.date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  const db = b.data.date?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  return da - db;
-});
+function formatDateWithWeekday(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const w = ["日", "月", "火", "水", "木", "金", "土"][d.getDay()];
+  return `${y}/${m}/${day}（${w}）`;
+}
+
+let collectionError: string | null = null;
+let liveEvents: Awaited<ReturnType<typeof getCollection<"live">>> = [];
+
+try {
+  liveEvents = (await getCollection("live")).sort((a, b) => {
+    const da = a.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const db = b.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    return da - db;
+  });
+} catch (_e) {
+  collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
+}
+
+// ファイル数と取得件数が一致しない場合（一部がスキーマ等で除外された場合）もバナー表示
+if (!collectionError) {
+  const liveFileGlob = import.meta.glob<{ default: unknown }>("../../content/live/*.{md,mdx}");
+  const fileCount = Object.keys(liveFileGlob).length;
+  if (fileCount > liveEvents.length) {
+    collectionError = "一部のコンテンツを表示できません（syntax error 等、コンテンツを確認してください）";
+  }
+}
 
 const withContent = await Promise.all(
-  liveEvents.map(async (entry) => ({
-    entry,
-    Content: (await entry.render()).Content,
-  }))
+  liveEvents.map(async (entry) => {
+    try {
+      const { Content } = await entry.render();
+      return { entry, Content, renderError: false as const };
+    } catch (_e) {
+      return { entry, Content: null, renderError: true as const };
+    }
+  })
 );
 ---
 
 <Base title="PR0P0SE LIVE">
   <div class="live-page">
+    {collectionError && (
+      <div class="content-error-banner" role="alert">
+        {collectionError}
+      </div>
+    )}
     {withContent.length > 0 ? (
       <section class="live-list">
-        {withContent.map(({ entry, Content }) => (
+        {withContent.map(({ entry, Content, renderError }) => (
           <article class="live-card">
+            {renderError ? (
+              <div class="live-card-error-wrap">
+                {entry.data.title && <h2 class="live-title">{entry.data.title}</h2>}
+                <p class="live-card-error">
+                  表示エラーがあります（syntax error 等、この項目のコンテンツを確認してください）
+                </p>
+              </div>
+            ) : (
+            <>
             <header class="live-header">
               <h2 class="live-title">{entry.data.title}</h2>
-              {entry.data.date && (
-                <time class="live-date" datetime={entry.data.date.toISOString().slice(0, 10)}>
-                  {entry.data.date.toLocaleDateString("ja-JP", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+              {entry.data.startDate && (
+                <time class="live-date" datetime={entry.data.startDate.toISOString().slice(0, 10)}>
+                  {formatDateWithWeekday(entry.data.startDate)}
                 </time>
               )}
             </header>
@@ -54,11 +92,23 @@ const withContent = await Promise.all(
                   {[entry.data.venue, entry.data.city].filter(Boolean).join(" / ")}
                 </p>
               )}
-              {(entry.data.start || entry.data.end) && (
+              {(entry.data.startDate || entry.data.startTime || entry.data.endDate || entry.data.endTime) && (
                 <p class="live-time">
-                  {entry.data.start && <span>開始 {entry.data.start}</span>}
-                  {entry.data.start && entry.data.end && " "}
-                  {entry.data.end && <span>終了 {entry.data.end}</span>}
+                  {(entry.data.startDate || entry.data.startTime) && (
+                    <span>
+                      開始 {entry.data.startDate && formatDateWithWeekday(entry.data.startDate)}
+                      {entry.data.startDate && entry.data.startTime && " "}
+                      {entry.data.startTime && entry.data.startTime}
+                    </span>
+                  )}
+                  {(entry.data.startDate || entry.data.startTime) && (entry.data.endDate || entry.data.endTime) && " / "}
+                  {(entry.data.endDate || entry.data.endTime) && (
+                    <span>
+                      終了 {entry.data.endDate && formatDateWithWeekday(entry.data.endDate)}
+                      {entry.data.endDate && entry.data.endTime && " "}
+                      {entry.data.endTime && entry.data.endTime}
+                    </span>
+                  )}
                 </p>
               )}
               {entry.data.ticketUrl && (
@@ -75,6 +125,8 @@ const withContent = await Promise.all(
                 <Content />
               </div>
             </div>
+            </>
+            )}
           </article>
         ))}
       </section>
@@ -164,6 +216,26 @@ const withContent = await Promise.all(
       text-align: center;
       padding: 3rem 1rem;
       color: var(--muted, #7c6f69);
+    }
+    .content-error-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    .live-card-error-wrap {
+      padding: 0.25rem 0;
+    }
+    .live-card-error-wrap .live-title {
+      margin-bottom: 0.5rem;
+    }
+    .live-card-error {
+      color: #721c24;
+      font-size: 0.9rem;
+      margin: 0;
     }
     .live-empty p {
       margin: 0 0 0.5rem 0;

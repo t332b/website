@@ -75,11 +75,12 @@ const live = defineCollection({
   type: "content",
   schema: z.object({
     title: z.string(), // イベント名（必須）
-    date: z.coerce.date().optional(), // 公演日（日付のみ・文字列も受け付ける）
+    startDate: z.coerce.date().optional(), // 開始日
+    startTime: z.string().optional(), // 開始時刻（例: 19:00）
+    endDate: z.coerce.date().optional(), // 終了日（日をまたぐ場合）
+    endTime: z.string().optional(), // 終了時刻
     venue: z.string().optional(),
     city: z.string().optional(),
-    start: z.string().optional(), // 開始時刻（例: 19:00）
-    end: z.string().optional(), // 終了時刻
     ticketUrl: z.string().url().optional(),
     flyer: z.string().optional(), // フライヤー画像URL（Cloudinary等）
     body: z.string().optional(), // 備考

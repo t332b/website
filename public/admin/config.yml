@@ -75,11 +75,12 @@ collections:
     format: "frontmatter"
     fields:
       - { label: "イベント名", name: "title", widget: "string", required: true, hint: "必須です" }
-      - { label: "公演日", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: false, hint: "日付のみ（時刻は下の開始・終了で）" }
+      - { label: "開始日", name: "startDate", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: false }
+      - { label: "開始時刻", name: "startTime", widget: "string", required: false, hint: "例: 19:00" }
+      - { label: "終了日", name: "endDate", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: false, hint: "日をまたぐ場合のみ" }
+      - { label: "終了時刻", name: "endTime", widget: "string", required: false, hint: "例: 21:00" }
       - { label: "会場", name: "venue", widget: "string", required: false }
       - { label: "都市", name: "city", widget: "string", required: false }
-      - { label: "開始時刻", name: "start", widget: "string", required: false, hint: "例: 19:00" }
-      - { label: "終了時刻", name: "end", widget: "string", required: false, hint: "例: 21:00" }
       - { label: "チケットURL", name: "ticketUrl", widget: "string", required: false }
       - label: "フライヤー画像"
         name: "flyer"

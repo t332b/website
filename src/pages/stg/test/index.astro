@@ -5,7 +5,11 @@ import { getCollection } from 'astro:content';
 
 const latestPosts = (await getCollection('notes')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
 const latestWorks = (await getCollection('works')).filter(w => w.data.is_primary_release).sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()).slice(0, 4);
-const upcomingLive = (await getCollection('live')).sort((a,b) => a.data.date.getTime() - b.data.date.getTime()).slice(0, 3);
+const upcomingLive = (await getCollection('live')).sort((a,b) => {
+  const da = a.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+  const db = b.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
+  return da - db;
+}).slice(0, 3);
 
 // メンバー情報を取得
 const members = await getCollection('member');
@@ -109,13 +113,17 @@ function getAvatarUrl(member: any) {
         <div class="live-list">
           {upcomingLive.map(event => (
             <div class="live-item">
-              <div class="live-date">
-                <span class="date-day">{event.data.date.getDate()}</span>
-                <span class="date-month">{event.data.date.toLocaleDateString('ja-JP', { month: 'short' })}</span>
-              </div>
+              {event.data.startDate && (
+                <div class="live-date">
+                  <span class="date-day">{event.data.startDate.getDate()}</span>
+                  <span class="date-month">{event.data.startDate.toLocaleDateString('ja-JP', { month: 'short' })}</span>
+                </div>
+              )}
               <div class="live-details">
-                <h3 class="live-venue">{event.data.venue}</h3>
-                <p class="live-location">{event.data.city}</p>
+                <h3 class="live-venue">{event.data.title}</h3>
+                {(event.data.venue || event.data.city) && (
+                  <p class="live-location">{[event.data.venue, event.data.city].filter(Boolean).join(' / ')}</p>
+                )}
                 {event.data.ticketUrl && (
                   <a href={event.data.ticketUrl} target="_blank" rel="noopener noreferrer" class="ticket-link">
                     TICKETS
