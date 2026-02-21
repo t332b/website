@@ -54,9 +54,9 @@ const worksListForNav = allWorks.map((item) => {
     <div class="release-content">
       <button type="button" class="release-close" data-close-release aria-label="閉じる">&times;</button>
       <ReleaseDetail work={work} />
+      <a href="#" class="release-nav release-nav--prev" id="release-nav-prev" aria-label="前のリリース" data-direction="prev">‹</a>
+      <a href="#" class="release-nav release-nav--next" id="release-nav-next" aria-label="次のリリース" data-direction="next">›</a>
     </div>
-    <a href="#" class="release-nav release-nav--prev" id="release-nav-prev" aria-label="前のリリース" data-direction="prev">‹</a>
-    <a href="#" class="release-nav release-nav--next" id="release-nav-next" aria-label="次のリリース" data-direction="next">›</a>
   </div>
 
   <script define:vars={{ worksListForNav, slug }}>

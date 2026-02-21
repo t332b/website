@@ -49,37 +49,29 @@ function getMainTrack(item: any) {
   return tracks.find((track) => track.data.works_id === workId) ?? null;
 }
 
+// 埋め込み優先順: Spotify → Apple → Bandcamp → YouTube（non-primary でジャケ代わりに表示）
+const embedPriority = ["spotify", "apple", "bandcamp", "youtube"] as const;
+
 function getEmbedUrl(service: string, url: string): string | null {
   try {
     if (service === "spotify") {
-      // intl-ja/などの言語パスを含むURLにも対応
-      // track/から?または&まで（つまり曲ID部分）を取得
       const match = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
-      if (match) {
-        const type = match[1]; // track, album, playlist
-        const id = match[2]; // 曲ID（5L7jSdEqM6kxG5GpixS4u4など）
-        const embedUrl = `https://open.spotify.com/embed/${type}/${id}?utm_source=generator`;
-        return embedUrl;
-      }
-    }
-    if (service === "bandcamp") {
-      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
-      if (match) {
-        return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${match[2]}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
-      }
-      return url;
+      if (match) return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator`;
     }
     if (service === "apple") {
       const match = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
-      if (match) {
-        return `https://embed.music.apple.com/${match[2]}`;
-      }
+      if (match) return `https://embed.music.apple.com/${match[2]}`;
+    }
+    if (service === "bandcamp") {
+      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
+      if (!match) return null;
+      const id = match[2];
+      if (!/^\d+$/.test(id)) return null; // 数値IDのみ有効（slugだと not available）
+      return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${id}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
     }
     if (service === "youtube") {
       const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
-      if (match) {
-        return `https://www.youtube.com/embed/${match[1]}`;
-      }
+      if (match) return `https://www.youtube.com/embed/${match[1]}`;
     }
   } catch {}
   return null;
@@ -148,6 +140,19 @@ const remixWorks = works.filter((item) => {
           const availableServices = servicePriority.filter(
             (service) => typeof links?.[service] === "string" && links?.[service],
           );
+          const rawIsPrimary = item.data.is_primary_release;
+          const isPrimary = Boolean(rawIsPrimary);
+          const firstEmbed = !isPrimary
+            ? (() => {
+                for (const service of embedPriority) {
+                  const rawUrl = links?.[service];
+                  if (!rawUrl) continue;
+                  const embedUrl = getEmbedUrl(service, rawUrl);
+                  if (embedUrl) return { service, embedUrl, rawUrl };
+                }
+                return null;
+              })()
+            : null;
           const embedSources = availableServices
             .map((service) => {
               const rawUrl = links?.[service];
@@ -161,14 +166,11 @@ const remixWorks = works.filter((item) => {
             );
           const hasEmbeds = embedSources.length > 0;
           const defaultService = embedSources[0]?.service;
-          const rawIsPrimary = item.data.is_primary_release;
-          const isPrimary = Boolean(rawIsPrimary);
           const mainTrack = getMainTrack(item);
           const mainTrackData = (mainTrack as any)?.data;
           const typeForFilter = isPrimary
             ? item.data.release_type ?? "other"
             : mainTrackData?.track_type ??  "other";
-          const spotifyEmbed = embedSources.find((s) => s.service === "spotify");
           const trackIds = Array.isArray(item.data.tracks) ? item.data.tracks : [];
           const releaseTracks = trackIds
             .map((trackId) => trackById.get(trackId))
@@ -183,7 +185,7 @@ const remixWorks = works.filter((item) => {
           return (
             <>
               <article
-                class={`release-card ${isPrimary ? "" : "release-card--secondary"} release-card--clickable ${!isPrimary && spotifyEmbed ? "release-card--spotify-embed" : ""}`}
+                class={`release-card ${isPrimary ? "" : "release-card--secondary"} release-card--clickable ${!isPrimary && firstEmbed ? "release-card--embed" : ""}`}
                 data-type={typeForFilter}
                 data-slug={item.slug}
               >
@@ -220,16 +222,16 @@ const remixWorks = works.filter((item) => {
                     ) : (
                       <div class="no-cover" />
                     )
-                  ) : spotifyEmbed ? (
-                    // is_primary_releaseがfalseの場合: Spotifyの埋め込みプレーヤーを直接表示（クリック不要）
+                  ) : firstEmbed ? (
+                    // non-primary: 埋め込みをジャケ大で表示。埋め込み上をクリックしてもモーダルが開くようオーバーレイを載せる。
                     <div class="spotify-embed-container">
+                      <div class="embed-click-overlay" aria-hidden="true" title="詳細を開く"></div>
                       <iframe
-                        src={spotifyEmbed.embedUrl}
+                        src={firstEmbed.embedUrl}
                         width="100%"
                         frameborder="0"
                         allowfullscreen=""
                         allowtransparency="true"
-                        // allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                         loading="lazy"
                         class="spotify-embed-iframe"
@@ -576,6 +578,7 @@ const remixWorks = works.filter((item) => {
     }
 
     .spotify-embed-container {
+      position: relative;
       width: 100%;
       max-width: 380px;
       margin: 0 auto;
@@ -583,6 +586,13 @@ const remixWorks = works.filter((item) => {
       background: transparent;
       overflow: hidden;
       box-sizing: border-box;
+    }
+
+    .embed-click-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      cursor: pointer;
     }
 
     .spotify-embed-container iframe {
@@ -741,7 +751,8 @@ const remixWorks = works.filter((item) => {
         width: 100%;
       }
 
-      .release-card--spotify-embed {
+      .release-card--embed,
+    .release-card--spotify-embed {
         grid-column: span 2;
       }
 
@@ -800,9 +811,9 @@ const remixWorks = works.filter((item) => {
         let colIndex = 0;
         for (let i = 0; i < visibleCards.length; i++) {
           const card = visibleCards[i];
-          const isSpotify = card.classList.contains("release-card--spotify-embed");
+          const isEmbed = card.classList.contains("release-card--embed");
 
-          if (isSpotify) {
+          if (isEmbed) {
             if (colIndex === 1) {
               visibleCards[i - 1].classList.add("release-card--centered-single");
             }
@@ -810,9 +821,9 @@ const remixWorks = works.filter((item) => {
           } else {
             if (colIndex === 0) {
               colIndex = 1;
-              const nextIsSpotify =
-                i + 1 < visibleCards.length && visibleCards[i + 1].classList.contains("release-card--spotify-embed");
-              if (i === visibleCards.length - 1 || nextIsSpotify) {
+              const nextIsEmbed =
+                i + 1 < visibleCards.length && visibleCards[i + 1].classList.contains("release-card--embed");
+              if (i === visibleCards.length - 1 || nextIsEmbed) {
                 card.classList.add("release-card--centered-single");
               }
             } else {

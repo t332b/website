@@ -152,9 +152,9 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
       <div class="release-content">
         <button type="button" class="release-close" data-close-global-release aria-label="閉じる">&times;</button>
         <div id="global-release-detail-slot"></div>
+        <button type="button" class="release-nav release-nav--prev" id="global-release-prev" aria-label="前のリリース" style="display: none;">‹</button>
+        <button type="button" class="release-nav release-nav--next" id="global-release-next" aria-label="次のリリース" style="display: none;">›</button>
       </div>
-      <button type="button" class="release-nav release-nav--prev" id="global-release-prev" aria-label="前のリリース" style="display: none;">‹</button>
-      <button type="button" class="release-nav release-nav--next" id="global-release-next" aria-label="次のリリース" style="display: none;">›</button>
     </div>
 
     <script>
@@ -389,7 +389,8 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     width: auto;
     display: block;
     object-fit: contain;
-    transition: filter 0.2s;
+    opacity: 0.65; /* 薄めの黒 */
+    transition: filter 0.2s, opacity 0.2s;
   }
 
   /* イラスト作者表記（キャライラスト下） */

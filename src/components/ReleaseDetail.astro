@@ -17,6 +17,13 @@ const validTracks = trackIds
   .map((tid) => allTracks.find((t) => t?.data?.id === tid) ?? null)
   .filter((t): t is NonNullable<typeof t> => t !== null);
 
+/**
+ * 各サービスの「ページURL」から「埋め込み用 iframe の src」を組み立てる。
+ * - Spotify / Apple / YouTube: ページURLに含まれる ID から embed URL を生成可能。
+ * - Bandcamp: 埋め込みは**数値の album/track ID** 必須。URL が album/slug 形式（例: lighthouse-ep）の場合は
+ *   数値 ID が取れないため埋め込みを生成せず null を返す（iframe に slug を渡すと "not available" になる）。
+ *   数値 ID のみ有効な embed を返し、それ以外はリンクのみ表示。
+ */
 function getEmbedUrl(service: string, url: string): string | null {
   try {
     if (service === "spotify") {
@@ -29,8 +36,11 @@ function getEmbedUrl(service: string, url: string): string | null {
     }
     if (service === "bandcamp") {
       const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
-      if (match) return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${match[2]}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
-      return url;
+      if (!match) return null;
+      const id = match[2];
+      // Bandcamp の embed は数値 ID のみ有効。slug（lighthouse-ep など）だと "not available" になる
+      if (!/^\d+$/.test(id)) return null;
+      return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${id}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
     }
     if (service === "youtube") {
       const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
@@ -69,6 +79,7 @@ const firstEmbed = data.links
   : null;
 
 const hasEmbed = !!firstEmbed;
+const isPrimaryRelease = data.is_primary_release !== false;
 const linkItems = data.links
   ? linkDisplayOrder
       .filter((service) => data.links?.[service])
@@ -95,9 +106,25 @@ const linkItems = data.links
   </div>
 </header>
 
-{data.cover_url_list && data.cover_url_list.length > 0 && (
+{/* primary: ジャケ画像のみ。non-primary: 画像は出さず埋め込みをジャケ大で表示（著作権配慮） */}
+{isPrimaryRelease && data.cover_url_list && data.cover_url_list.length > 0 && (
   <div class="modal-cover-wrap">
     <img src={data.cover_url_list[0]} alt={data.title} class="modal-cover" />
+  </div>
+)}
+{!isPrimaryRelease && hasEmbed && firstEmbed && (
+  <div class="modal-embed-wrap">
+    <iframe
+      src={firstEmbed.embedUrl}
+      width="100%"
+      height="400"
+      frameborder="0"
+      allowfullscreen=""
+      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+      loading="lazy"
+      title={`${data.title} embed`}
+      class="modal-embed-iframe"
+    />
   </div>
 )}
 
@@ -131,20 +158,6 @@ const linkItems = data.links
           </li>
         ))}
       </ol>
-    </div>
-  )}
-  {hasEmbed && firstEmbed && (
-    <div class="modal-player">
-      <iframe
-        src={firstEmbed.embedUrl}
-        width="100%"
-        height="152"
-        frameborder="0"
-        allowfullscreen=""
-        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-        loading="lazy"
-        title={`${data.title} embed`}
-      />
     </div>
   )}
   {linkItems.length > 0 && (
