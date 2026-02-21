@@ -1,915 +1,148 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { getCollection, getEntry } from 'astro:content';
+import type { CollectionEntry } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
+import ReleaseDetail from "../../components/ReleaseDetail.astro";
+import "../../styles/release-detail.css";
 
 export async function getStaticPaths() {
-  const works = await getCollection('works');
-  return works.map(work => ({
+  const works = await getCollection("works");
+  return works.map((work) => ({
     params: { slug: work.slug },
     props: { work },
   }));
 }
 
 const { slug } = Astro.params;
-const work = await getEntry('works', slug);
+const work = await getEntry("works", slug!);
 
 if (!work) {
-  return Astro.redirect('/404');
+  return Astro.redirect("/404");
 }
 
-const { data, render } = work;
-const { Content } = await render();
+const allWorks = (await getCollection("works")).sort(
+  (a, b) => b.data.release_date.getTime() - a.data.release_date.getTime()
+);
+const allTracks = await getCollection("tracks");
 
-/**
- * トラック情報の取得（重要な変更点）
- * - data.tracks は Track の "id" 配列（例: ["TRK-0013", ...]）
- * - トラックのファイル名は slug なので、getEntry('tracks', id) では見つからない
- * - よって getCollection('tracks') を全件取得し、 entry.data.id で照合する
- */
-const trackIds: string[] = Array.isArray(data.tracks) ? data.tracks : [];
-const allTracks = await getCollection('tracks');
-
-const validTracks = trackIds
-  .map((tid) => allTracks.find((t) => t?.data?.id === tid) ?? null)
-  .filter((t): t is NonNullable<typeof t> => t !== null);
-
-// 見つからないIDがあればビルドログに出す（デバッグ用）
-for (const tid of trackIds) {
-  if (!allTracks.find((t) => t?.data?.id === tid)) {
-    console.warn(`[works/${slug}] Track not found by id: ${tid}`);
+function getMainTrack(item: CollectionEntry<"works">) {
+  const isPrimary = Boolean(item.data.is_primary_release);
+  if (isPrimary) {
+    const firstTrackId =
+      Array.isArray(item.data.tracks) && item.data.tracks.length > 0 ? item.data.tracks[0] : null;
+    return firstTrackId ? allTracks.find((t) => t.data.id === firstTrackId) ?? null : null;
   }
+  const workId = item.data.id;
+  if (!workId) return null;
+  return allTracks.find((t) => t.data.works_id === workId) ?? null;
 }
 
-// 埋め込みプレイヤー用URLを生成する関数
-function getEmbedUrl(service: string, url: string): string | null {
-  try {
-    if (service === 'spotify') {
-      const match = url.match(/spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
-      if (match) {
-        return `https://open.spotify.com/embed/${match[1]}/${match[2]}`;
-      }
-    }
-    if (service === 'bandcamp') {
-      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
-      if (match) {
-        return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${match[2]}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
-      }
-      // トラックページURLから直接生成できない場合は元URLを返す
-      return url;
-    }
-    if (service === 'apple') {
-      const match = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
-      if (match) {
-        return `https://embed.music.apple.com/${match[2]}`;
-      }
-    }
-    if (service === 'soundcloud') {
-      return `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}`;
-    }
-    if (service === 'youtube') {
-      const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
-      if (match) {
-        return `https://www.youtube.com/embed/${match[1]}`;
-      }
-    }
-  } catch {}
-  return null;
-}
-
-const servicePriority = ['spotify', 'apple', 'bandcamp', 'youtube', 'soundcloud'] as const;
-const serviceIcons: Record<typeof servicePriority[number], string> = {
-  spotify: '/images/logo/spotify-icon.svg',
-  apple: '/images/logo/Apple_logo_black.svg',
-  bandcamp: '/images/logo/bandcamp-button-bc-circle-green-64.png',
-  youtube: '/images/logo/icons8-red-youtube.svg',
-  soundcloud: '/images/logo/soundcloud-2.svg',
-};
-
-const embedSources = data.links
-  ? servicePriority
-      .map((service) => {
-        const rawUrl = data.links?.[service];
-        if (!rawUrl) return null;
-        const embedUrl = getEmbedUrl(service, rawUrl);
-        if (!embedUrl) return null;
-        return { service, embedUrl, rawUrl };
-      })
-      .filter((entry): entry is { service: typeof servicePriority[number]; embedUrl: string; rawUrl: string } => Boolean(entry))
-  : [];
-
-const hasEmbeds = embedSources.length > 0;
-const defaultService = embedSources[0]?.service ?? null;
-const isPrimaryRelease = data.is_primary_release !== false;
+const worksListForNav = allWorks.map((item) => {
+  const isPrimary = Boolean(item.data.is_primary_release);
+  const mainTrack = getMainTrack(item);
+  const mainTrackData = mainTrack?.data;
+  const typeForFilter = isPrimary
+    ? item.data.release_type ?? "other"
+    : mainTrackData?.track_type ?? item.data.release_type ?? "other";
+  return { slug: item.slug, typeForFilter };
+});
 ---
 
-<Base title={data.title}>
-  <article style="max-width: 900px; margin: 0 auto; padding: 2rem 1rem;">
-    <!-- パンくずリスト -->
-    <nav style="margin-bottom: 2rem; font-size: 0.9rem; color: #666;">
-      <a href="/" style="color: #6f42c1; text-decoration: none;">HOME</a>
-      <span style="margin: 0 0.5rem;">›</span>
-      <a href="/works" style="color: #6f42c1; text-decoration: none;">Works</a>
-      <span style="margin: 0 0.5rem;">›</span>
-      <span>{data.title}</span>
-    </nav>
-
-    <!-- ヘッダー -->
-    <header style="margin-bottom: 2rem;">
-      <h1 style="font-size: 1.8rem; font-weight: 700; margin-bottom: 0.6rem; color: #333;">
-        {data.title}
-      </h1>
-      
-      {data.release_artist_name && (
-        <div style="font-size: 1rem; color: #666; margin-bottom: 0.6rem; font-weight: 500;">
-          {data.release_artist_name}
-        </div>
-      )}
-      
-      <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem;">
-        <div style="font-size: 0.9rem; color: #666;">
-          {data.release_date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-        </div>
-        {data.release_type && (
-          <span style="font-size: 0.8rem; color: #888; text-transform: lowercase;">
-            {data.release_type}
-          </span>
-        )}
-        {data.id && (
-          <span style="font-size: 0.8rem; color: #999;">
-            {data.id}
-          </span>
-        )}
-      </div>
-    </header>
-
-    <!-- メインコンテンツエリア -->
-    <div class="content-grid">
-      <!-- 左カラム：画像 or 埋め込み -->
-      <div class="cover-section">
-        {isPrimaryRelease ? (
-          data.cover_url_list && data.cover_url_list.length > 0 ? (
-            <div class="cover-carousel">
-              <div class="carousel-images">
-                {data.cover_url_list.map((img, idx) => (
-                  <img 
-                    src={img} 
-                    alt={`${data.title} - Image ${idx + 1}`}
-                    class={`carousel-image ${idx === 0 ? 'active' : ''}`}
-                  />
-                ))}
-              </div>
-              {data.cover_url_list.length > 1 && (
-                <>
-                  <button class="carousel-btn prev" aria-label="前の画像">‹</button>
-                  <button class="carousel-btn next" aria-label="次の画像">›</button>
-                  <div class="carousel-dots">
-                    {data.cover_url_list.map((_, idx) => (
-                      <span class={`dot ${idx === 0 ? 'active' : ''}`}></span>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <div class="no-cover"></div>
-          )
-        ) : hasEmbeds ? (
-          <div class="embed-wrapper embed-wrapper--cover" data-default={defaultService ?? ''}>
-            {embedSources.length > 1 && (
-              <div class="embed-tabs" role="tablist">
-                {embedSources.map(({ service }) => (
-                  <button
-                    type="button"
-                    class={`embed-tab ${service === defaultService ? 'active' : ''}`}
-                    data-service={service}
-                    aria-selected={service === defaultService}
-                    aria-label={`${service} のプレイヤーを表示`}
-                  >
-                    <img src={serviceIcons[service]} alt={`${service} アイコン`} />
-                  </button>
-                ))}
-              </div>
-            )}
-            <div class="embed-frames">
-              {embedSources.map(({ service, embedUrl }) => (
-                <iframe
-                  src={embedUrl}
-                  data-service={service}
-                  class={`embed-frame ${service === defaultService ? 'active' : ''}`}
-                  title={`${data.title} ${service} embed`}
-                  width="100%"
-                  height={service === 'spotify' ? '420' : service === 'apple' ? '420' : service === 'bandcamp' ? '360' : service === 'youtube' ? '360' : '220'}
-                  frameborder="0"
-                  allow="encrypted-media; clipboard-write; fullscreen"
-                  loading="lazy"
-                  allowfullscreen="true"
-                ></iframe>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div class="no-cover secondary-detail-placeholder"></div>
-        )}
-
-        {isPrimaryRelease && (data.cover_illustration_by || data.cover_design_by || data.cover_photography_by) && (
-          <div class="credits-box">
-            {data.cover_illustration_by && (
-              <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
-                Illustration: {data.cover_illustration_by}
-              </div>
-            )}
-            {data.cover_design_by && (
-              <div style="font-size: 0.85rem; color: #666; margin-bottom: 0.3rem;">
-                Design: {data.cover_design_by}
-              </div>
-            )}
-            {data.cover_photography_by && (
-              <div style="font-size: 0.85rem; color: #666;">
-                Photography: {data.cover_photography_by}
-              </div>
-            )}
-          </div>
-        )}
-
-        {!isPrimaryRelease && hasEmbeds && (
-          <div class="service-links service-links--cover">
-            {embedSources.map(({ service, rawUrl }) => (
-              <a
-                href={rawUrl}
-                target="_blank"
-                rel="noopener"
-                class={`service-link service-link--${service}`}
-              >
-                <img src={serviceIcons[service]} alt={`${service} リンク`} />
-              </a>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <!-- 右カラム：詳細情報 -->
-      <div class="details-section">
-        <!-- 埋め込みプレイヤー -->
-        {isPrimaryRelease && hasEmbeds && (
-          <div class="embeds-section">
-            <div class="embed-wrapper embed-wrapper--detail" data-default={defaultService ?? ''}>
-              {embedSources.length > 1 && (
-                <div class="embed-tabs" role="tablist">
-                  {embedSources.map(({ service }) => (
-                    <button
-                      type="button"
-                      class={`embed-tab ${service === defaultService ? 'active' : ''}`}
-                      data-service={service}
-                      aria-selected={service === defaultService}
-                      aria-label={`${service} のプレイヤーを表示`}
-                    >
-                      <img src={serviceIcons[service]} alt={`${service} アイコン`} />
-                    </button>
-                  ))}
-                </div>
-              )}
-              <div class="embed-frames">
-                {embedSources.map(({ service, embedUrl }) => (
-                  <iframe
-                    src={embedUrl}
-                    data-service={service}
-                    class={`embed-frame ${service === defaultService ? 'active' : ''}`}
-                    title={`${data.title} ${service} embed`}
-                    width="100%"
-                    height={service === 'spotify' ? '420' : service === 'apple' ? '420' : service === 'bandcamp' ? '360' : service === 'youtube' ? '360' : '220'}
-                    frameborder="0"
-                    allow="encrypted-media; clipboard-write; fullscreen"
-                    loading="lazy"
-                    allowfullscreen="true"
-                  ></iframe>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <!-- リンク -->
-        {data.links && Object.keys(data.links).length > 0 && (
-          <div class="links-section">
-            <div class="links-grid">
-              {data.links.spotify && (
-                <a href={data.links.spotify} target="_blank" rel="noopener" class="link-btn spotify">
-                  <img src="/images/logo/spotify-icon.svg" alt="Spotify" class="link-icon" />
-                  <span>Spotify</span>
-                </a>
-              )}
-              {data.links.apple && (
-                <a href={data.links.apple} target="_blank" rel="noopener" class="link-btn apple">
-                  <img src="/images/logo/Apple_logo_black.svg" alt="Apple Music" class="link-icon" />
-                  <span>Apple Music</span>
-                </a>
-              )}
-              {data.links.youtube && (
-                <a href={data.links.youtube} target="_blank" rel="noopener" class="link-btn youtube">
-                  <img src="/images/logo/icons8-red-youtube.svg" alt="YouTube" class="link-icon" />
-                  <span>YouTube</span>
-                </a>
-              )}
-              {data.links.bandcamp && (
-                <a href={data.links.bandcamp} target="_blank" rel="noopener" class="link-btn bandcamp">
-                  <img src="/images/logo/bandcamp-button-bc-circle-green-64.png" alt="Bandcamp" class="link-icon" />
-                  <span>Bandcamp</span>
-                </a>
-              )}
-              {data.links.soundcloud && (
-                <a href={data.links.soundcloud} target="_blank" rel="noopener" class="link-btn soundcloud">
-                  <img src="/images/logo/soundcloud-2.svg" alt="SoundCloud" class="link-icon" />
-                  <span>SoundCloud</span>
-                </a>
-              )}
-              {data.links.music_video && (
-                <a href={data.links.music_video} target="_blank" rel="noopener" class="link-btn music-video">
-                  <img src="/images/logo/icons8-youtube.svg" alt="Music Video" class="link-icon" />
-                  <span>Music Video</span>
-                </a>
-              )}
-              {data.links.other && (
-                <a href={data.links.other} target="_blank" rel="noopener" class="link-btn other">
-                  <span class="link-icon">🌐</span>
-                  <span>その他</span>
-                </a>
-              )}
-            </div>
-          </div>
-        )}
-
-        <!-- トラックリスト -->
-        {validTracks.length > 0 && (
-          <div class="tracklist-section">
-            <ol class="tracklist">
-              {validTracks.map((track) => (
-                <li class="track-item">
-                  <div class="track-info">
-                    <span class="track-title">{track.data.title}</span>
-                    {track.data.duration && (
-                      <span class="track-duration">{track.data.duration}</span>
-                    )}
-                  </div>
-                  {(track.data.lyrics_by || track.data.music_by) && (
-                    <div class="track-credits">
-                      {track.data.lyrics_by && <span>詞: {track.data.lyrics_by}</span>}
-                      {track.data.music_by && <span>曲: {track.data.music_by}</span>}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        <!-- 本文 -->
-        {Content && (
-          <div class="body-section">
-            <div class="prose">
-              <Content />
-            </div>
-          </div>
-        )}
-      </div>
+<Base title={work.data.title}>
+  <div class="release-overlay" id="release-overlay">
+    <div class="release-backdrop" data-close-release aria-label="閉じる"></div>
+    <div class="release-content">
+      <button type="button" class="release-close" data-close-release aria-label="閉じる">&times;</button>
+      <ReleaseDetail work={work} />
     </div>
-
-
-  </article>
-
-  <style>
-    .content-grid {
-      display: grid;
-      grid-template-columns: 0.9fr 1.3fr;
-      gap: 2rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .cover-section {
-      position: sticky;
-      top: 2rem;
-      align-self: start;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .cover-carousel {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 1;
-      background: #f5f5f5;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-      margin-bottom: 1rem;
-    }
-
-    .carousel-images {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
-
-    .carousel-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      top: 0;
-      left: 0;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-    }
-
-    .carousel-image.active {
-      opacity: 1;
-      z-index: 1;
-    }
-
-    .carousel-btn {
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      border: none;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      font-size: 1.3rem;
-      cursor: pointer;
-      z-index: 2;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .carousel-btn:hover {
-      background: rgba(0, 0, 0, 0.8);
-      transform: translateY(-50%) scale(1.1);
-    }
-
-    .carousel-btn.prev {
-      left: 15px;
-    }
-
-    .carousel-btn.next {
-      right: 15px;
-    }
-
-    .carousel-dots {
-      position: absolute;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      z-index: 2;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.5);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .dot:hover {
-      background: rgba(255, 255, 255, 0.8);
-    }
-
-    .dot.active {
-      background: white;
-      width: 30px;
-      border-radius: 5px;
-    }
-
-    .no-cover {
-      width: 100%;
-      aspect-ratio: 1;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      margin-bottom: 1.5rem;
-    }
-
-    .secondary-detail-placeholder {
-      background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.1));
-      margin-bottom: 0;
-    }
-
-    .credits-box {
-      background: transparent;
-      border-radius: 0;
-      padding: 0;
-      border-left: none;
-    }
-
-    .details-section > * + * {
-      margin-top: 1.4rem;
-    }
-
-    .embeds-section {
-      display: flex;
-      flex-direction: column;
-      gap: 1.2rem;
-    }
-
-    .embed-wrapper {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      padding: 1rem;
-      border-radius: 14px;
-      background: linear-gradient(135deg, rgba(111, 66, 193, 0.16), rgba(111, 66, 193, 0.05));
-      box-shadow: 0 4px 14px rgba(111, 66, 193, 0.12);
-    }
-
-    .embed-wrapper--cover {
-      padding: 1.1rem 1rem 1.3rem;
-      border-radius: 16px;
-    }
-
-    .embed-tabs {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.5rem;
-    }
-
-    .embed-tab {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: none;
-      background: rgba(255, 255, 255, 0.85);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .embed-tab img {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-    }
-
-    .embed-tab:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .embed-tab.active {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 14px rgba(111, 66, 193, 0.25);
-      background: #6f42c1;
-    }
-
-    .embed-tab.active img {
-      filter: brightness(0) invert(1);
-    }
-
-    .embed-frames {
-      position: relative;
-      width: 100%;
-    }
-
-    .embed-frame {
-      width: 100%;
-      border: none;
-      display: none;
-      border-radius: 10px;
-      background: #000;
-    }
-
-    .embed-frame.active {
-      display: block;
-    }
-
-    .embed-wrapper--detail .embed-frame {
-      border-radius: 12px;
-    }
-
-    .service-links {
-      display: flex;
-      gap: 0.6rem;
-      flex-wrap: wrap;
-    }
-
-    .service-links--cover {
-      margin-top: 0.5rem;
-    }
-
-    .service-link {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: white;
-      border: 2px solid rgba(111, 66, 193, 0.3);
-      box-shadow: 0 2px 10px rgba(111, 66, 193, 0.18);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .service-link img {
-      width: 20px;
-      height: 20px;
-      object-fit: contain;
-    }
-
-    .service-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(111, 66, 193, 0.25);
-    }
-
-    .links-section {
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 0;
-    }
-
-    .links-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 0.6rem;
-    }
-
-    .link-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 0.8rem;
-      border-radius: 8px;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 0.85rem;
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-    }
-
-    .link-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .link-icon {
-      width: 18px;
-      height: 18px;
-      object-fit: contain;
-    }
-
-    .link-btn.spotify { background: #1DB954; color: white; }
-    .link-btn.apple { background: #FC3C44; color: white; }
-    .link-btn.youtube { background: #FF0000; color: white; }
-    .link-btn.bandcamp { background: #629aa9; color: white; }
-    .link-btn.soundcloud { background: #ff5500; color: white; }
-    .link-btn.music-video { background: #e83e8c; color: white; }
-    .link-btn.other { background: #6c757d; color: white; }
-
-    .tracklist-section {
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 0;
-    }
-
-    .tracklist {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      counter-reset: track-counter;
-    }
-
-    .track-item {
-      counter-increment: track-counter;
-      padding: 0.75rem;
-      border-bottom: 1px solid #e1e8ed;
-      transition: background 0.2s ease;
-    }
-
-    .track-item:last-child {
-      border-bottom: none;
-    }
-
-    .track-item:hover {
-      background: #f8f9fa;
-    }
-
-    .track-item::before {
-      content: counter(track-counter);
-      display: inline-block;
-      width: 2rem;
-      font-weight: 600;
-      color: #6f42c1;
-      margin-right: 0.75rem;
-    }
-
-    .track-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 0.2rem;
-    }
-
-    .track-title {
-      font-weight: 500;
-      color: #333;
-      font-size: 0.95rem;
-    }
-
-    .track-duration {
-      font-size: 0.8rem;
-      color: #999;
-      margin-left: 0.8rem;
-    }
-
-    .track-credits {
-      font-size: 0.8rem;
-      color: #666;
-      margin-left: 2.4rem;
-      display: flex;
-      gap: 1rem;
-    }
-
-    .body-section {
-      background: transparent;
-      border: none;
-      border-radius: 0;
-      padding: 0;
-    }
-
-    .prose {
-      line-height: 1.8;
-      color: #333;
-    }
-
-    .prose h2 {
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 2rem 0 1rem 0;
-      color: #333;
-    }
-
-    .prose h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin: 1.5rem 0 0.75rem 0;
-      color: #333;
-    }
-
-    .prose p {
-      margin: 1rem 0;
-    }
-
-    .prose a {
-      color: #6f42c1;
-      text-decoration: none;
-    }
-
-    .prose a:hover {
-      text-decoration: underline;
-    }
-
-    /* バッジは廃止し、上部で小さくテキスト表示 */
-
-    .back-btn {
-      display: inline-block;
-      padding: 0.6rem 1.4rem;
-      background: #6f42c1;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-    }
-
-    .back-btn:hover {
-      background: #5a2da8;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3);
-    }
-
-    @media (max-width: 768px) {
-      .content-grid {
-        grid-template-columns: 1fr;
-        gap: 1.25rem;
+    <a href="#" class="release-nav release-nav--prev" id="release-nav-prev" aria-label="前のリリース" data-direction="prev">‹</a>
+    <a href="#" class="release-nav release-nav--next" id="release-nav-next" aria-label="次のリリース" data-direction="next">›</a>
+  </div>
+
+  <script define:vars={{ worksListForNav, slug }}>
+    (function () {
+      const list = Array.isArray(worksListForNav) ? worksListForNav : [];
+      function getFilter() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("filter") || "all";
       }
-
-      .cover-section {
-        position: static;
+      function getReturnUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const returnPath = params.get("return");
+        if (!returnPath || typeof returnPath !== "string") return null;
+        if (!returnPath.startsWith("/")) return null;
+        try {
+          const u = new URL(returnPath, window.location.origin);
+          if (u.origin !== window.location.origin) return null;
+          return u.pathname + u.search;
+        } catch {
+          return null;
+        }
       }
-
-      .links-grid {
-        grid-template-columns: 1fr;
+      function getFilteredList() {
+        const filter = getFilter();
+        if (filter === "all") return list;
+        return list.filter((w) => w.typeForFilter === filter);
       }
-
-      .track-info {
-        flex-direction: column;
-        align-items: start;
+      function updateNav() {
+        const filtered = getFilteredList();
+        const idx = filtered.findIndex((w) => w.slug === slug);
+        const prevLink = document.getElementById("release-nav-prev");
+        const nextLink = document.getElementById("release-nav-next");
+        const filter = getFilter();
+        const returnUrl = getReturnUrl();
+        const params = new URLSearchParams();
+        if (filter !== "all") params.set("filter", filter);
+        if (returnUrl) params.set("return", returnUrl);
+        const q = params.toString() ? "?" + params.toString() : "";
+        if (prevLink) {
+          if (filtered.length <= 1 || idx <= 0) {
+            prevLink.style.display = "none";
+          } else {
+            prevLink.style.display = "flex";
+            prevLink.href = `/works/${filtered[idx - 1].slug}${q}`;
+          }
+        }
+        if (nextLink) {
+          if (filtered.length <= 1 || idx < 0 || idx >= filtered.length - 1) {
+            nextLink.style.display = "none";
+          } else {
+            nextLink.style.display = "flex";
+            nextLink.href = `/works/${filtered[idx + 1].slug}${q}`;
+          }
+        }
       }
-
-      .track-duration {
-        margin-left: 0;
-        margin-top: 0.3rem;
+      function close() {
+        const returnUrl = getReturnUrl();
+        if (returnUrl) {
+          window.location.href = returnUrl;
+          return;
+        }
+        const filter = getFilter();
+        const url = filter !== "all" ? `/works?filter=${encodeURIComponent(filter)}` : "/works";
+        window.location.href = url;
       }
-
-      h1 {
-        font-size: 1.5rem !important;
-      }
-    }
-  </style>
-
-  <script is:inline>
-    // カルーセル機能
-    const images = document.querySelectorAll('.carousel-image');
-    const dots = document.querySelectorAll('.dot');
-    const prevBtn = document.querySelector('.carousel-btn.prev');
-    const nextBtn = document.querySelector('.carousel-btn.next');
-    
-    if (images.length > 1) {
-      let currentIndex = 0;
-      
-      function showImage(index) {
-        images.forEach((img, i) => {
-          img.classList.toggle('active', i === index);
-        });
-        dots.forEach((dot, i) => {
-          dot.classList.toggle('active', i === index);
-        });
-      }
-      
-      nextBtn?.addEventListener('click', () => {
-        currentIndex = (currentIndex + 1) % images.length;
-        showImage(currentIndex);
+      document.querySelectorAll("[data-close-release]").forEach((el) => {
+        el.addEventListener("click", close);
       });
-      
-      prevBtn?.addEventListener('click', () => {
-        currentIndex = (currentIndex - 1 + images.length) % images.length;
-        showImage(currentIndex);
-      });
-      
-      dots.forEach((dot, index) => {
-        dot.addEventListener('click', () => {
-          currentIndex = index;
-          showImage(currentIndex);
-        });
-      });
-      
-      // キーボードナビゲーション
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft') {
-          currentIndex = (currentIndex - 1 + images.length) % images.length;
-          showImage(currentIndex);
-        } else if (e.key === 'ArrowRight') {
-          currentIndex = (currentIndex + 1) % images.length;
-          showImage(currentIndex);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          close();
+        } else if (e.key === "ArrowLeft") {
+          const prev = document.getElementById("release-nav-prev");
+          if (prev && prev.style.display !== "none") {
+            e.preventDefault();
+            prev.click();
+          }
+        } else if (e.key === "ArrowRight") {
+          const next = document.getElementById("release-nav-next");
+          if (next && next.style.display !== "none") {
+            e.preventDefault();
+            next.click();
+          }
         }
       });
-    }
-
-    // 埋め込みタブ切り替え
-    const embedWrappers = document.querySelectorAll('.embed-wrapper');
-    embedWrappers.forEach((wrapper) => {
-      const frames = Array.from(wrapper.querySelectorAll('.embed-frame'));
-      const tabs = Array.from(wrapper.querySelectorAll('.embed-tab'));
-      const defaultService = wrapper.getAttribute('data-default') || frames[0]?.dataset.service;
-
-      const activate = (service) => {
-        frames.forEach((frame) => {
-          frame.classList.toggle('active', frame.dataset.service === service);
-        });
-        tabs.forEach((tab) => {
-          const isActive = tab.dataset.service === service;
-          tab.classList.toggle('active', isActive);
-          tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-      };
-
-      if (defaultService) {
-        activate(defaultService);
-      }
-
-      tabs.forEach((tab) => {
-        tab.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const service = tab.dataset.service;
-          if (service) {
-            activate(service);
-          }
-        });
-      });
-    });
+      updateNav();
+    })();
   </script>
 </Base>

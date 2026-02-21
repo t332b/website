@@ -64,7 +64,6 @@ function buildWorksIdToCoverAndSlug() {
   if (!fs.existsSync(worksDir)) return { idToCover, idToSlug };
   const files = fs.readdirSync(worksDir).filter((f) => f.endsWith('.mdx'));
   for (const f of files) {
-    const worksSlug = f.replace(/\.mdx$/i, '');
     const p = path.join(worksDir, f);
     const raw = fs.readFileSync(p, 'utf8');
     const m = raw.match(/^---\n([\s\S]*?)\n---/);
@@ -74,6 +73,8 @@ function buildWorksIdToCoverAndSlug() {
     const worksId = idMatch ? idMatch[1].trim() : null;
     if (!worksId) continue;
 
+    const slugMatch = block.match(/^slug:\s*(.+)$/m);
+    const worksSlug = slugMatch ? slugMatch[1].trim().replace(/^["']|["']$/g, '') : f.replace(/\.mdx$/i, '');
     idToSlug.set(worksId, worksSlug);
 
     const coverListMatch = block.match(/^cover_url_list:\s*\n([\s\S]*?)(?=\n[A-Za-z_]|$)/m);

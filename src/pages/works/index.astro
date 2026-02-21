@@ -186,7 +186,6 @@ const remixWorks = works.filter((item) => {
                 class={`release-card ${isPrimary ? "" : "release-card--secondary"} release-card--clickable ${!isPrimary && spotifyEmbed ? "release-card--spotify-embed" : ""}`}
                 data-type={typeForFilter}
                 data-slug={item.slug}
-                data-modal="true"
               >
                 <div class="card-media">
                   {isPrimary ? (
@@ -286,103 +285,6 @@ const remixWorks = works.filter((item) => {
                   </div>
                 </div>
               </article>
-
-              {/* ポップオーバー（モーダル） */}
-              <div
-                class="release-modal"
-                id={`modal-${item.slug}`}
-                data-slug={item.slug}
-                role="dialog"
-                aria-labelledby={`modal-title-${item.slug}`}
-                aria-hidden="true"
-              >
-                <div class="modal-backdrop" />
-                <div class="modal-content">
-                  <button class="modal-close" aria-label="閉じる">
-                    &times;
-                  </button>
-                  <div class="modal-header">
-                    {item.data.cover_url_list && item.data.cover_url_list.length > 0 && (
-                      <img src={item.data.cover_url_list[0]} alt={item.data.title} class="modal-cover" />
-                    )}
-                    <div class="modal-header-info">
-                      <h2 id={`modal-title-${item.slug}`} class="modal-title">
-                        {item.data.title}
-                      </h2>
-                      {item.data.release_artist_name && <div class="modal-artist">{item.data.release_artist_name}</div>}
-                      {coverCreditLabel ? (
-                        <div class="modal-credit">
-                          {coverCreditLabel}: {coverDesignBy}
-                        </div>
-                      ) : (
-                        <>
-                          {coverIllustrationBy && <div class="modal-credit">イラスト: {coverIllustrationBy}</div>}
-                          {coverDesignBy && <div class="modal-credit">デザイン: {coverDesignBy}</div>}
-                        </>
-                      )}
-                      <div class="modal-meta">
-                        <span class="modal-date">
-                          {item.data.release_date.toLocaleDateString("ja-JP", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                          })}
-                        </span>
-                        {item.data.release_type && <span class="modal-type">{item.data.release_type}</span>}
-                      </div>
-                    </div>
-                  </div>
-                  <div class="modal-body">
-                    {releaseTracks.length > 0 && (
-                      <div class="modal-tracklist" aria-label="収録曲">
-                        <h3 class="modal-section-title">収録曲</h3>
-                        <ol class="modal-tracks">
-                          {releaseTracks.map((track, index) => (
-                            <li class="modal-track">
-                              <span class="modal-track-no">{track.data.track_number ?? index + 1}.</span>
-                              <span class="modal-track-title">{track.data.title}</span>
-                            </li>
-                          ))}
-                        </ol>
-                      </div>
-                    )}
-                    {spotifyEmbed && (
-                      <div class="modal-player">
-                        <iframe
-                          src={spotifyEmbed.embedUrl}
-                          width="100%"
-                          frameborder="0"
-                          allowfullscreen=""
-                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    {availableServices.length > 0 && (
-                      <div class="modal-service-links">
-                        {availableServices.map((service) => (
-                          <a
-                            href={links?.[service]}
-                            target="_blank"
-                            rel="noopener"
-                            class={`modal-service-link modal-service-link--${service}`}
-                          >
-                            <img src={serviceIcons[service]} alt={service} />
-                            <span>{service === "other" ? "外部リンク" : `${service}`}</span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <button class="modal-nav modal-nav--prev" aria-label="前のリリース">
-                  ‹
-                </button>
-                <button class="modal-nav modal-nav--next" aria-label="次のリリース">
-                  ›
-                </button>
-              </div>
             </>
           );
         })
@@ -824,243 +726,6 @@ const remixWorks = works.filter((item) => {
       color: inherit;
     }
 
-    /* モーダルスタイル */
-    .release-modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1000;
-      overflow-y: auto;
-    }
-
-    .release-modal.active {
-      display: flex;
-      align-items: flex-start;
-      justify-content: center;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
-    }
-
-    .modal-content {
-      position: relative;
-      background: white;
-      border-radius: 16px;
-      max-width: 800px;
-      width: 90%;
-      margin: 2rem auto;
-      padding: 2rem;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-      z-index: 1001;
-    }
-
-    .modal-close {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      background: none;
-      border: none;
-      font-size: 2rem;
-      color: #666;
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-      transition: all 0.2s ease;
-      z-index: 1003;
-    }
-
-    .modal-close:hover {
-      background: #f0f0f0;
-      color: #333;
-    }
-
-    .modal-nav {
-      position: fixed;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(255, 255, 255, 0.9);
-      border: none;
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      color: #333;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      transition: all 0.2s ease;
-      z-index: 1002;
-    }
-
-    .modal-nav:hover {
-      background: white;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      transform: translateY(-50%) scale(1.1);
-    }
-
-    .modal-nav--prev {
-      left: 1rem;
-    }
-
-    .modal-nav--next {
-      right: 1rem;
-    }
-
-    .modal-header {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .modal-cover {
-      width: 150px;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 12px;
-      flex-shrink: 0;
-    }
-
-    .modal-header-info {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding-right: 3.5rem;
-    }
-
-    .modal-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      margin: 0 0 0.5rem 0;
-      color: #333;
-    }
-
-    .modal-artist {
-      font-size: 1rem;
-      color: #666;
-      margin-bottom: 0.75rem;
-    }
-
-    .modal-meta {
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
-
-    .modal-credit {
-      font-size: 0.9rem;
-      color: #666;
-      margin-bottom: 0.5rem;
-    }
-
-    .modal-date {
-      font-size: 0.9rem;
-      color: #888;
-    }
-
-    .modal-type {
-      font-size: 0.85rem;
-      color: #aaa;
-      text-transform: lowercase;
-    }
-
-    .modal-body {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-
-    .modal-section-title {
-      font-size: 1rem;
-      margin: 0;
-      color: #333;
-    }
-
-    .modal-tracklist {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-
-    .modal-tracks {
-      margin: 0;
-      padding-left: 1.25rem;
-      color: #333;
-    }
-
-    .modal-track {
-      display: flex;
-      gap: 0.5rem;
-      align-items: baseline;
-      line-height: 1.4;
-    }
-
-    .modal-track-no {
-      color: #888;
-      font-variant-numeric: tabular-nums;
-      flex: 0 0 auto;
-      min-width: 2.2rem;
-      text-align: right;
-    }
-
-    .modal-track-title {
-      flex: 1 1 auto;
-    }
-
-    .modal-player {
-      width: 100%;
-    }
-
-    .modal-player iframe {
-      width: 100%;
-      border-radius: 12px;
-    }
-
-    .modal-service-links {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    .modal-service-link {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      text-decoration: none;
-      color: #333;
-      font-size: 0.9rem;
-      font-weight: 600;
-      transition: all 0.2s ease;
-    }
-
-    .modal-service-link:hover {
-      background: #e0e0e0;
-      transform: translateY(-2px);
-    }
-
-    .modal-service-link img {
-      width: 24px;
-      height: 24px;
-    }
-
     @media (max-width: 768px) {
       .releases-grid {
         --gap: 0.75rem;
@@ -1100,42 +765,6 @@ const remixWorks = works.filter((item) => {
         width: 100% !important;
         height: clamp(152px, 40vw, 352px);
       }
-
-      .modal-content {
-        padding: 1.5rem;
-        margin: 1rem;
-        width: calc(100% - 2rem);
-      }
-
-      .modal-header {
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .modal-cover {
-        width: 100%;
-        height: auto;
-        max-width: 200px;
-        margin: 0 auto;
-      }
-
-      .modal-title {
-        font-size: 1.25rem;
-      }
-
-      .modal-nav {
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
-      }
-
-      .modal-nav--prev {
-        left: 0.5rem;
-      }
-
-      .modal-nav--next {
-        right: 0.5rem;
-      }
     }
   </style>
 
@@ -1147,6 +776,22 @@ const remixWorks = works.filter((item) => {
 
       const filterBtns = document.querySelectorAll(".author-btn");
       const cards = document.querySelectorAll(".release-card");
+
+      // URL の ?filter= を反映（/works/slug から history.back() したとき用）
+      const params = new URLSearchParams(window.location.search);
+      const urlFilter = params.get("filter") || "all";
+      const validFilters = ["all", "single", "ep", "album", "featuring", "remix", "other"];
+      const filterToApply = validFilters.includes(urlFilter) ? urlFilter : "all";
+      filterBtns.forEach((b) => {
+        b.classList.toggle("active", b.dataset.filter === filterToApply);
+      });
+      cards.forEach((card) => {
+        if (filterToApply === "all") {
+          card.classList.remove("hidden");
+        } else {
+          card.classList.toggle("hidden", card.dataset.type !== filterToApply);
+        }
+      });
 
       function updateCenteredSingleCards() {
         const visibleCards = Array.from(cards).filter((c) => !c.classList.contains("hidden"));
@@ -1199,6 +844,9 @@ const remixWorks = works.filter((item) => {
           });
 
           updateCenteredSingleCards();
+          // 履歴に残して /works/slug から戻ったときにフィルタを復元
+          const url = filter === "all" ? "/works" : `/works?filter=${encodeURIComponent(filter)}`;
+          window.history.replaceState({}, "", url);
         });
       });
 
@@ -1313,193 +961,7 @@ const remixWorks = works.filter((item) => {
         }
       });
 
-      // ポップオーバー（モーダル）の開閉機能
-      const clickableCards = document.querySelectorAll(".release-card--clickable");
-      const modals = document.querySelectorAll(".release-modal");
-
-      // 現在表示されている（フィルタリングされた）リリースカードを取得
-      function getVisibleReleaseCards() {
-        return Array.from(document.querySelectorAll(".release-card--clickable:not(.hidden)"));
-      }
-
-      // 現在開いているモーダルのインデックスを取得
-      function getCurrentModalIndex() {
-        const activeModal = document.querySelector(".release-modal.active");
-        if (!activeModal) return -1;
-
-        const slug = activeModal.dataset.slug;
-        const visibleCards = getVisibleReleaseCards();
-        return visibleCards.findIndex((card) => card.dataset.slug === slug);
-      }
-
-      // 前後のリリースのスラッグを取得
-      function getAdjacentReleaseSlug(direction) {
-        const visibleCards = getVisibleReleaseCards();
-        if (visibleCards.length === 0) return null;
-
-        const currentIndex = getCurrentModalIndex();
-        if (currentIndex === -1) return null;
-
-        let newIndex;
-        if (direction === "prev") {
-          newIndex = currentIndex > 0 ? currentIndex - 1 : visibleCards.length - 1;
-        } else {
-          newIndex = currentIndex < visibleCards.length - 1 ? currentIndex + 1 : 0;
-        }
-
-        return visibleCards[newIndex]?.dataset.slug || null;
-      }
-
-      function openModal(slug) {
-        // 全てのモーダルを閉じる
-        closeAllModals();
-
-        const modal = document.getElementById(`modal-${slug}`);
-        if (modal) {
-          modal.classList.add("active");
-          modal.setAttribute("aria-hidden", "false");
-          document.body.style.overflow = "hidden";
-
-          // ナビゲーションボタンの表示/非表示を制御
-          updateNavButtons(modal);
-        }
-      }
-
-      function closeModal(modal) {
-        if (modal) {
-          modal.classList.remove("active");
-          modal.setAttribute("aria-hidden", "true");
-          document.body.style.overflow = "";
-        }
-      }
-
-      function closeAllModals() {
-        modals.forEach((modal) => closeModal(modal));
-      }
-
-      // ナビゲーションボタンの表示/非表示を更新
-      function updateNavButtons(modal) {
-        const visibleCards = getVisibleReleaseCards();
-        const prevBtn = modal.querySelector(".modal-nav--prev");
-        const nextBtn = modal.querySelector(".modal-nav--next");
-
-        if (visibleCards.length <= 1) {
-          // リリースが1つ以下の場合は非表示
-          if (prevBtn) prevBtn.style.display = "none";
-          if (nextBtn) nextBtn.style.display = "none";
-        } else {
-          // リリースが2つ以上ある場合は表示
-          if (prevBtn) prevBtn.style.display = "flex";
-          if (nextBtn) nextBtn.style.display = "flex";
-        }
-      }
-
-      // 前後のリリースに移動
-      function navigateModal(direction) {
-        const slug = getAdjacentReleaseSlug(direction);
-        if (slug) {
-          openModal(slug);
-        }
-      }
-
-      // カードクリックでモーダルを開く
-      clickableCards.forEach((card) => {
-        card.addEventListener("click", (e) => {
-          // リンクやボタン内のクリックは無視
-          if (e.target.closest("a, button")) {
-            return;
-          }
-          const slug = card.dataset.slug;
-          if (slug) {
-            openModal(slug);
-          }
-        });
-      });
-
-      // モーダルを閉じる
-      modals.forEach((modal) => {
-        const closeBtn = modal.querySelector(".modal-close");
-        const backdrop = modal.querySelector(".modal-backdrop");
-        const prevBtn = modal.querySelector(".modal-nav--prev");
-        const nextBtn = modal.querySelector(".modal-nav--next");
-
-        if (closeBtn) {
-          closeBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            closeModal(modal);
-          });
-        }
-
-        if (backdrop) {
-          backdrop.addEventListener("click", () => closeModal(modal));
-        }
-
-        if (prevBtn) {
-          prevBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            navigateModal("prev");
-          });
-        }
-
-        if (nextBtn) {
-          nextBtn.addEventListener("click", (e) => {
-            e.stopPropagation();
-            navigateModal("next");
-          });
-        }
-
-        // スワイプジェスチャー（タッチデバイス用）
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        modal.addEventListener(
-          "touchstart",
-          (e) => {
-            touchStartX = e.changedTouches[0].screenX;
-          },
-          { passive: true },
-        );
-
-        modal.addEventListener(
-          "touchend",
-          (e) => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-          },
-          { passive: true },
-        );
-
-        function handleSwipe() {
-          const swipeThreshold = 50;
-          const diff = touchStartX - touchEndX;
-
-          if (Math.abs(diff) > swipeThreshold) {
-            if (diff > 0) {
-              // 左にスワイプ = 次のリリース
-              navigateModal("next");
-            } else {
-              // 右にスワイプ = 前のリリース
-              navigateModal("prev");
-            }
-          }
-        }
-      });
-
-      // キーボードショートカット
-      document.addEventListener("keydown", (e) => {
-        const activeModal = document.querySelector(".release-modal.active");
-        if (!activeModal) return;
-
-        if (e.key === "Escape") {
-          closeAllModals();
-        } else if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          navigateModal("prev");
-        } else if (e.key === "ArrowRight") {
-          e.preventDefault();
-          navigateModal("next");
-        }
-      });
+      // カードクリックでモーダルを開く処理は Base で body に委譲している（initWorksPage の実行順に依存しない）
     }
 
     // 初回ロード（直接 /works を開いた場合）

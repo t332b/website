@@ -1,0 +1,165 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection } from "astro:content";
+
+interface Props {
+  work: CollectionEntry<"works">;
+}
+
+const { work } = Astro.props;
+const { data } = work;
+
+const allTracks = await getCollection("tracks");
+const trackById = new Map(allTracks.map((t) => [t.data.id, t]));
+
+const trackIds: string[] = Array.isArray(data.tracks) ? data.tracks : [];
+const validTracks = trackIds
+  .map((tid) => allTracks.find((t) => t?.data?.id === tid) ?? null)
+  .filter((t): t is NonNullable<typeof t> => t !== null);
+
+function getEmbedUrl(service: string, url: string): string | null {
+  try {
+    if (service === "spotify") {
+      const match = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
+      if (match) return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator`;
+    }
+    if (service === "apple") {
+      const match = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
+      if (match) return `https://embed.music.apple.com/${match[2]}`;
+    }
+    if (service === "bandcamp") {
+      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
+      if (match) return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${match[2]}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
+      return url;
+    }
+    if (service === "youtube") {
+      const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+      if (match) return `https://www.youtube.com/embed/${match[1]}`;
+    }
+  } catch {}
+  return null;
+}
+
+// 埋め込みプレーヤーはこの順で最初に存在するものを表示
+const embedPriority = ["spotify", "apple", "bandcamp", "youtube"] as const;
+// リンク一覧の表示順（サブスク＋その他）
+const linkDisplayOrder = ["spotify", "apple", "bandcamp", "youtube", "soundcloud", "other"] as const;
+const serviceIcons: Record<string, string> = {
+  spotify: "/images/logo/spotify-icon.svg",
+  apple: "/images/logo/Apple_logo_black.svg",
+  bandcamp: "/images/logo/bandcamp-button-bc-circle-green-64.png",
+  youtube: "/images/logo/icons8-red-youtube.svg",
+  soundcloud: "/images/logo/soundcloud-2.svg",
+  other: "/images/logo/globe_asia_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.svg",
+};
+function serviceLabel(service: string): string {
+  return service === "other" ? "外部サイト" : service;
+}
+
+const firstEmbed = data.links
+  ? (() => {
+      for (const service of embedPriority) {
+        const rawUrl = data.links[service];
+        if (!rawUrl) continue;
+        const embedUrl = getEmbedUrl(service, rawUrl);
+        if (embedUrl) return { service, embedUrl, rawUrl };
+      }
+      return null;
+    })()
+  : null;
+
+const hasEmbed = !!firstEmbed;
+const linkItems = data.links
+  ? linkDisplayOrder
+      .filter((service) => data.links?.[service])
+      .map((service) => ({
+        service,
+        rawUrl: data.links![service]!,
+        icon: serviceIcons[service] ?? serviceIcons.other,
+        label: serviceLabel(service),
+      }))
+  : [];
+---
+
+<header class="modal-header">
+  <h1 class="modal-title">{data.title}</h1>
+  <div class="modal-meta">
+    <span class="modal-date">
+      {data.release_date.toLocaleDateString("ja-JP", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      })}
+    </span>
+    {data.release_type && <span class="modal-type">{data.release_type}</span>}
+  </div>
+</header>
+
+{data.cover_url_list && data.cover_url_list.length > 0 && (
+  <div class="modal-cover-wrap">
+    <img src={data.cover_url_list[0]} alt={data.title} class="modal-cover" />
+  </div>
+)}
+
+<div class="modal-body">
+  {data.release_artist_name && <div class="modal-artist">{data.release_artist_name}</div>}
+  {(data.cover_illustration_by || data.cover_design_by) && (
+    <div class="modal-credit">
+      {data.cover_illustration_by && data.cover_design_by && data.cover_illustration_by === data.cover_design_by
+        ? `イラスト＆デザイン: ${data.cover_design_by}`
+        : null}
+      {!(
+        data.cover_illustration_by &&
+        data.cover_design_by &&
+        data.cover_illustration_by === data.cover_design_by
+      ) && (
+        <>
+          {data.cover_illustration_by && <span>イラスト: {data.cover_illustration_by}</span>}
+          {data.cover_design_by && <span>デザイン: {data.cover_design_by}</span>}
+        </>
+      )}
+    </div>
+  )}
+  {validTracks.length > 0 && (
+    <div class="modal-tracklist" aria-label="収録曲">
+      <h2 class="modal-section-title">収録曲</h2>
+      <ol class="modal-tracks">
+        {validTracks.map((track, index) => (
+          <li class="modal-track">
+            <span class="modal-track-no">{track.data.track_number ?? index + 1}.</span>
+            <span class="modal-track-title">{track.data.title}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )}
+  {hasEmbed && firstEmbed && (
+    <div class="modal-player">
+      <iframe
+        src={firstEmbed.embedUrl}
+        width="100%"
+        height="152"
+        frameborder="0"
+        allowfullscreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        title={`${data.title} embed`}
+      />
+    </div>
+  )}
+  {linkItems.length > 0 && (
+    <div class="modal-service-links">
+      {linkItems.map(({ service, rawUrl, icon, label }) => (
+        <a
+          href={rawUrl}
+          target="_blank"
+          rel="noopener"
+          class={`modal-service-link modal-service-link--${service}`}
+        >
+          <img src={icon} alt={label} />
+          <span>{label}</span>
+        </a>
+      ))}
+    </div>
+  )}
+</div>

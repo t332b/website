@@ -1,5 +1,6 @@
 ---
 import "../styles/theme.css";
+import "../styles/release-detail.css";
 import { ViewTransitions } from "astro:transitions";
 import { getCollection } from "astro:content";
 import AudioPlayer from "../components/AudioPlayer.astro";
@@ -110,13 +111,19 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
         <!-- ソーシャルリンクとオーディオプレーヤー行 -->
         <div class="header-middle">
           <div class="header-social">
-            <a href="https://bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+            <a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/spotify-icon.svg" alt="Spotify" />
+            </a>
+            <a href="https://music.apple.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/Apple_logo_black.svg" alt="AppleMusic" />
+            </a>
+            <a href="https://pr0p0se.bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
               <img src="/images/logo/bandcamp-button-bc-circle-green-64.png" alt="Bandcamp" />
             </a>
-              <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" class="social-link youtube-link">
+              <a href="https://www.youtube.com/@PR0P0SE-00" target="_blank" rel="noopener noreferrer" class="social-link youtube-link">
                 <img src="/images/logo/icons8-red-youtube.svg" alt="YouTube" />
               </a>
-            <a href="https://soundcloud.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+            <a href="https://soundcloud.com/pr0p0se" target="_blank" rel="noopener noreferrer" class="social-link">
               <img src="/images/logo/soundcloud-2.svg" alt="SoundCloud" />
             </a>
           </div>
@@ -138,6 +145,17 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     <footer class="footer">
       © {new Date().getFullYear()} PR0P0SE
     </footer>
+
+    <!-- グローバルリリースモーダル（works 一覧・プレーヤー曲名から開く） -->
+    <div class="release-overlay" id="global-release-modal" aria-hidden="true" style="display: none;">
+      <div class="release-backdrop" data-close-global-release aria-label="閉じる"></div>
+      <div class="release-content">
+        <button type="button" class="release-close" data-close-global-release aria-label="閉じる">&times;</button>
+        <div id="global-release-detail-slot"></div>
+      </div>
+      <button type="button" class="release-nav release-nav--prev" id="global-release-prev" aria-label="前のリリース" style="display: none;">‹</button>
+      <button type="button" class="release-nav release-nav--next" id="global-release-next" aria-label="次のリリース" style="display: none;">›</button>
+    </div>
 
     <script>
       document.querySelectorAll(".header-illust-btn[data-profile-modal]").forEach((btn) => {
@@ -162,6 +180,125 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
             (modal as HTMLElement).setAttribute("aria-hidden", "true");
           }
         });
+      });
+
+      // グローバルリリースモーダル（works 一覧・プレーヤー曲名から開く）
+      let globalReleaseSlugs: string[] = [];
+      let currentGlobalSlug = "";
+
+      async function loadReleaseFragment(slug: string) {
+        const slot = document.getElementById("global-release-detail-slot");
+        if (!slot) return;
+        slot.innerHTML = '<p style="padding:2rem;text-align:center;color:#666;">読み込み中…</p>';
+        try {
+          const res = await fetch(`/works/fragments/${slug}`);
+          if (!res.ok) throw new Error(res.statusText);
+          const html = await res.text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const frag = doc.getElementById("fragment-content");
+          slot.innerHTML = frag ? frag.innerHTML : "";
+        } catch {
+          slot.innerHTML = '<p style="padding:2rem;text-align:center;color:#c00;">読み込みに失敗しました。</p>';
+        }
+      }
+
+      function closeGlobalReleaseModal() {
+        const modal = document.getElementById("global-release-modal");
+        if (modal) {
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        }
+      }
+
+      function updateGlobalReleaseNav() {
+        const prevBtn = document.getElementById("global-release-prev");
+        const nextBtn = document.getElementById("global-release-next");
+        const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+        if (prevBtn) prevBtn.style.display = globalReleaseSlugs.length <= 1 || idx <= 0 ? "none" : "flex";
+        if (nextBtn) nextBtn.style.display = globalReleaseSlugs.length <= 1 || idx < 0 || idx >= globalReleaseSlugs.length - 1 ? "none" : "flex";
+      }
+
+      function registerOpenReleaseModal() {
+        (window as unknown as { openReleaseModal: (slug: string, options?: { prevNextSlugs?: string[] }) => void }).openReleaseModal = function (slug: string, options?: { prevNextSlugs?: string[] }) {
+          const modal = document.getElementById("global-release-modal");
+          const prevBtn = document.getElementById("global-release-prev");
+          const nextBtn = document.getElementById("global-release-next");
+          if (!modal) return;
+
+          globalReleaseSlugs = options?.prevNextSlugs ?? [];
+          currentGlobalSlug = slug;
+
+          modal.style.display = "flex";
+          modal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+          loadReleaseFragment(slug);
+          updateGlobalReleaseNav();
+
+          if (prevBtn) {
+            prevBtn.onclick = () => {
+              const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+              if (idx <= 0) return;
+              currentGlobalSlug = globalReleaseSlugs[idx - 1];
+              loadReleaseFragment(currentGlobalSlug);
+              updateGlobalReleaseNav();
+            };
+          }
+          if (nextBtn) {
+            nextBtn.onclick = () => {
+              const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+              if (idx < 0 || idx >= globalReleaseSlugs.length - 1) return;
+              currentGlobalSlug = globalReleaseSlugs[idx + 1];
+              loadReleaseFragment(currentGlobalSlug);
+              updateGlobalReleaseNav();
+            };
+          }
+        };
+      }
+      registerOpenReleaseModal();
+      document.addEventListener("astro:page-load", registerOpenReleaseModal);
+
+      // works のリリースカードクリックは body で委譲（works の script 実行順に依存しない）
+      function getVisibleSlugsForModal() {
+        return Array.from(document.querySelectorAll(".release-card--clickable:not(.hidden)")).map(
+          (c) => (c as HTMLElement).dataset.slug
+        ).filter(Boolean) as string[];
+      }
+      document.body.addEventListener("click", (e: MouseEvent) => {
+        const card = (e.target as Element).closest(".release-card--clickable");
+        if (!card) return;
+        const slug = (card as HTMLElement).dataset.slug;
+        if (!slug || typeof (window as unknown as { openReleaseModal?: (s: string, o?: { prevNextSlugs?: string[] }) => void }).openReleaseModal !== "function") return;
+        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.preventDefault();
+          (window as unknown as { openReleaseModal: (s: string, o?: { prevNextSlugs?: string[] }) => void }).openReleaseModal(slug, { prevNextSlugs: getVisibleSlugsForModal() });
+        }
+      });
+
+      document.querySelectorAll("[data-close-global-release]").forEach((el) => {
+        el.addEventListener("click", closeGlobalReleaseModal);
+      });
+
+      document.addEventListener("keydown", (e: KeyboardEvent) => {
+        const modal = document.getElementById("global-release-modal");
+        if (!modal || modal.getAttribute("aria-hidden") === "true") return;
+        if (e.key === "Escape") {
+          closeGlobalReleaseModal();
+          return;
+        }
+        if (e.key === "ArrowLeft") {
+          const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+          if (idx > 0) {
+            e.preventDefault();
+            document.getElementById("global-release-prev")?.click();
+          }
+        } else if (e.key === "ArrowRight") {
+          const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+          if (idx >= 0 && idx < globalReleaseSlugs.length - 1) {
+            e.preventDefault();
+            document.getElementById("global-release-next")?.click();
+          }
+        }
       });
     </script>
   </body>

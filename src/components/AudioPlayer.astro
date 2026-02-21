@@ -54,7 +54,7 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
 
       <div class="center-ui">
         <div class="stack">
-          <div class="track-title" id="trackTitle" aria-live="polite">{initialTitle}</div>
+          <a class="track-title track-title-link" id="trackTitle" href={shuffledItems.length > 0 && shuffledItems[0].releaseSlug ? `/works/${shuffledItems[0].releaseSlug}` : "/works"} aria-live="polite">{initialTitle}</a>
           <button id="play" class="play" aria-label="再生/一時停止" title="スペースキーでも操作可">
             <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M8 5v14l11-7-11-7z"></path>
@@ -252,7 +252,15 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    pointer-events: none;
+  }
+
+  .audio-player-wrapper .track-title-link {
+    pointer-events: auto;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .audio-player-wrapper .track-title-link:hover {
+    text-decoration: underline;
   }
 
   .audio-player-wrapper .time {
@@ -535,13 +543,21 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     audio.src = src;
     audio.load();
     
-    // ジャケット画像と曲名を更新
+    // ジャケット画像と曲名・リリースリンクを更新
     const item = items.find((it) => it.src === src);
     if (item) {
       if (item.cover) jacketImg.setAttribute('src', item.cover);
-      if (trackTitleEl) trackTitleEl.textContent = titleFromFilename(item.filename);
+      if (trackTitleEl) {
+        trackTitleEl.textContent = titleFromFilename(item.filename);
+        trackTitleEl.href = item.releaseSlug ? `/works/${item.releaseSlug}` : '/works';
+        trackTitleEl.removeAttribute('aria-disabled');
+      }
     } else {
-      if (trackTitleEl) trackTitleEl.textContent = '';
+      if (trackTitleEl) {
+        trackTitleEl.textContent = '';
+        trackTitleEl.href = '/works';
+        trackTitleEl.removeAttribute('aria-disabled');
+      }
     }
     
     if (wasPlaying) {
@@ -573,6 +589,21 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
       updateActiveDot();
     });
   });
+
+  // 曲名クリック時：グローバルリリースモーダルで開く（どこからでも同じモーダル）
+  if (trackTitleEl && trackTitleEl.tagName === 'A') {
+    trackTitleEl.addEventListener('click', (e) => {
+      const href = trackTitleEl.getAttribute('href');
+      if (!href || href === '/works') return;
+      e.preventDefault();
+      const slug = href.replace(/^\/works\//, '').replace(/\?.*$/, '');
+      if (slug && typeof window["openReleaseModal"] === "function") {
+        window["openReleaseModal"](slug);
+      } else {
+        window.location.href = href;
+      }
+    });
+  }
 
   // 音量バーの背景を更新する関数（ボリュームUIが有効なときのみ）
   function updateVolumeBackground() {

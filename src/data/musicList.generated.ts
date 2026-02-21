@@ -28,7 +28,7 @@ export const musicItems: MusicItem[] = [
   },
   {
     "filename": "rain_雨模様.mp3",
-    "releaseSlug": "st",
+    "releaseSlug": "ST",
     "src": "/music/rain_雨模様.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   },
@@ -40,7 +40,7 @@ export const musicItems: MusicItem[] = [
   },
   {
     "filename": "take-a-ride_ テイク・ア・ライド.mp3",
-    "releaseSlug": "st",
+    "releaseSlug": "ST",
     "src": "/music/take-a-ride_ テイク・ア・ライド.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   }
