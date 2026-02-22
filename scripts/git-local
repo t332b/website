@@ -1,5 +1,0 @@
-#!/bin/sh
-# ネットワークドライブ上の .git/index 書き込みエラー回避用。
-# 例: ./scripts/git-local add . && ./scripts/git-local commit -m "message"
-export GIT_INDEX_FILE="${TMPDIR:-/tmp}/git-index-website"
-exec git "$@"

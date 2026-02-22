@@ -39,9 +39,9 @@ export const musicItems: MusicItem[] = [
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1770439381/siawase_isupe4.png"
   },
   {
-    "filename": "take-a-ride_ テイク・ア・ライド.mp3",
+    "filename": "take-a-ride_ テイク・ア・ライド.mp3",
     "releaseSlug": "ST",
-    "src": "/music/take-a-ride_ テイク・ア・ライド.mp3",
+    "src": "/music/take-a-ride_ テイク・ア・ライド.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   }
 ];
