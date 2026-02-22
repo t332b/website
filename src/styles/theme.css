@@ -20,6 +20,16 @@
 }
 
 
+/* クリック可能な要素にポインターカーソル */
+button,
+a,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+[role="button"] {
+  cursor: pointer;
+}
+
 html,body{
   /* background: var(--bg); */
   background: #f9c99b;

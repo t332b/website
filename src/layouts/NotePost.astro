@@ -63,7 +63,10 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
     <!-- 戻るリンク -->
     <div class="post-footer">
-      <a href="/notes/" class="back-link">← ノート一覧に戻る</a>
+      <a href="/notes/" class="back-link" aria-label="Back to notes list">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </a>
     </div>
   </article>
 </Base>
@@ -103,6 +106,7 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
   .post-author-link {
     flex-shrink: 0;
     line-height: 0;
+    cursor: pointer;
     border-radius: 50%;
     overflow: hidden;
     transition: opacity 0.2s ease;
@@ -127,15 +131,17 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
   }
 
   .post-author {
-    color: black;
+    color: var(--wa-ink);
     text-decoration: underline;
+    cursor: pointer;
+    text-underline-offset: 0.2em;
     font-weight: 600;
-    text-decoration: none;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
   }
 
   .post-author:hover {
-    color: black;
+    color: var(--wa-mustard);
+    text-decoration-color: var(--wa-mustard);
   }
 
   .post-date {
@@ -194,15 +200,24 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
   }
 
   .back-link {
-    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--wa-ink);
+    cursor: pointer;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9375rem;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, opacity 0.2s ease;
   }
 
   .back-link:hover {
-    color: var(--wa-forest);
+    color: var(--wa-mustard);
+    cursor: pointer;
+  }
+
+  .back-link svg {
+    flex-shrink: 0;
   }
 
   @media (max-width: 768px) {

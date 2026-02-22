@@ -29,7 +29,7 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   <div class="player-controls">
     <button class="track-navigation-btn prev" id="prevBtn" aria-label="前の曲">
       <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
-        <polygon points="16,6 8,36 16,66"/>
+        <polygon points="16,6 8,36 16,66"></polygon>
       </svg>
     </button>
     <div
@@ -54,7 +54,16 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
 
       <div class="center-ui">
         <div class="stack">
-          <a class="track-title track-title-link" id="trackTitle" href={shuffledItems.length > 0 && shuffledItems[0].releaseSlug ? `/works/${shuffledItems[0].releaseSlug}` : "/works"} aria-live="polite">{initialTitle}</a>
+          <a
+            class="track-title track-title-link"
+            id="trackTitle"
+            href={shuffledItems.length > 0 && shuffledItems[0].releaseSlug
+              ? `/works/${shuffledItems[0].releaseSlug}`
+              : "/works"}
+            aria-live="polite"
+          >
+            {initialTitle}
+          </a>
           <button id="play" class="play" aria-label="再生/一時停止" title="スペースキーでも操作可">
             <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M8 5v14l11-7-11-7z"></path>
@@ -83,15 +92,17 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     </div>
     <button class="track-navigation-btn next" id="nextBtn" aria-label="次の曲">
       <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
-        <polygon points="8,6 16,36 8,66"/>
+        <polygon points="8,6 16,36 8,66"></polygon>
       </svg>
     </button>
   </div>
 
   <div class="playlist-dots">
-    {shuffledItems.map((_, idx) => (
-      <button class={`dot ${idx === 0 ? 'active' : ''}`} data-index={idx} aria-label={`Track ${idx + 1}`}></button>
-    ))}
+    {
+      shuffledItems.map((_, idx) => (
+        <button class={`dot ${idx === 0 ? "active" : ""}`} data-index={idx} aria-label={`Track ${idx + 1}`} />
+      ))
+    }
   </div>
 
   <!-- 非表示のaudio要素（プログラム制御用） -->
@@ -241,6 +252,8 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     font-family: "Menlo", "PT Mono", "Courier New", monospace;
     font-size: clamp(0.48rem, 1.92vw, 0.804rem);
     font-weight: bold;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
     color: #333333;
     position: absolute;
     top: 50%;
@@ -256,8 +269,17 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
 
   .audio-player-wrapper .track-title-link {
     pointer-events: auto;
-    text-decoration: none;
     cursor: pointer;
+  }
+  /* 当たり判定拡張 */
+  .audio-player-wrapper .track-title-link::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -16px;
+    right: -16px;
+    z-index: -1; /* ←重要 */
   }
   .audio-player-wrapper .track-title-link:hover {
     text-decoration: underline;
@@ -436,7 +458,6 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
 
   /* モバイル用の調整 */
   @media (max-width: 768px) {
-
     .audio-player-wrapper .volume {
       right: 10%;
       max-width: 39.6px !important;
@@ -479,10 +500,17 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     align-items: center;
     justify-content: center;
   }
- 
-  .track-navigation-btn svg { height: 100%; width: auto; }
-  .track-navigation-btn:hover { color: #000; }
-  .track-navigation-btn:active { transform: scale(0.98); }
+
+  .track-navigation-btn svg {
+    height: 100%;
+    width: auto;
+  }
+  .track-navigation-btn:hover {
+    color: #000;
+  }
+  .track-navigation-btn:active {
+    transform: scale(0.98);
+  }
 </style>
 
 <script define:vars={{ shuffledItems }}>
@@ -499,7 +527,7 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   const muteIcon = document.getElementById("muteIcon");
   const jacketImg = document.querySelector(".jacket");
   const trackTitleEl = document.getElementById("trackTitle");
-  const dots = Array.from(document.querySelectorAll('.playlist-dots .dot'));
+  const dots = Array.from(document.querySelectorAll(".playlist-dots .dot"));
 
   // iOSではWebの音量制御が効かないため、ボリュームUIを非表示にする（PCではそのまま表示・動作）
   const isVolumeSupported = !/iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -511,8 +539,8 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     const i = base.indexOf("_");
     return i >= 0 ? base.slice(i + 1).trim() : base;
   }
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
 
   // 楽曲リスト
   const items = shuffledItems;
@@ -542,24 +570,24 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     const wasPlaying = !audio.paused;
     audio.src = src;
     audio.load();
-    
+
     // ジャケット画像と曲名・リリースリンクを更新
     const item = items.find((it) => it.src === src);
     if (item) {
-      if (item.cover) jacketImg.setAttribute('src', item.cover);
+      if (item.cover) jacketImg.setAttribute("src", item.cover);
       if (trackTitleEl) {
         trackTitleEl.textContent = titleFromFilename(item.filename);
-        trackTitleEl.href = item.releaseSlug ? `/works/${item.releaseSlug}` : '/works';
-        trackTitleEl.removeAttribute('aria-disabled');
+        trackTitleEl.href = item.releaseSlug ? `/works/${item.releaseSlug}` : "/works";
+        trackTitleEl.removeAttribute("aria-disabled");
       }
     } else {
       if (trackTitleEl) {
-        trackTitleEl.textContent = '';
-        trackTitleEl.href = '/works';
-        trackTitleEl.removeAttribute('aria-disabled');
+        trackTitleEl.textContent = "";
+        trackTitleEl.href = "/works";
+        trackTitleEl.removeAttribute("aria-disabled");
       }
     }
-    
+
     if (wasPlaying) {
       await audio.play();
     }
@@ -574,16 +602,22 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   }
 
   // ボタン操作
-  prevBtn?.addEventListener('click', (e) => { e.stopPropagation(); prevTrack(); });
-  nextBtn?.addEventListener('click', (e) => { e.stopPropagation(); nextTrack(); });
+  prevBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    prevTrack();
+  });
+  nextBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    nextTrack();
+  });
 
   function updateActiveDot() {
-    dots.forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+    dots.forEach((d, i) => d.classList.toggle("active", i === currentIndex));
   }
 
   dots.forEach((d) => {
-    d.addEventListener('click', () => {
-      const idx = parseInt(d.getAttribute('data-index')) || 0;
+    d.addEventListener("click", () => {
+      const idx = parseInt(d.getAttribute("data-index")) || 0;
       currentIndex = idx;
       loadTrack(musicList[currentIndex]);
       updateActiveDot();
@@ -591,12 +625,12 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   });
 
   // 曲名クリック時：グローバルリリースモーダルで開く（どこからでも同じモーダル）
-  if (trackTitleEl && trackTitleEl.tagName === 'A') {
-    trackTitleEl.addEventListener('click', (e) => {
-      const href = trackTitleEl.getAttribute('href');
-      if (!href || href === '/works') return;
+  if (trackTitleEl && trackTitleEl.tagName === "A") {
+    trackTitleEl.addEventListener("click", (e) => {
+      const href = trackTitleEl.getAttribute("href");
+      if (!href || href === "/works") return;
       e.preventDefault();
-      const slug = href.replace(/^\/works\//, '').replace(/\?.*$/, '');
+      const slug = href.replace(/^\/works\//, "").replace(/\?.*$/, "");
       if (slug && typeof window["openReleaseModal"] === "function") {
         window["openReleaseModal"](slug);
       } else {
@@ -769,7 +803,7 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
     const dy = clientY - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
     const outer = rect.width * 0.5; // 半径=幅の半分
-    const inner = outer - 40; // トラック幅(約6) + 余白を広げる
+    const inner = outer - 20; // トラック幅(約6) + 余白を広げる
     return dist <= outer && dist >= inner;
   }
 
@@ -906,26 +940,34 @@ const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[
   // スワイプ検出（左右で次の曲/前の曲）
   let touchStartX = 0;
   let touchEndX = 0;
-  
-  circleEl.addEventListener("touchstart", (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
-  
-  circleEl.addEventListener("touchend", (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    const swipeDistance = touchStartX - touchEndX;
-    
-    // スワイプ距離が50px以上の時
-    if (Math.abs(swipeDistance) > 50) {
-      if (swipeDistance > 0) {
-        // 左スワイプ: 次の曲
-        nextTrack();
-      } else {
-        // 右スワイプ: 前の曲
-        prevTrack();
+
+  circleEl.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    },
+    { passive: true },
+  );
+
+  circleEl.addEventListener(
+    "touchend",
+    (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchStartX - touchEndX;
+
+      // スワイプ距離が50px以上の時
+      if (Math.abs(swipeDistance) > 50) {
+        if (swipeDistance > 0) {
+          // 左スワイプ: 次の曲
+          nextTrack();
+        } else {
+          // 右スワイプ: 前の曲
+          prevTrack();
+        }
       }
-    }
-  }, { passive: true });
+    },
+    { passive: true },
+  );
 
   // キーボードショートカット: 左右矢印で次の曲/前の曲
   window.addEventListener("keydown", (e) => {
