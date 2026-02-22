@@ -158,29 +158,39 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     </div>
 
     <script>
-      document.querySelectorAll(".header-illust-btn[data-profile-modal]").forEach((btn) => {
+      // プロフィールモーダル: View Transitions 後も動くよう body でイベント委譲
+      function handleProfileModalOpen(e: Event) {
+        const btn = (e.target as Element).closest(".header-illust-btn[data-profile-modal]");
+        if (!btn) return;
         const modalId = btn.getAttribute("data-profile-modal");
         if (!modalId) return;
         const modal = document.getElementById(modalId) as HTMLElement | null;
         if (!modal) return;
-        btn.addEventListener("click", () => {
-          modal.setAttribute("aria-hidden", "false");
-          (modal.querySelector(".profile-modal-close") as HTMLElement)?.focus();
+        modal.setAttribute("aria-hidden", "false");
+        (modal.querySelector(".profile-modal-close") as HTMLElement)?.focus();
+      }
+      function handleProfileModalClose(e: Event) {
+        const closeEl = (e.target as Element).closest("[data-close-modal]");
+        if (!closeEl) return;
+        const modal = closeEl.closest(".profile-modal");
+        if (modal) (modal as HTMLElement).setAttribute("aria-hidden", "true");
+      }
+      function handleProfileModalKeydown(e: KeyboardEvent) {
+        if (e.key !== "Escape") return;
+        document.querySelectorAll(".profile-modal[aria-hidden='false']").forEach((modal) => {
+          (modal as HTMLElement).setAttribute("aria-hidden", "true");
         });
-      });
-      document.querySelectorAll("[data-close-modal]").forEach((el) => {
-        el.addEventListener("click", () => {
-          const modal = el.closest(".profile-modal");
-          if (modal) (modal as HTMLElement).setAttribute("aria-hidden", "true");
-        });
-      });
-      document.querySelectorAll(".profile-modal").forEach((modal) => {
-        modal.addEventListener("keydown", (e: Event) => {
-          if ((e as KeyboardEvent).key === "Escape" && (modal as HTMLElement).getAttribute("aria-hidden") === "false") {
-            (modal as HTMLElement).setAttribute("aria-hidden", "true");
-          }
-        });
-      });
+      }
+      function setupProfileModals() {
+        document.body.removeEventListener("click", handleProfileModalOpen);
+        document.body.addEventListener("click", handleProfileModalOpen);
+        document.body.removeEventListener("click", handleProfileModalClose);
+        document.body.addEventListener("click", handleProfileModalClose);
+        document.removeEventListener("keydown", handleProfileModalKeydown);
+        document.addEventListener("keydown", handleProfileModalKeydown);
+      }
+      setupProfileModals();
+      document.addEventListener("astro:page-load", setupProfileModals);
 
       // グローバルリリースモーダル（works 一覧・プレーヤー曲名から開く）
       let globalReleaseSlugs: string[] = [];
@@ -258,13 +268,13 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
       registerOpenReleaseModal();
       document.addEventListener("astro:page-load", registerOpenReleaseModal);
 
-      // works のリリースカードクリックは body で委譲（works の script 実行順に依存しない）
+      // works のリリースカードクリックは body で委譲。View Transitions 後も動くよう astro:page-load で再登録
       function getVisibleSlugsForModal() {
         return Array.from(document.querySelectorAll(".release-card--clickable:not(.hidden)")).map(
           (c) => (c as HTMLElement).dataset.slug
         ).filter(Boolean) as string[];
       }
-      document.body.addEventListener("click", (e: MouseEvent) => {
+      function handleReleaseCardClick(e: MouseEvent) {
         const card = (e.target as Element).closest(".release-card--clickable");
         if (!card) return;
         const slug = (card as HTMLElement).dataset.slug;
@@ -273,11 +283,27 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
           e.preventDefault();
           (window as unknown as { openReleaseModal: (s: string, o?: { prevNextSlugs?: string[] }) => void }).openReleaseModal(slug, { prevNextSlugs: getVisibleSlugsForModal() });
         }
-      });
+      }
+      function setupReleaseCardDelegation() {
+        document.body.removeEventListener("click", handleReleaseCardClick);
+        document.body.addEventListener("click", handleReleaseCardClick);
+      }
+      setupReleaseCardDelegation();
+      document.addEventListener("astro:page-load", setupReleaseCardDelegation);
 
-      document.querySelectorAll("[data-close-global-release]").forEach((el) => {
-        el.addEventListener("click", closeGlobalReleaseModal);
-      });
+      // 閉じるボタン・バックドロップ: モーダル上でイベント委譲（View Transitions・動的読み込み後も確実に動作）
+      function setupModalCloseDelegation() {
+        const modal = document.getElementById("global-release-modal");
+        if (!modal || modal.hasAttribute("data-close-delegation-set")) return;
+        modal.setAttribute("data-close-delegation-set", "");
+        modal.addEventListener("click", (e: Event) => {
+          if ((e.target as Element).closest("[data-close-global-release]")) {
+            closeGlobalReleaseModal();
+          }
+        });
+      }
+      setupModalCloseDelegation();
+      document.addEventListener("astro:page-load", setupModalCloseDelegation);
 
       document.addEventListener("keydown", (e: KeyboardEvent) => {
         const modal = document.getElementById("global-release-modal");
