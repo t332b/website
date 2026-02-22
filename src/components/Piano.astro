@@ -2,143 +2,177 @@
 
 ---
 
-<div class="piano-wrapper" id="pianoWrapper">
-    <div class="piano-modal">
-        <div class="piano-container">
-            <div class="piano-background" id="pianoBackground"></div>
-        </div>
-    </div>
-
-    <!-- FAB -->
-    <button class="piano-fab" id="pianoToggle">
+<div class="piano-root">
+    <button id="pianoFab" class="piano-fab">
         <img src="/images/uploads/piano_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" />
     </button>
+
+    <div id="pianoPanel" class="piano-panel hidden">
+        <div id="pianoBackground" class="piano-background"></div>
+    </div>
 </div>
 
-<script type="module" client:load>
-    const pianoBackground = document.getElementById("pianoBackground");
-    const wrapper = document.getElementById("pianoWrapper");
-    const toggle = document.getElementById("pianoToggle");
+<script>
+    function initPiano() {
+        const pianoBackground = document.getElementById("pianoBackground");
+        const fab = document.getElementById("pianoFab");
+        const panel = document.getElementById("pianoPanel");
 
-    const notes = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
-    const whiteNotes = ["C", "D", "E", "F", "G", "A", "B"];
+        if (!pianoBackground || !fab || !panel) return;
+        if (pianoBackground.dataset.init === "1") return;
+        pianoBackground.dataset.init = "1";
 
-    function createKeys(totalKeys = 24) {
-        pianoBackground.innerHTML = "";
+        const noteCharList = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
+        const baseNote = {
+            C: 0,
+            Cs: 1,
+            D: 2,
+            Ds: 3,
+            E: 4,
+            F: 5,
+            Fs: 6,
+            G: 7,
+            Gs: 8,
+            A: 9,
+            As: 10,
+            B: 11,
+        };
 
-        const whiteWidth = 3;
-        const blackWidth = whiteWidth * 0.6;
-        const blackHalf = blackWidth / 2;
-
-        let whiteCount = 0;
-
-        for (let i = 0; i < totalKeys; i++) {
-            const noteIndex = i % 12;
-            const octave = 3 + Math.floor(i / 12);
-            const noteName = notes[noteIndex];
-            const fullNote = noteName + octave;
-
-            const key = document.createElement("div");
-            key.classList.add("key");
-            key.dataset.note = fullNote;
-
-            if (noteName.includes("s")) {
-                key.classList.add("black-key");
-                key.style.width = blackWidth + "em";
-                key.style.left = whiteCount * whiteWidth - blackHalf + "em";
-            } else {
-                key.classList.add("white-key");
-                key.style.width = whiteWidth + "em";
-                whiteCount++;
-            }
-
-            key.addEventListener("click", () => playNote(fullNote));
-            pianoBackground.appendChild(key);
+        function noteToMidi(note) {
+            const match = note.match(/^([A-G][s]?)(\d)$/);
+            if (!match) return null;
+            const [, pitch, octave] = match;
+            return (parseInt(octave) + 1) * 12 + baseNote[pitch];
         }
 
-        pianoBackground.style.width = whiteCount * whiteWidth + "em";
+        function midiToNote(midiNumber) {
+            const octave = Math.floor(midiNumber / 12) - 1;
+            const pitchIndex = midiNumber % 12;
+            const pitch = Object.keys(baseNote).find((n) => baseNote[n] === pitchIndex);
+            return `${pitch}${octave}`;
+        }
+
+        function play(note) {
+            const audio = new Audio(`/piano/audio/${note}.mp3`);
+            audio.currentTime = 0;
+            audio.play();
+        }
+
+        function createKeys() {
+            pianoBackground.innerHTML = "";
+
+            const panelWidth = window.innerWidth * 0.9;
+            const whiteKeys = Math.floor(panelWidth / 24);
+            const numberOfKeys = Math.floor((whiteKeys / 7) * 12);
+
+            const whiteKeyWidth = 4;
+            const blackKeyWidth = whiteKeyWidth * 0.6;
+            const blackHalf = blackKeyWidth / 2;
+            const gap = whiteKeyWidth / 20;
+
+            const firstNotePitch = "C3";
+            const firstMidi = noteToMidi(firstNotePitch);
+
+            let whiteCount = 0;
+            let totalWidth = 0;
+
+            for (let i = 0; i < numberOfKeys; i++) {
+                const midi = firstMidi + i;
+                const note = midiToNote(midi);
+                const noteChar = note.match(/^([A-G][s]?)/)[1];
+
+                const key = document.createElement("div");
+                key.classList.add("key");
+                key.dataset.note = note;
+
+                if (noteChar.includes("s")) {
+                    key.classList.add("black-key");
+                    key.style.width = `${blackKeyWidth}vw`;
+
+                    let pos = whiteKeyWidth * whiteCount - blackHalf;
+
+                    if (noteChar === "Cs" || noteChar === "Fs") pos -= gap;
+                    if (noteChar === "Ds" || noteChar === "As") pos += gap;
+
+                    key.style.left = `${pos}vw`;
+                } else {
+                    key.classList.add("white-key");
+                    key.style.width = `${whiteKeyWidth}vw`;
+                    key.style.left = `${whiteKeyWidth * whiteCount}vw`;
+                    whiteCount++;
+                    totalWidth += whiteKeyWidth;
+                }
+
+                key.addEventListener("mousedown", () => play(note));
+                pianoBackground.appendChild(key);
+            }
+
+            pianoBackground.style.width = `${totalWidth}vw`;
+        }
+
+        fab.addEventListener("click", () => {
+            panel.classList.toggle("hidden");
+        });
+
+        createKeys();
     }
 
-    function playNote(note) {
-        const audio = new Audio(`/audio/${note}.mp3`);
-        audio.currentTime = 0;
-        audio.play();
-    }
-
-    toggle.addEventListener("click", () => {
-        wrapper.classList.toggle("open");
-    });
-
-    createKeys();
+    document.addEventListener("astro:page-load", initPiano);
+    document.addEventListener("DOMContentLoaded", initPiano);
 </script>
 
 <style>
-    .piano-wrapper {
-        position: fixed;
-        bottom: 0;
-        right: 0;
-        z-index: 9999;
-    }
-
-    .piano-modal {
-        position: absolute;
-        bottom: 80px;
-        right: 20px;
-        opacity: 0;
-        transform: translateY(20px);
-        transition: 0.3s ease;
-        pointer-events: auto;
-    }
-
-    .piano-wrapper.open .piano-modal {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    .piano-container {
-        background: #24272e;
-        padding: 1.5em;
-        border-radius: 12px;
-    }
-
-    .piano-background {
-        position: relative;
-        display: flex;
-        background: white;
-    }
-
-    .white-key {
-        height: 12em;
-        background: white;
-        border: 1px solid #24272e;
-        box-shadow: 0 0 0 0.15em #24272e;
-        cursor: pointer;
-    }
-
-    .black-key {
-        position: absolute;
-        height: 7em;
-        background: #070a0f;
-        border: 0.2em solid #24272e;
-        border-top: none;
-        cursor: pointer;
-    }
-
-    .piano-fab {
+    .piano-root {
         position: fixed;
         bottom: 20px;
         right: 20px;
+        z-index: 9999;
+    }
+
+    .piano-fab {
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        border: none;
         background: white;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        border: none;
         cursor: pointer;
-        pointer-events: auto;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     }
 
-    .piano-fab img {
-        width: 28px;
+    .piano-panel {
+        position: fixed;
+        bottom: 100px;
+        right: 20px;
+        background: #111;
+        padding: 1rem;
+        border-radius: 12px;
+        overflow-x: auto;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    :global(.piano-background) {
+        position: relative;
+        height: 12vw;
+    }
+
+    :global(.key) {
+        position: absolute;
+        cursor: pointer;
+    }
+
+    :global(.white-key) {
+        height: 12vw;
+        background: white;
+        border: 1px solid #444;
+        z-index: 1;
+    }
+
+    :global(.black-key) {
+        height: 7vw;
+        background: black;
+        z-index: 2;
     }
 </style>
