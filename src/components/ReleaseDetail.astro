@@ -17,6 +17,18 @@ const validTracks = trackIds
   .map((tid) => allTracks.find((t) => t?.data?.id === tid) ?? null)
   .filter((t): t is NonNullable<typeof t> => t !== null);
 
+const creditItems: string[] = [];
+
+if (data.cover_illustration_by) {
+  creditItems.push(`Illustration: ${data.cover_illustration_by}`);
+}
+if (data.cover_design_by) {
+  creditItems.push(`Design: ${data.cover_design_by}`);
+}
+if (data.cover_photography_by) {
+  creditItems.push(`Photo: ${data.cover_photography_by}`);
+}
+
 /**
  * 各サービスの「ページURL」から「埋め込み用 iframe の src」を組み立てる。
  * - Spotify / Apple / YouTube: ページURLに含まれる ID から embed URL を生成可能。
@@ -93,86 +105,85 @@ const linkItems = data.links
 ---
 
 <header class="modal-header">
-  <h1 class="modal-title">{data.title}</h1>
-  <div class="modal-meta">
-    <span class="modal-date">
-      {data.release_date.toLocaleDateString("ja-JP", {
+  <div class="modal-header-top">
+    <h1 class="modal-title">{data.title}</h1>
+
+    {data.release_type && <span class="modal-type-badge">{data.release_type}</span>}
+  </div>
+
+  {data.release_artist_name && <div class="modal-artist">{data.release_artist_name}</div>}
+
+  <div class="modal-date">
+    {
+      data.release_date.toLocaleDateString("ja-JP", {
         year: "numeric",
         month: "2-digit",
         day: "2-digit",
-      })}
-    </span>
-    {data.release_type && <span class="modal-type">{data.release_type}</span>}
+      })
+    }
   </div>
 </header>
 
 {/* primary: ジャケ画像のみ。non-primary: 画像は出さず埋め込みをジャケ大で表示（著作権配慮） */}
-{isPrimaryRelease && data.cover_url_list && data.cover_url_list.length > 0 && (
-  <div class="modal-cover-wrap">
-    <img src={data.cover_url_list[0]} alt={data.title} class="modal-cover" />
-  </div>
-)}
-{!isPrimaryRelease && hasEmbed && firstEmbed && (
-  <div class="modal-embed-wrap">
-    <iframe
-      src={firstEmbed.embedUrl}
-      width="100%"
-      height="400"
-      frameborder="0"
-      allowfullscreen=""
-      allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-      loading="lazy"
-      title={`${data.title} embed`}
-      class="modal-embed-iframe"
-    />
-  </div>
-)}
+{
+  isPrimaryRelease && data.cover_url_list && (
+    <div class="modal-cover-wrap">
+      <img src={data.cover_url_list[0]} alt={data.title} class="modal-cover" />
 
-<div class="modal-body">
-  {data.release_artist_name && <div class="modal-artist">{data.release_artist_name}</div>}
-  {(data.cover_illustration_by || data.cover_design_by) && (
-    <div class="modal-credit">
-      {data.cover_illustration_by && data.cover_design_by && data.cover_illustration_by === data.cover_design_by
-        ? `イラスト＆デザイン: ${data.cover_design_by}`
-        : null}
-      {!(
-        data.cover_illustration_by &&
-        data.cover_design_by &&
-        data.cover_illustration_by === data.cover_design_by
-      ) && (
-        <>
-          {data.cover_illustration_by && <span>イラスト: {data.cover_illustration_by}</span>}
-          {data.cover_design_by && <span>デザイン: {data.cover_design_by}</span>}
-        </>
+      {creditItems.length > 0 && (
+        <div class="modal-credit">
+          {creditItems.map((item) => (
+            <div>{item}</div>
+          ))}
+        </div>
       )}
     </div>
-  )}
-  {validTracks.length > 0 && (
-    <div class="modal-tracklist" aria-label="収録曲">
-      <h2 class="modal-section-title">収録曲</h2>
-      <ol class="modal-tracks">
-        {validTracks.map((track, index) => (
-          <li class="modal-track">
-            <span class="modal-track-no">{track.data.track_number ?? index + 1}.</span>
-            <span class="modal-track-title">{track.data.title}</span>
-          </li>
+  )
+}
+{
+  !isPrimaryRelease && hasEmbed && firstEmbed && (
+    <div class="modal-embed-wrap">
+      <iframe
+        src={firstEmbed.embedUrl}
+        width="100%"
+        height="400"
+        frameborder="0"
+        allowfullscreen=""
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        loading="lazy"
+        title={`${data.title} embed`}
+        class="modal-embed-iframe"
+      />
+    </div>
+  )
+}
+
+<div class="modal-body">
+  {
+    validTracks.length > 0 && (
+      <div class="modal-tracklist" aria-label="収録曲">
+        <h2 class="modal-section-title">{isPrimaryRelease ? "収録曲" : "参加曲"}</h2>
+        <ol class="modal-tracks">
+          {validTracks.map((track, index) => (
+            <li class="modal-track">
+              <span class="modal-track-no">{track.data.track_number ?? index + 1}.</span>
+              <span class="modal-track-title">{track.data.title}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    )
+  }
+  {
+    linkItems.length > 0 && (
+      <div class="modal-service-links">
+        {linkItems.map(({ service, rawUrl, icon, label }) => (
+          <a href={rawUrl} target="_blank" rel="noopener" class={`modal-service-link modal-service-link--${service}`}>
+            <img src={icon} alt={label} />
+            <span>{label}</span>
+          </a>
         ))}
-      </ol>
-    </div>
-  )}
-  {linkItems.length > 0 && (
-    <div class="modal-service-links">
-      {linkItems.map(({ service, rawUrl, icon, label }) => (
-        <a
-          href={rawUrl}
-          target="_blank"
-          rel="noopener"
-          class={`modal-service-link modal-service-link--${service}`}
-        >
-          <img src={icon} alt={label} />
-          <span>{label}</span>
-        </a>
-      ))}
-    </div>
-  )}
+      </div>
+    )
+  }
 </div>
