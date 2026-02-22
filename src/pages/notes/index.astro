@@ -43,7 +43,6 @@ function getAvatarUrl(member: any) {
     )}
     <!-- 絞り込みUI -->
     <div class="filters-wrapper">
-    <!-- 著者ボタン（常時表示） -->
     <div class="author-buttons">
       <button class="author-btn active" data-author="ALL">ALL</button>
       {members.map(member => (
@@ -69,7 +68,10 @@ function getAvatarUrl(member: any) {
             <input type="date" id="fromDate" class="date-input" />
             <span class="date-separator">〜</span>
             <input type="date" id="toDate" class="date-input" />
-            <button id="clearDates" class="clear-btn">クリア</button>
+            <button id="clearDates" class="clear-btn icon-clear">  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </svg></button>
           </div>
         </div>
         
@@ -77,7 +79,10 @@ function getAvatarUrl(member: any) {
           <label class="filter-label">キーワード</label>
           <div class="keyword-filter">
             <input type="text" id="q" class="keyword-input" placeholder="タイトル・タグで検索..." />
-            <button id="clearQ" class="clear-btn">クリア</button>
+            <button id="clearQ" class="clear-btn icon-clear">  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </svg></button>
           </div>
         </div>
       </div>
@@ -495,26 +500,34 @@ function getAvatarUrl(member: any) {
     }
 
     /* クリアボタン */
-    .clear-btn {
-      appearance: none;
-      border: 1.5px solid var(--wa-butter);
-      background: white;
-      color: var(--muted);
-      padding: 0.25rem 0.75rem;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 0.75rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      font-family: inherit;
-      white-space: nowrap;
-    }
+   .clear-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: red;
 
-    .clear-btn:hover {
-      background: var(--wa-cream);
-      border-color: var(--accent-2);
-      color: var(--accent-2);
-    }
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: var(--wa-cream);
+  color: var(--accent);
+}
+
+.clear-btn:active {
+  transform: scale(0.92);
+}
 
     /* 記事カード */
     .notes-card {
@@ -621,19 +634,18 @@ function getAvatarUrl(member: any) {
     
     /* レスポンシブ */
     @media (max-width: 768px) {
-      .filters-wrapper {
-        gap: 0.5rem;
-      }
+  .filters-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
 
       .author-buttons {
-        justify-content: center;
+        justify-content: flex-start;
       }
 
       .detail-popover {
-        left: 0.5rem;
-        right: 0.5rem;
-        min-width: auto;
-        max-width: none;
+        left: 50%;
+        transform: translateX(-50%);
       }
 
       .date-filters,

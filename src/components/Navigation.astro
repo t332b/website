@@ -5,35 +5,40 @@ const { currentPath } = Astro.props;
 function isActive(path: string) {
   if (!currentPath) return false;
   // /notes/ または /notes で始まる場合にマッチ
-  if (path === '/notes/') {
-    return currentPath.startsWith('/notes');
+  if (path === "/notes/") {
+    return currentPath.startsWith("/notes");
   }
   // /shop または /shop/ で完全マッチ
-  if (path === '/shop') {
-    return currentPath === '/shop' || currentPath === '/shop/';
+  if (path === "/shop") {
+    return currentPath === "/shop" || currentPath === "/shop/";
   }
   // /works または /works/ で完全マッチ
-  if (path === '/works') {
-    return currentPath === '/works' || currentPath === '/works/' || currentPath.startsWith('/works/');
+  if (path === "/works") {
+    return currentPath === "/works" || currentPath === "/works/" || currentPath.startsWith("/works/");
   }
   // /live または /live/ で完全マッチ
-  if (path === '/live') {
-    return currentPath === '/live' || currentPath === '/live/';
+  if (path === "/live") {
+    return currentPath === "/live" || currentPath === "/live/";
+  }
+  if (path === "/contact") {
+    return currentPath === "/contact" || currentPath === "/contact/";
   }
   return false;
 }
 ---
 
 <nav class="main-nav">
-  <a href="/works" class={`nav-item ${isActive('/works') ? 'active' : ''}`}>W0RKS</a>
-  <a href="/live" class={`nav-item ${isActive('/live') ? 'active' : ''}`}>L1VE</a>
-  <a href="/shop/" class={`nav-item ${isActive('/shop') ? 'active' : ''}`}>SH0P</a>
-  <a href="/notes/" class={`nav-item ${isActive('/notes/') ? 'active' : ''}`}>N0TES</a>
+  <a href="/works" class={`nav-item ${isActive("/works") ? "active" : ""}`}>W0RKS</a>
+  <a href="/live" class={`nav-item ${isActive("/live") ? "active" : ""}`}>L1VE</a>
+  <a href="/shop/" class={`nav-item ${isActive("/shop") ? "active" : ""}`}>SH0P</a>
+  <a href="/notes/" class={`nav-item ${isActive("/notes/") ? "active" : ""}`}>N0TES</a>
+  <a href="/contact/" class={`nav-item ${isActive("/contact/") ? "active" : ""}`}>C0NTACT</a>
 </nav>
 
 <style>
   .main-nav {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: center;
     padding: 0.5rem 0;
@@ -67,4 +72,3 @@ function isActive(path: string) {
     color: var(--accent, #6f42c1);
   }
 </style>
-

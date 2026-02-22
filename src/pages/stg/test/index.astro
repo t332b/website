@@ -1,649 +1,145 @@
 ---
 import Base from "../../../layouts/Base.astro";
-import AudioPlayer from "../../../components/AudioPlayer.astro";
-import { getCollection } from 'astro:content';
+import { getCollection } from "astro:content";
 
-const latestPosts = (await getCollection('notes')).sort((a,b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
-const latestWorks = (await getCollection('works')).filter(w => w.data.is_primary_release).sort((a,b) => b.data.release_date.getTime() - a.data.release_date.getTime()).slice(0, 4);
-const upcomingLive = (await getCollection('live')).sort((a,b) => {
-  const da = a.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  const db = b.data.startDate?.getTime() ?? Number.MAX_SAFE_INTEGER;
-  return da - db;
-}).slice(0, 3);
+/* 最新 Primary Release を1件取得 */
+const latestWork =
+  (await getCollection("works"))
+    .filter((w) => w.data.is_primary_release !== false)
+    .sort((a, b) => b.data.release_date.getTime() - a.data.release_date.getTime())[0] ?? null;
 
-// メンバー情報を取得
-const members = await getCollection('member');
-const memberMap = new Map(members.map(m => [m.data.id, m.data]));
-
-// アバター画像のURLを生成する関数
-function getAvatarUrl(member: any) {
-  if (member?.avatar) {
-    if (member.avatar.startsWith('http://') || member.avatar.startsWith('https://')) return member.avatar;
-    return member.avatar.startsWith('/') ? member.avatar : `/${member.avatar}`;
+/* embed URL生成 */
+function getEmbedUrl(service: string, url: string): string | null {
+  if (service === "spotify") {
+    const m = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)/);
+    if (m) return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`;
   }
-  if (member?.github) {
-    return `https://github.com/${member.github}.png?size=64`;
+
+  if (service === "youtube") {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+    if (m) return `https://www.youtube.com/embed/${m[1]}`;
   }
-  return '/images/uploads/default-avatar.png'; // デフォルトアバター
+
+  if (service === "apple") {
+    const m = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
+    if (m) return `https://embed.music.apple.com/${m[2]}`;
+  }
+
+  return null;
 }
 ---
 
 <Base title="PR0P0SE">
-  <div class="main-container">
-    <!-- ノートセクション -->
-    {latestPosts.length > 0 && (
-      <section class="notes-section">
-        <h4 class="section-title">LATEST NOTES</h4>
-        <div class="notes-grid">
-          {latestPosts.map(p => {
-            const d = p.data.date.toISOString().slice(0,10); // YYYY-MM-DD
-            const member = memberMap.get(p.data.author);
-            const avatarUrl = getAvatarUrl(member);
-            
-            // 本文からプレビューテキストを生成
-            const cleanBody = p.body
-              .replace(/#+\s+/g, '')
-              .replace(/\*\*(.+?)\*\*/g, '$1')
-              .replace(/\*(.+?)\*/g, '$1')
-              .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-              .replace(/`(.+?)`/g, '$1')
-              .replace(/\n+/g, ' ')
-              .trim();
-            const preview = cleanBody.length > 50 ? cleanBody.substring(0, 50) + '...' : cleanBody;
-            
-            return (
-              <article class="notes-card" data-slug={p.slug}>
-                <div class="card-layout">
-                  <img src={avatarUrl} alt="" class="notes-avatar" data-author={p.data.author} />
-                  
-                  <div class="card-content">
-                    <div class="card-header">
-                      <span class="notes-author-name" data-author={p.data.author}>
-                        {member?.name || p.data.author}
-                      </span>
-                      <span class="notes-post-date">{d}</span>
-                    </div>
-                    
-                    <div class="notes-card-title">{p.data.title}</div>
-                    <div class="notes-card-preview">{preview}</div>
-                    
-                    {p.data.tags && p.data.tags.length > 0 && (
-                      <div class="notes-card-tags">
-                        {p.data.tags.map((tag: string) => (
-                          <span class="notes-tag">#{tag}</span>
-                        ))}
+  <!-- <div class="home-container">
+    {
+      latestWork && (
+        <section class="home-release-section">
+          <h1 class="home-release-title">{latestWork.data.title}</h1>
+
+          <p class="home-release-date">{latestWork.data.release_date.toLocaleDateString("ja-JP")}</p>
+
+          <div class="home-release-wrap">
+            {/* ジャケット */}
+            {latestWork.data.cover_url_list?.[0] && (
+              <div class="home-release-cover">
+                <img src={latestWork.data.cover_url_list[0]} alt={latestWork.data.title} />
+              </div>
+            )}
+
+            {/* 埋め込み */}
+            {latestWork.data.links &&
+              (() => {
+                const services = ["spotify", "apple", "youtube", "bandcamp"];
+
+                for (const s of services) {
+                  const raw = latestWork.data.links[s];
+                  if (!raw) continue;
+
+                  const embed = getEmbedUrl(s, raw);
+                  if (embed) {
+                    return (
+                      <div class="home-release-embed">
+                        <iframe
+                          src={embed}
+                          width="100%"
+                          height="380"
+                          frameborder="0"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                        />
                       </div>
-                    )}
-                  </div>
-                </div>
-              </article>
-            )
-          })}
-        </div>
-      </section>
-    )}
+                    );
+                  }
+                }
 
-    <!-- 最新リリースセクション -->
-    {latestWorks.length > 0 && (
-      <section class="releases-section">
-        <h4 class="section-title">LATEST latestWorks</h4>
-        <div class="releases-grid">
-          {latestWorks.map(release => (
-            <a href={`/works/${release.slug}`} class="release-card">
-              {release.data.cover_url_list && release.data.cover_url_list.length > 0 && (
-                <div class="release-cover">
-                  <img src={release.data.cover_url_list[0]} alt={release.data.title} />
-                </div>
-              )}
-              <div class="release-info">
-                <h3 class="release-title">{release.data.title}</h3>
-                <p class="release-type">{release.data.release_type || 'Release'}</p>
-                <p class="release-date">{release.data.release_date.toLocaleDateString('ja-JP')}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-      </section>
-    )}
-
-    <!-- ライブセクション -->
-    {upcomingLive.length > 0 && (
-      <section class="live-section">
-        <h4 class="section-title">LIVE</h4>
-        <div class="live-list">
-          {upcomingLive.map(event => (
-            <div class="live-item">
-              {event.data.startDate && (
-                <div class="live-date">
-                  <span class="date-day">{event.data.startDate.getDate()}</span>
-                  <span class="date-month">{event.data.startDate.toLocaleDateString('ja-JP', { month: 'short' })}</span>
-                </div>
-              )}
-              <div class="live-details">
-                <h3 class="live-venue">{event.data.title}</h3>
-                {(event.data.venue || event.data.city) && (
-                  <p class="live-location">{[event.data.venue, event.data.city].filter(Boolean).join(' / ')}</p>
-                )}
-                {event.data.ticketUrl && (
-                  <a href={event.data.ticketUrl} target="_blank" rel="noopener noreferrer" class="ticket-link">
-                    TICKETS
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-    )}
-
-    <!-- ニュースレター登録 -->
-    <!-- <section class="newsletter-section">
-      <h4 class="newsletter-title">SIGN UP FOR UPDATES</h4>
-      <div class="newsletter-form">
-        <input type="email" placeholder="Enter your email" class="newsletter-input" />
-        <button class="newsletter-button">SUBSCRIBE</button>
-      </div>
-    </section> -->
-
-  </div>
-
-  <script>
-    // ノートカードのクリック機能
-    const notesCards = document.querySelectorAll('.notes-card');
-    notesCards.forEach(card => {
-      (card as HTMLElement).addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        // アバターか名前がクリックされた場合はノート一覧ページへ
-        if (target.classList.contains('notes-avatar') || target.classList.contains('notes-author-name')) {
-          const authorId = target.dataset.author;
-          if (authorId) {
-            // TODO: ノート一覧ページで著者フィルター付きURLに遷移
-            // 現時点では通常のノート一覧へ
-            window.location.href = '/notes/';
-          }
-          return;
-        }
-        // それ以外は記事詳細へ
-        const slug = (card as HTMLElement).dataset.slug;
-        if (slug) {
-          window.location.href = `/notes/${slug}/`;
-        }
-      });
-    });
-  </script>
+                return null;
+              })()}
+          </div>
+        </section>
+      )
+    }
+  </div> -->
 
   <style>
-    .main-container {
-      max-width: 1200px;
+    .home-container {
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 0 clamp(0.5rem, 2vw, 1.25rem);
+      padding: 2rem 1rem 4rem;
     }
 
-    .wrap{
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      padding: clamp(0.5rem, 2vw, 1.5rem) 0;
+    .home-release-section {
+      text-align: center;
     }
 
-    /* ヒーローセクション */
-    .hero-section {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4rem;
-      align-items: center;
-      padding: 4rem 0;
-      min-height: 60vh;
-    }
-
-    .hero-content {
-      text-align: left;
-    }
-
-    .hero-title {
-      font-size: 4rem;
+    .home-release-title {
+      font-size: clamp(1.8rem, 4vw, 3rem);
       font-weight: 900;
+      margin: 0 0 0.5rem 0;
       color: var(--wa-ink);
-      margin: 0 0 1rem 0;
-      font-family: 'Spectral', serif;
-      letter-spacing: -0.02em;
     }
 
-    .hero-subtitle {
-      font-size: 1.5rem;
+    .home-release-date {
       color: var(--muted);
-      margin: 0 0 2rem 0;
-      font-weight: 400;
+      margin-bottom: 2.5rem;
     }
 
-    .hero-buttons {
-      display: flex;
-      gap: 1rem;
-    }
-
-    .btn-primary, .btn-secondary {
-      padding: 1rem 2rem;
-      border-radius: 0;
-      text-decoration: none;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      transition: all 0.3s ease;
-      border: 2px solid;
-    }
-
-    .btn-primary {
-      background: var(--wa-ink);
-      color: white;
-      border-color: var(--wa-ink);
-    }
-
-    .btn-primary:hover {
-      background: transparent;
-      color: var(--wa-ink);
-    }
-
-    .btn-secondary {
-      background: transparent;
-      color: var(--wa-ink);
-      border-color: var(--wa-ink);
-    }
-
-    .btn-secondary:hover {
-      background: var(--wa-ink);
-      color: white;
-    }
-
-    .hero-image img {
-      width: 100%;
-      height: auto;
-      border-radius: 12px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-    }
-
-    /* ソーシャルリンク */
-    .social-links {
+    .home-release-wrap {
+      max-width: 500px;
       display: flex;
       justify-content: center;
-      gap: 1.5rem;
-      padding: 0.5rem 0;
     }
 
-    .social-link {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background: var(--wa-cream);
-      transition: all 0.3s ease;
-    }
-
-    .social-link:hover {
-      background: var(--wa-teal);
-      transform: translateY(-2px);
-    }
-
-    .social-link img {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* セクション共通 */
-    .section-title {
-      font-size: 1.5rem;
-      font-weight: 800;
-      color: var(--wa-ink);
-      text-align: center;
-      margin: 2rem 0 2rem 0;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    /* リリースセクション */
-    .releases-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
-
-    .release-card {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease;
-      text-decoration: none;
-      color: inherit;
-      display: block;
-    }
-
-    .release-card:hover {
-      transform: translateY(-4px);
-    }
-
-    .release-cover img {
+    .home-release-cover img {
       width: 100%;
-      height: 200px;
-      object-fit: cover;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
     }
 
-    .release-info {
-      padding: 1.5rem;
+    .home-release-embed iframe {
+      border-radius: 18px;
     }
 
-    .release-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      margin: 0 0 0.5rem 0;
-      color: var(--wa-ink);
-    }
-
-    .release-type {
-      color: var(--wa-teal);
-      font-weight: 600;
-      margin: 0 0 0.5rem 0;
-      text-transform: uppercase;
-      font-size: 0.9rem;
-    }
-
-    .release-date {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin: 0;
-    }
-
-    /* ライブセクション */
-    .live-list {
-      display: grid;
-      gap: 1rem;
-      margin-bottom: 4rem;
-    }
-
-    .live-item {
-      display: flex;
-      align-items: center;
-      gap: 2rem;
-      padding: 1.5rem;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      transition: transform 0.3s ease;
-    }
-
-    .live-item:hover {
-      transform: translateX(8px);
-    }
-
-    .live-date {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-width: 80px;
-    }
-
-    .date-day {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--wa-teal);
-    }
-
-    .date-month {
-      font-size: 0.9rem;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .live-details {
-      flex: 1;
-    }
-
-    .live-venue {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin: 0 0 0.5rem 0;
-      color: var(--wa-ink);
-    }
-
-    .live-location {
-      color: var(--muted);
-      margin: 0 0 1rem 0;
-    }
-
-    .ticket-link {
+    .home-release-btn {
       display: inline-block;
-      background: var(--wa-teal);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
+      padding: 0.8rem 2rem;
+      border: 2px solid var(--wa-ink);
       text-decoration: none;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.9rem;
-      transition: background 0.3s ease;
-    }
-
-    .ticket-link:hover {
-      background: var(--wa-forest);
-    }
-
-    /* ノートセクション */
-    .notes-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 4rem;
-    }
-
-    .notes-card {
-      background: white;
-      border: 2px solid var(--wa-butter);
-      border-radius: 12px;
-      padding: 1rem;
-      transition: all 0.2s ease;
-      cursor: pointer;
-    }
-
-    .notes-card:hover {
-      transform: translateY(-2px);
-      border-color: var(--accent);
-      box-shadow: 0 4px 12px rgba(45, 122, 120, 0.1);
-    }
-
-    .card-layout {
-      display: flex;
-      gap: 0.75rem;
-    }
-
-    .notes-avatar {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
-      border: 2px solid var(--wa-cream);
-      flex-shrink: 0;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .notes-avatar:hover {
-      border-color: var(--accent);
-      transform: scale(1.05);
-    }
-
-    .card-content {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .card-header {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .notes-author-name {
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--fg);
-      text-decoration: underline;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-
-    .notes-author-name:hover {
-      color: var(--accent);
-    }
-
-    .notes-post-date {
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
-
-    .notes-card-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-      color: var(--fg);
-      margin-bottom: 0.5rem;
-      line-height: 1.3;
-    }
-
-    .notes-card-preview {
-      font-size: 0.875rem;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-      line-height: 1.5;
-    }
-
-    .notes-card-tags {
-      display: flex;
-      gap: 0.375rem;
-      flex-wrap: wrap;
-    }
-
-    .notes-tag {
-      background: var(--wa-cream);
-      color: var(--accent);
-      padding: 0.125rem 0.5rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      border: 1px solid var(--wa-butter);
-    }
-
-    /* ニュースレター */
-    .newsletter-section {
-      text-align: center;
-      padding: 4rem 2rem;
-      background: var(--wa-cream);
-      border-radius: 20px;
-      margin: 4rem 0;
-    }
-
-    .newsletter-title {
-      font-size: 2rem;
-      font-weight: 800;
-      color: var(--wa-ink);
-      margin: 0 0 2rem 0;
-      font-family: 'Spectral', serif;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .newsletter-form {
-      display: flex;
-      max-width: 400px;
-      margin: 0 auto;
-      gap: 1rem;
-    }
-
-    .newsletter-input {
-      flex: 1;
-      padding: 1rem;
-      border: 2px solid var(--wa-butter);
-      border-radius: 4px;
-      font-size: 1rem;
-      background: white;
-    }
-
-    .newsletter-input:focus {
-      outline: none;
-      border-color: var(--wa-teal);
-    }
-
-    .newsletter-button {
-      padding: 1rem 2rem;
-      background: var(--wa-teal);
-      color: white;
-      border: none;
-      border-radius: 4px;
       font-weight: 700;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
-      cursor: pointer;
-      transition: background 0.3s ease;
+      transition: all 0.3s ease;
+      color: var(--wa-ink);
     }
 
-    .newsletter-button:hover {
-      background: var(--wa-forest);
+    .home-release-btn:hover {
+      background: var(--wa-ink);
+      color: white;
     }
 
-    /* レスポンシブ */
     @media (max-width: 768px) {
-      .hero-section {
+      .home-release-wrap {
         grid-template-columns: 1fr;
         gap: 2rem;
-        text-align: center;
-      }
-
-      .hero-title {
-        font-size: 2.5rem;
-      }
-
-      .hero-buttons {
-        justify-content: center;
-      }
-
-      .notes-card {
-        padding: 0.75rem;
-      }
-
-      .card-layout {
-        gap: 0.5rem;
-      }
-
-      .notes-avatar {
-        width: 40px;
-        height: 40px;
-      }
-
-      .notes-author-name,
-      .notes-card-title {
-        font-size: 0.85rem;
-      }
-
-      .notes-post-date {
-        font-size: 0.75rem;
-      }
-
-      .notes-card-preview {
-        font-size: 0.8rem;
-      }
-
-      .releases-grid {
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-      }
-
-      .live-item {
-        flex-direction: column;
-        text-align: center;
-        gap: 1rem;
-      }
-
-      .newsletter-form {
-        flex-direction: column;
       }
     }
   </style>
