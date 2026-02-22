@@ -3,6 +3,6 @@
   font-size: 0.9rem !important;
   color: #666 !important;
 }
-p{
-  margin: 0;
+[role="textbox"] p {
+  margin: 0 !important;
 }

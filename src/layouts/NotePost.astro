@@ -69,11 +69,13 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 </Base>
 
 <style>
-  /* note.com 風: 記事幅 620px 前後・読みやすい文字サイズ */
+  /* notes index に合わせた横幅（max-width: 500px） */
   .note-post {
-    max-width: 620px;
+    max-width: 500px;
+    width: 100%;
     margin: 0 auto;
-    padding: 2.5rem 1.25rem;
+    padding: 2.5rem 1rem;
+    box-sizing: border-box;
   }
 
   .post-header {
@@ -148,16 +150,13 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
   }
 
   .tag {
-    background: var(--wa-cream);
     color: var(--accent);
     padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    border: 1px solid var(--wa-butter);
+    font-size: 0.8rem;
   }
 
   .post-content {
-    line-height: 1.85;
+    line-height: 1;
     font-size: 1rem;
     color: var(--fg);
   }
