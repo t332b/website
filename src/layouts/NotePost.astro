@@ -226,6 +226,16 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     border: none;
   }
 
+  /* 本文中にそのまま貼られた iframe 埋め込みの幅を整える（YouTube/Spotify/Apple/Bandcamp など） */
+  .post-content :global(iframe) {
+    max-width: 100%;
+    width: 100%;
+    display: block;
+    margin: 1.5rem auto;
+    border: none;
+    border-radius: 12px;
+  }
+
   .post-footer {
     margin-top: 3rem;
     padding-top: 2rem;

@@ -39,13 +39,13 @@ export function getEmbedInfoFromUrl(url: string): EmbedInfo | null {
       }
     }
     if (/music\.apple\.com/i.test(u)) {
-      const match = u.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
-      if (match) {
-        return {
-          service: "apple",
-          embedUrl: `https://embed.music.apple.com/${match[2]}`,
-        };
-      }
+      // Apple Music は基本的に「music.apple.com の URL をそのまま embed.music.apple.com に差し替え」で OK
+      // パス構造やクエリが多少違っても柔軟に対応できるよう、細かくパースしすぎない
+      const embedUrl = u.replace(/^https?:\/\/music\.apple\.com/i, "https://embed.music.apple.com");
+      return {
+        service: "apple",
+        embedUrl,
+      };
     }
   } catch {
     // ignore
