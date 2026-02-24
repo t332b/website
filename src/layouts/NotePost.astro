@@ -38,6 +38,8 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
 <Base title={title}>
   <article class="note-post">
+
+
     <header class="post-header">
       <h1 class="post-title">{title}</h1>
 
@@ -104,6 +106,33 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     background: white; 
     border-radius: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    text-decoration: none;
+    border: 1.5px solid var(--wa-butter);
+    color: var(--wa-ink);
+    background: #fff;
+    font-weight: 600;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    background: var(--wa-cream);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .nav-home {
+    margin-left: auto;
   }
 
   .post-header {

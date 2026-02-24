@@ -146,7 +146,7 @@ function getAvatarUrl(member: any) {
               {p.data.tags && p.data.tags.length > 0 && (
                 <div class="card-tags">
                   {p.data.tags.map((tag: string) => (
-                    <span class="tag">#{tag}</span>
+                    <span class="tag" data-tag={tag}>#{tag}</span>
                   ))}
                 </div>
               )}
@@ -210,7 +210,23 @@ function getAvatarUrl(member: any) {
       }
 
       authorBtns.forEach(btn => {
-        btn.addEventListener('click', () => filterByAuthor((btn as HTMLElement).dataset.author || 'ALL'));
+        btn.addEventListener('click', () => {
+          const current = author;
+          const val = (btn as HTMLElement).dataset.author || 'ALL';
+          const fromEl = fromInput as HTMLInputElement | null;
+          const toEl = toInput as HTMLInputElement | null;
+          const qEl = q as HTMLInputElement | null;
+
+          // ALL を押したとき、または同じメンバーをもう一度押したときは「絞り込み解除」
+          if (val === 'ALL' || (current !== 'ALL' && current === val)) {
+            if (fromEl) fromEl.value = '';
+            if (toEl) toEl.value = '';
+            if (qEl) qEl.value = '';
+            filterByAuthor('ALL');
+          } else {
+            filterByAuthor(val);
+          }
+        });
       });
 
       items.forEach(item => {
@@ -247,6 +263,20 @@ function getAvatarUrl(member: any) {
       clearQ?.addEventListener('click', () => {
         if (qEl) qEl.value = '';
         applyFilters();
+      });
+
+      // タグクリックでそのタグで絞り込み
+      document.querySelectorAll('.card-tags .tag').forEach(el => {
+        const tagEl = el as HTMLElement;
+        tagEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const raw = tagEl.dataset.tag || tagEl.textContent || '';
+          const tagText = raw.replace(/^#/, '').trim();
+          if (qEl) {
+            qEl.value = tagText;
+          }
+          applyFilters();
+        });
       });
 
       function applyFilters() {
@@ -624,12 +654,14 @@ function getAvatarUrl(member: any) {
     }
 
     .card-tags .tag {
-      background: var(--wa-cream);
       color: var(--accent);
-      padding: 0.125rem 0.5rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      border: 1px solid var(--wa-butter);
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-underline-offset: 0.15em;
+    }
+
+    .card-tags .tag:hover {
+      color: var(--wa-mustard);
     }
     
     /* レスポンシブ */

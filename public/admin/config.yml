@@ -58,7 +58,7 @@ collections:
         name: "tags"
         widget: "list"
         required: false
-        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）"
+        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）。1行につき1つのタグを入力してください。"
       - label: "本文"
         name: "body"
         widget: "markdown"
