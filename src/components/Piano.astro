@@ -3,6 +3,12 @@
 
 <div id="pianoRoot" class="piano-root" transition:persist="piano-ui">
     <div id="pianoPanel" class="piano-panel hidden">
+        <div class="piano-controls">
+            <label class="piano-start-label" for="pianoStartRange">
+                Start: <span id="pianoStartLabel">C3</span>
+            </label>
+            <input id="pianoStartRange" class="piano-start-range" type="range" min="21" max="108" step="1" value="48" />
+        </div>
         <div id="pianoBackground" class="piano-background"></div>
     </div>
 </div>
@@ -11,14 +17,13 @@
     function initPiano() {
         const root = document.getElementById("pianoRoot");
         const pianoBackground = document.getElementById("pianoBackground");
-        const fab = document.getElementById("pianoToggle") || document.getElementById("pianoFab");
         const panel = document.getElementById("pianoPanel");
+        const startRange = document.getElementById("pianoStartRange");
+        const startLabel = document.getElementById("pianoStartLabel");
 
-        if (!root || !pianoBackground || !panel) return;
-        if (root.dataset.init === "1") return;
-        root.dataset.init = "1";
+        if (!root || !pianoBackground || !panel || !startRange || !startLabel) return;
 
-        const state = (window.__pianoState ??= { isOpen: false });
+        const state = (window.__pianoState ??= { isOpen: false, startMidi: 48 });
         const engine = (window.__pianoEngine ??= {
             audioContext: null,
             buffers: new Map(),
@@ -27,6 +32,7 @@
             loopPoints: {},
             loopPointsLoaded: false,
         });
+        const ui = (window.__pianoUi ??= { delegatedToggleBound: false, resizeBound: false, rangeBound: false });
 
         const NOTE_NAMES = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
         const FULL_PIANO_MIN_MIDI = 21;
@@ -53,18 +59,26 @@
             return note.includes("s");
         }
 
-        function getKeyRangeByViewport(viewportWidth) {
-            if (viewportWidth <= 640) return { min: 12, max: 24, targetWhiteKeyPx: 26 };
-            if (viewportWidth <= 960) return { min: 24, max: 48, targetWhiteKeyPx: 24 };
+        function getKeyRangeByViewport(viewportWidth, viewportHeight) {
+            const isLandscape = viewportWidth > viewportHeight;
+            const isMobileLike = viewportWidth <= 1024;
+
+            if (viewportWidth <= 640) {
+                if (isLandscape) return { min: 18, max: 36, targetWhiteKeyPx: 22 };
+                return { min: 12, max: 24, targetWhiteKeyPx: 26 };
+            }
+            if (viewportWidth <= 960) {
+                if (isLandscape && isMobileLike) return { min: 30, max: 56, targetWhiteKeyPx: 20 };
+                return { min: 24, max: 48, targetWhiteKeyPx: 24 };
+            }
             if (viewportWidth <= 1280) return { min: 36, max: 72, targetWhiteKeyPx: 22 };
             return { min: 48, max: FULL_PIANO_KEY_COUNT, targetWhiteKeyPx: 20 };
         }
 
-        function getFirstMidi(keyCount) {
+        function getFirstMidi(keyCount, preferredStartMidi) {
             if (keyCount >= FULL_PIANO_KEY_COUNT) return FULL_PIANO_MIN_MIDI;
-            const centerMidi = 60;
             const maxStart = FULL_PIANO_MAX_MIDI - keyCount + 1;
-            const rawStart = Math.round(centerMidi - keyCount / 2);
+            const rawStart = Number.isFinite(preferredStartMidi) ? Math.round(preferredStartMidi) : 48;
             return clamp(rawStart, FULL_PIANO_MIN_MIDI, maxStart);
         }
 
@@ -235,10 +249,27 @@
             }
         }
 
+        function getToggleButton() {
+            return document.getElementById("pianoToggle") || document.getElementById("pianoFab");
+        }
+
+        function updateToggleAria(isOpen) {
+            const fab = getToggleButton();
+            fab?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+        }
+
+        function noteLabelFromMidi(midi) {
+            return midiToNote(midi).replace("s", "#");
+        }
+
+        function updateStartLabel(midi) {
+            startLabel.textContent = noteLabelFromMidi(midi);
+        }
+
         function setPanelOpen(isOpen) {
             state.isOpen = isOpen;
             panel.classList.toggle("hidden", !isOpen);
-            fab?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            updateToggleAria(isOpen);
             if (!isOpen) stopAllNotes();
         }
 
@@ -250,13 +281,21 @@
             noteHoldCount.clear();
 
             const viewportWidth = window.innerWidth;
-            const { min, max, targetWhiteKeyPx } = getKeyRangeByViewport(viewportWidth);
+            const viewportHeight = window.innerHeight;
+            const { min, max, targetWhiteKeyPx } = getKeyRangeByViewport(viewportWidth, viewportHeight);
             const panelMaxWidth = Math.min(viewportWidth * 0.92, 1120);
             const estimatedWhiteKeys = Math.floor(panelMaxWidth / targetWhiteKeyPx);
             const estimatedTotalKeys = Math.floor((estimatedWhiteKeys * 12) / 7);
             const keyCount = clamp(estimatedTotalKeys, min, max);
+            const maxStartMidi = FULL_PIANO_MAX_MIDI - keyCount + 1;
 
-            const firstMidi = getFirstMidi(keyCount);
+            state.startMidi = clamp(state.startMidi ?? 48, FULL_PIANO_MIN_MIDI, maxStartMidi);
+            startRange.min = String(FULL_PIANO_MIN_MIDI);
+            startRange.max = String(maxStartMidi);
+            startRange.value = String(state.startMidi);
+            updateStartLabel(state.startMidi);
+
+            const firstMidi = getFirstMidi(keyCount, state.startMidi);
             const notes = Array.from({ length: keyCount }, (_, i) => midiToNote(firstMidi + i));
 
             const whiteKeyCount = notes.filter((note) => !isBlackKey(note)).length;
@@ -264,8 +303,8 @@
             const blackKeyWidth = whiteKeyWidth * 0.6;
             const blackHalf = blackKeyWidth / 2;
             const blackGapAdjust = whiteKeyWidth / 20;
-            const whiteKeyHeight = clamp(whiteKeyWidth * 5.6, 90, 200);
-            const blackKeyHeight = whiteKeyHeight * 0.62;
+            const whiteKeyHeight = clamp(whiteKeyWidth * 4.7, 72, 150);
+            const blackKeyHeight = whiteKeyHeight * 0.58;
 
             pianoBackground.style.width = `${Math.round(whiteKeyCount * whiteKeyWidth)}px`;
             pianoBackground.style.height = `${Math.round(whiteKeyHeight)}px`;
@@ -333,18 +372,48 @@
             }, 120);
         };
 
-        fab?.addEventListener("click", () => {
-            setPanelOpen(panel.classList.contains("hidden"));
-        });
+        if (!ui.delegatedToggleBound) {
+            document.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const toggleBtn = target.closest("#pianoToggle, #pianoFab");
+                if (!toggleBtn) return;
+                const currentPanel = document.getElementById("pianoPanel");
+                if (!currentPanel) return;
+                state.isOpen = currentPanel.classList.contains("hidden");
+                currentPanel.classList.toggle("hidden", !state.isOpen);
+                updateToggleAria(state.isOpen);
+                if (!state.isOpen) stopAllNotes();
+            });
+            ui.delegatedToggleBound = true;
+        }
 
-        window.addEventListener("resize", onResize);
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden) stopAllNotes();
-        });
-        window.addEventListener("pagehide", stopAllNotes);
-        window.addEventListener("pointerup", (event) => stopPointer(event.pointerId));
+        if (!ui.rangeBound) {
+            startRange.addEventListener("input", () => {
+                state.startMidi = Number(startRange.value);
+                updateStartLabel(state.startMidi);
+                createKeys();
+            });
+            ui.rangeBound = true;
+        }
 
-        createKeys();
+        if (!ui.resizeBound) {
+            window.addEventListener("resize", onResize);
+            window.addEventListener("orientationchange", onResize);
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stopAllNotes();
+            });
+            window.addEventListener("pagehide", stopAllNotes);
+            window.addEventListener("pointerup", (event) => stopPointer(event.pointerId));
+            ui.resizeBound = true;
+        }
+
+        if (root.dataset.keysBuilt !== "1") {
+            createKeys();
+            root.dataset.keysBuilt = "1";
+        } else {
+            createKeys();
+        }
         setPanelOpen(Boolean(state.isOpen));
     }
 
@@ -372,10 +441,11 @@
 
     .piano-panel {
         position: fixed;
-        right: clamp(8px, 1.5vmin, 20px);
+        left: 50%;
+        transform: translateX(-50%);
         bottom: clamp(78px, 10vmin, 100px);
-        width: min(1120px, 94vw);
-        max-width: 94vw;
+        width: min(1120px, calc(100vw - 16px));
+        max-width: calc(100vw - 16px);
         background: #101010;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: clamp(8px, 1.5vmin, 12px);
@@ -387,6 +457,26 @@
 
     .hidden {
         display: none;
+    }
+
+    .piano-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        color: #eee;
+        font-size: 12px;
+    }
+
+    .piano-start-label {
+        min-width: 72px;
+        font-family: "Menlo", "PT Mono", "Courier New", monospace;
+        font-size: 11px;
+    }
+
+    .piano-start-range {
+        flex: 1;
+        min-width: 120px;
     }
 
     :global(.piano-background) {
@@ -423,17 +513,21 @@
 
     :global(.black-key) {
         height: var(--black-key-height);
-        background: #101010;
+        background: #121212;
         z-index: 2;
         border-radius: 0 0 3px 3px;
-        box-shadow: inset -1px -1px 1px rgba(255, 255, 255, 0.08);
+        box-shadow:
+            inset -1px -1px 1px rgba(255, 255, 255, 0.08),
+            0 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     :global(.white-key.is-pressed) {
-        background: #e8eef3;
+        background: #dbe8ff;
     }
 
     :global(.black-key.is-pressed) {
-        background: #2f2f2f;
+        background: #5a5a5a;
+        transform: translateY(1px);
+        box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.6);
     }
 </style>
