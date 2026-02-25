@@ -32,7 +32,12 @@
             loopPoints: {},
             loopPointsLoaded: false,
         });
-        const ui = (window.__pianoUi ??= { delegatedToggleBound: false, resizeBound: false, rangeBound: false });
+        const ui = (window.__pianoUi ??= {
+            delegatedToggleBound: false,
+            resizeBound: false,
+            rangeBound: false,
+            longPressGuardBound: false,
+        });
 
         const NOTE_NAMES = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
         const FULL_PIANO_MIN_MIDI = 21;
@@ -65,7 +70,7 @@
 
             if (viewportWidth <= 640) {
                 if (isLandscape) return { min: 18, max: 36, targetWhiteKeyPx: 22 };
-                return { min: 12, max: 24, targetWhiteKeyPx: 26 };
+                return { min: 16, max: 19, targetWhiteKeyPx: 34 };
             }
             if (viewportWidth <= 960) {
                 if (isLandscape && isMobileLike) return { min: 30, max: 56, targetWhiteKeyPx: 20 };
@@ -283,7 +288,16 @@
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
             const { min, max, targetWhiteKeyPx } = getKeyRangeByViewport(viewportWidth, viewportHeight);
-            const panelMaxWidth = Math.min(viewportWidth * 0.92, 1120);
+            const panelStyle = window.getComputedStyle(panel);
+            const panelHorizontalPadding = parseFloat(panelStyle.paddingLeft) + parseFloat(panelStyle.paddingRight);
+            const measuredPanelWidth = panel.getBoundingClientRect().width || panel.clientWidth || 0;
+            // hidden(display:none) 時は幅が 0 になるため、viewport から安全にフォールバックする
+            const fallbackPanelWidth = Math.min(viewportWidth - 28, 1120);
+            const panelInnerWidth = Math.max(
+                220,
+                (measuredPanelWidth > 0 ? measuredPanelWidth : fallbackPanelWidth) - panelHorizontalPadding,
+            );
+            const panelMaxWidth = Math.min(panelInnerWidth, 1120);
             const estimatedWhiteKeys = Math.floor(panelMaxWidth / targetWhiteKeyPx);
             const estimatedTotalKeys = Math.floor((estimatedWhiteKeys * 12) / 7);
             const keyCount = clamp(estimatedTotalKeys, min, max);
@@ -299,7 +313,7 @@
             const notes = Array.from({ length: keyCount }, (_, i) => midiToNote(firstMidi + i));
 
             const whiteKeyCount = notes.filter((note) => !isBlackKey(note)).length;
-            const whiteKeyWidth = clamp(panelMaxWidth / whiteKeyCount, 18, 32);
+            const whiteKeyWidth = clamp(panelMaxWidth / whiteKeyCount, 22, 40);
             const blackKeyWidth = whiteKeyWidth * 0.6;
             const blackHalf = blackKeyWidth / 2;
             const blackGapAdjust = whiteKeyWidth / 20;
@@ -383,7 +397,14 @@
                 state.isOpen = currentPanel.classList.contains("hidden");
                 currentPanel.classList.toggle("hidden", !state.isOpen);
                 updateToggleAria(state.isOpen);
-                if (!state.isOpen) stopAllNotes();
+                if (!state.isOpen) {
+                    stopAllNotes();
+                } else {
+                    // 表示後の実幅で鍵盤数を再計算
+                    window.requestAnimationFrame(() => {
+                        createKeys();
+                    });
+                }
             });
             ui.delegatedToggleBound = true;
         }
@@ -395,6 +416,23 @@
                 createKeys();
             });
             ui.rangeBound = true;
+        }
+
+        if (!ui.longPressGuardBound) {
+            // iOS 長押し時のコピー/コールアウトUIを抑止
+            document.addEventListener("contextmenu", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (!target.closest("#pianoPanel, #pianoBackground, .key")) return;
+                event.preventDefault();
+            });
+            document.addEventListener("selectstart", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (!target.closest("#pianoPanel, #pianoBackground, .key")) return;
+                event.preventDefault();
+            });
+            ui.longPressGuardBound = true;
         }
 
         if (!ui.resizeBound) {
@@ -441,18 +479,30 @@
 
     .piano-panel {
         position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 14px;
+        right: 14px;
         bottom: clamp(78px, 10vmin, 100px);
-        width: min(1120px, calc(100vw - 16px));
-        max-width: calc(100vw - 16px);
+        width: auto;
+        max-width: 1120px;
         background: #101010;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: clamp(8px, 1.5vmin, 12px);
-        padding: clamp(6px, 1.2vmin, 12px);
+        padding: clamp(8px, 1.6vmin, 14px);
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
-        overflow-x: auto;
+        overflow-x: hidden;
         overflow-y: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
+
+    @media (min-width: 1180px) {
+        .piano-panel {
+            left: 50%;
+            right: auto;
+            width: 1120px;
+            transform: translateX(-50%);
+        }
     }
 
     .hidden {
