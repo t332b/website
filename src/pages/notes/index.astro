@@ -1,0 +1,721 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from 'astro:content';
+
+let collectionError: string | null = null;
+let posts: Awaited<ReturnType<typeof getCollection<"notes">>> = [];
+let members: Awaited<ReturnType<typeof getCollection<"member">>> = [];
+
+try {
+  posts = (await getCollection('notes'))
+    .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+} catch (_e) {
+  collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
+}
+
+try {
+  members = await getCollection('member');
+} catch (_e) {
+  members = [];
+}
+
+const memberMap = new Map(members.map(m => [m.data.id, m.data]));
+
+// アバター画像のURLを生成する関数
+function getAvatarUrl(member: any) {
+  if (member?.avatar) {
+    if (member.avatar.startsWith('http://') || member.avatar.startsWith('https://')) return member.avatar;
+    return member.avatar.startsWith('/') ? member.avatar : `/${member.avatar}`;
+  }
+  if (member?.github) {
+    return `https://github.com/${member.github}.png?size=64`;
+  }
+  return '/images/uploads/default-avatar.png'; // デフォルトアバター
+}
+---
+
+<Base title="PR0P0SE Notes">
+  <div id="notes-page-root" class="notes-container">
+    {collectionError && (
+      <div class="content-error-banner" role="alert">
+        {collectionError}
+      </div>
+    )}
+    <!-- 絞り込みUI -->
+    <div class="filters-wrapper">
+    <div class="author-buttons">
+      <button class="author-btn active" data-author="ALL">ALL</button>
+      {members.map(member => (
+        <button class="author-btn" data-author={member.data.id}>{member.data.name}</button>
+      ))}
+      
+      <!-- 詳細フィルターボタン -->
+      <button id="detailToggle" class="detail-toggle" title="詳細フィルター">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+          <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- 詳細フィルターコンテナ -->
+    <div class="detail-filter-container" style="width: 100%;">
+      
+      <!-- ポップオーバー -->
+      <div id="detailPopover" class="detail-popover" style="display: none;">
+        <div class="filter-section">
+          <label class="filter-label">期間</label>
+          <div class="date-filters">
+            <input type="date" id="fromDate" class="date-input" />
+            <span class="date-separator">〜</span>
+            <input type="date" id="toDate" class="date-input" />
+            <button id="clearDates" class="clear-btn icon-clear">  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </svg></button>
+          </div>
+        </div>
+        
+        <div class="filter-section">
+          <label class="filter-label">キーワード</label>
+          <div class="keyword-filter">
+            <input type="text" id="q" class="keyword-input" placeholder="タイトル・タグで検索..." />
+            <button id="clearQ" class="clear-btn icon-clear">  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="6" y1="6" x2="18" y2="18"/>
+    <line x1="18" y1="6" x2="6" y2="18"/>
+  </svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 一覧 -->
+  <div id="list" class="notes-list" style="display:grid; gap:16px;">
+    {posts.map(p => {
+      const date = p.data.date;
+      const d = date.toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' }); // YYYY-MM-DD (フィルター用)
+      const timeStr = date.toLocaleTimeString('ja-JP', { timeZone: 'Asia/Tokyo', hour: '2-digit', minute: '2-digit', hour12: false });
+      const dateTimeDisplay = `${d} ${timeStr}`; // 表示用「YYYY-MM-DD HH:MM」
+      const tags = (p.data.tags ?? []).join(',');
+      const member = memberMap.get(p.data.author);
+      const avatarUrl = getAvatarUrl(member);
+      
+      // 本文からプレビューテキストを生成（マークダウン記法を除去）
+      const cleanBody = p.body
+        .replace(/#+\s+/g, '') // 見出し記号を削除
+        .replace(/\*\*(.+?)\*\*/g, '$1') // 太字を削除
+        .replace(/\*(.+?)\*/g, '$1') // イタリックを削除
+        .replace(/\[(.+?)\]\(.+?\)/g, '$1') // リンクをテキストのみに
+        .replace(/`(.+?)`/g, '$1') // コードを削除
+        .replace(/\n+/g, ' ') // 改行をスペースに
+        .trim();
+      const preview = cleanBody.length > 50 ? cleanBody.substring(0, 50) + '...' : cleanBody;
+      
+      return (
+        <article class="item notes-card"
+            data-author={p.data.author}
+            data-date={d}
+            data-title={p.data.title.toLowerCase()}
+            data-tags={tags.toLowerCase()}
+            data-slug={p.slug}>
+          
+          <!-- レイアウト: アイコン + コンテンツ -->
+          <div class="card-layout">
+            <!-- アイコン -->
+            <img src={avatarUrl} alt="" 
+                 class="author-avatar"
+                 data-author-filter={p.data.author} />
+            
+            <!-- 右側コンテンツ -->
+            <div class="card-content">
+              <!-- 名前と日付 -->
+              <div class="card-header">
+                <span class="author-name author-clickable" data-author-filter={p.data.author}>
+                  {member?.name || p.data.author}
+                </span>
+                <span class="post-date">{dateTimeDisplay}</span>
+              </div>
+              
+              <!-- タイトル -->
+              <div class="card-title">{p.data.title}</div>
+              
+              <!-- プレビューテキスト -->
+              <div class="card-preview">{preview}</div>
+              
+              <!-- タグ -->
+              {p.data.tags && p.data.tags.length > 0 && (
+                <div class="card-tags">
+                  {p.data.tags.map((tag: string) => (
+                    <span class="tag" data-tag={tag}>#{tag}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </article>
+      )
+    })}
+  </div>
+  </div>
+
+  <script>
+    import { navigate } from 'astro:transitions/client';
+
+    function initNotesPage() {
+      const root = document.getElementById('notes-page-root');
+      if (!root || root.hasAttribute('data-notes-inited')) return;
+      root.setAttribute('data-notes-inited', '');
+
+      const list = document.getElementById('list');
+      if (!list) return;
+
+      const items = Array.from(list.querySelectorAll('.item'));
+      const detailToggle = document.getElementById('detailToggle');
+      const detailPopover = document.getElementById('detailPopover');
+      const authorBtns = document.querySelectorAll('.author-btn');
+      const fromInput = document.getElementById('fromDate');
+      const toInput = document.getElementById('toDate');
+      const clearDates = document.getElementById('clearDates');
+      const q = document.getElementById('q');
+      const clearQ = document.getElementById('clearQ');
+
+      let author = 'ALL';
+
+      detailToggle?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = detailPopover?.style.display !== 'none';
+        if (detailPopover) detailPopover.style.display = isOpen ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (detailPopover && detailPopover.style.display !== 'none') {
+          const target = e.target as Node | null;
+          if (target && !detailPopover.contains(target) && target !== detailToggle) {
+            detailPopover.style.display = 'none';
+          }
+        }
+      });
+
+      detailPopover?.addEventListener('click', (e) => e.stopPropagation());
+
+      function filterByAuthor(authorId: string) {
+        author = authorId;
+        authorBtns.forEach(btn => {
+          const b = btn as HTMLElement;
+          const btnAuthor = b.dataset.author;
+          if (btnAuthor === authorId) b.classList.add('active');
+          else b.classList.remove('active');
+        });
+        applyFilters();
+      }
+
+      authorBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const current = author;
+          const val = (btn as HTMLElement).dataset.author || 'ALL';
+          const fromEl = fromInput as HTMLInputElement | null;
+          const toEl = toInput as HTMLInputElement | null;
+          const qEl = q as HTMLInputElement | null;
+
+          // ALL を押したとき、または同じメンバーをもう一度押したときは「絞り込み解除」
+          if (val === 'ALL' || (current !== 'ALL' && current === val)) {
+            if (fromEl) fromEl.value = '';
+            if (toEl) toEl.value = '';
+            if (qEl) qEl.value = '';
+            filterByAuthor('ALL');
+          } else {
+            filterByAuthor(val);
+          }
+        });
+      });
+
+      items.forEach(item => {
+        const el = item as HTMLElement;
+        el.addEventListener('click', (e) => {
+          const target = e.target as HTMLElement | null;
+          if (target?.classList?.contains('author-avatar') || target?.classList?.contains('author-clickable')) return;
+          const slug = el.dataset.slug;
+          if (slug) navigate(`/notes/${slug}/`);
+        });
+      });
+
+      document.querySelectorAll('.author-avatar, .author-clickable').forEach(el => {
+        const elem = el as HTMLElement;
+        elem.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const authorId = elem.dataset.authorFilter;
+          if (authorId) filterByAuthor(authorId);
+        });
+      });
+
+      const fromEl = fromInput as HTMLInputElement | null;
+      const toEl = toInput as HTMLInputElement | null;
+      const qEl = q as HTMLInputElement | null;
+      if (fromEl) fromEl.addEventListener('change', applyFilters);
+      if (toEl) toEl.addEventListener('change', applyFilters);
+      clearDates?.addEventListener('click', () => {
+        if (fromEl) fromEl.value = '';
+        if (toEl) toEl.value = '';
+        applyFilters();
+      });
+
+      if (qEl) qEl.addEventListener('input', applyFilters);
+      clearQ?.addEventListener('click', () => {
+        if (qEl) qEl.value = '';
+        applyFilters();
+      });
+
+      // タグクリックでそのタグで絞り込み
+      document.querySelectorAll('.card-tags .tag').forEach(el => {
+        const tagEl = el as HTMLElement;
+        tagEl.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const raw = tagEl.dataset.tag || tagEl.textContent || '';
+          const tagText = raw.replace(/^#/, '').trim();
+          if (qEl) {
+            qEl.value = tagText;
+          }
+          applyFilters();
+        });
+      });
+
+      function applyFilters() {
+        const from = fromEl?.value ? new Date(fromEl.value) : null;
+        const to = toEl?.value ? new Date(toEl.value) : null;
+        const query = (qEl?.value ?? '').trim().toLowerCase();
+
+        items.forEach(item => {
+          const el = item as HTMLElement;
+          const a = el.dataset.author;
+          const d = new Date(el.dataset.date || '');
+          const text = ((el.dataset.title || '') + ' ' + (el.dataset.tags || '')).toLowerCase();
+          let ok = true;
+          if (author !== 'ALL' && a !== author) ok = false;
+          if (from && d < from) ok = false;
+          if (to && d > to) ok = false;
+          if (query && !text.includes(query)) ok = false;
+          el.style.display = ok ? '' : 'none';
+        });
+      }
+
+      // URL の ?author=xxx があればその著者で絞り込み（記事ページから「名前/アイコン」で飛んできた場合）
+      const urlParams = new URLSearchParams(window.location.search);
+      const authorParam = urlParams.get('author');
+      if (authorParam) {
+        filterByAuthor(authorParam);
+      } else {
+        applyFilters();
+      }
+    }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNotesPage);
+  } else {
+    initNotesPage();
+  }
+  document.addEventListener('astro:page-load', () => {
+    initNotesPage();
+    // View Transitions で /notes/?author=xxx に遷移した場合も絞り込みを適用
+    const onNotesIndex = location.pathname === '/notes' || location.pathname === '/notes/';
+    if (!onNotesIndex) return;
+    const authorParam = new URLSearchParams(location.search).get('author');
+    if (!authorParam) return;
+    const btn = document.querySelector(`.author-btn[data-author="${CSS.escape(authorParam)}"]`) as HTMLElement | null;
+    if (btn) btn.click();
+  });
+  </script>
+
+  <style>
+    /* ノートコンテナ（スマホではみ出さないように） */
+    .notes-container {
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0 1rem;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+    .content-error-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+
+    .notes-list {
+      min-width: 0;
+    }
+
+    /* 絞り込みUIラッパー */
+    .filters-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    /* 著者ボタン */
+    .author-buttons {
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .author-btn {
+      appearance: none;
+      border: 1.5px solid var(--wa-butter);
+      background: white;
+      color: var(--fg);
+      padding: 0.375rem 0.875rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .author-btn:hover {
+      background: var(--wa-cream);
+      border-color: var(--accent);
+    }
+
+    .author-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* 詳細フィルターコンテナ */
+    .detail-filter-container {
+      position: relative;
+    }
+
+    /* 詳細ボタン */
+    .detail-toggle {
+      appearance: none;
+      border: 1.5px solid var(--wa-butter);
+      background: white;
+      color: var(--fg);
+      padding: 0.5rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+    }
+
+    .detail-toggle:hover {
+      background: var(--wa-cream);
+      border-color: var(--accent);
+    }
+
+    .detail-toggle svg {
+      display: block;
+    }
+
+    /* ポップオーバー */
+    .detail-popover {
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      left: 0;
+      min-width: 280px;
+      max-width: min(400px, calc(100vw - 2rem));
+      width: max-content;
+      background: var(--card);
+      border: 2px solid var(--wa-butter);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      z-index: 100;
+      box-sizing: border-box;
+    }
+
+    /* 画面からはみ出さないように（スマホ） */
+    @media (max-width: 400px) {
+      .detail-popover {
+        min-width: 0;
+        width: calc(100vw - 2rem);
+        max-width: calc(100vw - 2rem);
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    }
+
+    .filter-section {
+      margin-bottom: 0.875rem;
+    }
+
+    .filter-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .filter-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* 日付フィルター */
+    .date-filters {
+      display: flex;
+      gap: 0.375rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .date-input {
+      border: 1.5px solid var(--wa-butter);
+      background: white;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      color: var(--fg);
+      transition: all 0.2s ease;
+    }
+
+    .date-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--ring);
+    }
+
+    .date-separator {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    /* キーワード検索 */
+    .keyword-filter {
+      display: flex;
+      gap: 0.375rem;
+      align-items: center;
+    }
+
+    .keyword-input {
+      flex: 1;
+      border: 1.5px solid var(--wa-butter);
+      background: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      color: var(--fg);
+      transition: all 0.2s ease;
+    }
+
+    .keyword-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--ring);
+    }
+
+    .keyword-input::placeholder {
+      color: var(--muted);
+    }
+
+    /* クリアボタン */
+   .clear-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: red;
+
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: var(--wa-cream);
+  color: var(--accent);
+}
+
+.clear-btn:active {
+  transform: scale(0.92);
+}
+
+    /* 記事カード */
+    .notes-card {
+      background: white;
+      border: 2px solid var(--wa-butter);
+      border-radius: 12px;
+      padding: 1rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      min-width: 0;
+    }
+
+    .notes-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 4px 12px rgba(45, 122, 120, 0.1);
+    }
+
+    .card-layout {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .author-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .author-avatar:hover {
+      transform: scale(1.05);
+    }
+
+    .card-content {
+      flex: 1;
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .author-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--fg);
+    }
+
+    .author-clickable {
+      text-decoration: underline;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+
+    .author-clickable:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    .post-date {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .card-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--fg);
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .card-preview {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .card-tags .tag {
+      color: var(--accent);
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-underline-offset: 0.15em;
+    }
+
+    .card-tags .tag:hover {
+      color: var(--wa-mustard);
+    }
+    
+    /* レスポンシブ */
+    @media (max-width: 768px) {
+  .filters-wrapper {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+      .author-buttons {
+        justify-content: flex-start;
+      }
+
+      .detail-popover {
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      .date-filters,
+      .keyword-filter {
+        flex-wrap: wrap;
+      }
+
+      .date-input,
+      .keyword-input,
+      .clear-btn {
+        font-size: 0.75rem;
+      }
+      
+      .notes-card {
+        padding: 0.75rem;
+      }
+
+      .card-layout {
+        gap: 0.5rem;
+      }
+
+      .author-avatar {
+        width: 40px;
+        height: 40px;
+      }
+
+      .author-name,
+      .card-title {
+        font-size: 0.85rem;
+      }
+
+      .post-date {
+        font-size: 0.75rem;
+      }
+
+      .card-preview {
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</Base>

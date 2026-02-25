@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+    <meta name="theme-color" content="#007cba"/>
+    <title>pr0p0se CMS (Sveltia)</title>
+
+    <link rel="cms-config-url" type="text/yaml" href="config.yml" />
+    <link rel="stylesheet" href="cms.css" />
+
+  </head>
+  <body>
+    <div id="nc-root"></div>
+    <!-- Sveltia CMS（Cloudinary はネイティブ対応のため custom-widgets 不要） -->
+    <script src="https://unpkg.com/@sveltia/cms@latest/dist/sveltia-cms.js"></script>
+    <link href="mobile-overrides.css" rel="stylesheet" />
+  </body>
+</html>

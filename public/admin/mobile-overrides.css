@@ -1,0 +1,381 @@
+/** Adapted By Mani Kumar (https://manikumar.in/blog/mobile-optimized-decap-netlify-cms/) From Source: https://gist.github.com/searls/7fd2c3223571a58a81006e7da66bd064 */
+ @media (max-width: 799px) {
+    /* Bring Any Dropdown To Center Of Page */
+     [class*=DropdownList]{
+         position: fixed;
+         min-width: 20%;
+         width: 90%;
+         margin: auto;
+         height: fit-content;
+         top: auto;
+         left: 0;
+         right: 0;
+         bottom: 10px;
+         background: #e6f4fd;
+         border: 2px solid #3a69c7;
+    }
+    /* Add Overflow To Modal Window */
+     [class*=StyledModal]{
+         width: 90dvw;
+         width: 90%;
+    }
+     [class*=LibraryTitle]{
+         display: none;
+    }
+     [class*=CollectionTopNewButton]{
+         padding: 0px 10px !important;
+         height: auto;
+    }
+     [class*=LibraryTop]{
+         overflow-x: auto;
+         height: fit-content;
+         padding-bottom: 10px;
+    }
+    /* Hide Note Post Title From Navbar */
+    [class*=BackCollection]{
+        display: none;
+    }
+    /* Hide ToolbarSectionMeta (site link and avatar) on mobile */
+    [class*=ToolbarSectionMeta]{
+        display: none !important;
+    }
+    /* Add Padding To Control Pane */
+     [class*=ControlPaneContainer] {
+         padding: 0px 10px;
+    }
+    /* Rest As Per: Searl's Code*/
+     [class*=BackCollection], [class*=BackStatus] {
+         font-size: .6rem;
+    }
+     [class*=AppHeaderContent], [class*=AppMainContainer] {
+         margin-right: 0;
+         margin-left: 0;
+         min-width: calc(100vw - 24px);
+         max-width: 100vw;
+    }
+     [class*=AppHeaderContent] {
+         display: flex;
+         justify-content: space-between;
+    }
+     [class*=AppHeaderQuickNewButton] {
+         width: 100%;
+    }
+     [class*=AppHeaderButton] {
+         padding-left: 4px;
+         padding-right: 4px;
+    }
+     [class*=EditorContainer], [class*=ToolbarContainer] {
+         min-width: initial;
+         overflow-x: auto;
+    }
+     [class*=ToolbarSubSectionFirst] {
+         display: flex;
+         flex-direction: column;
+    }
+     [class*=PublishedToolbarButton] {
+         padding: 0 8px;
+         display: block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+     }
+     [class*=PublishedToolbarButton]::after {
+         display: none;
+     }
+     [class*=ToolbarSubSectionFirst] {
+         flex-direction: row;
+    }
+     [class*=SearchInput] {
+         margin-top: 5px;
+    }
+     [class*=ViewControls] {
+         position: initial;
+    }
+     [class*=PreviewPaneContainer-ControlPaneContainer] {
+         padding: 0;
+    }
+     [class*=ControlPaneContainer] {
+         max-width: 100vw;
+    }
+     [class*=EditorControlBar] [class*=ToolbarContainer] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 4px !important;
+         align-items: center !important;
+     }
+     [class*=CollectionContainer] {
+         display: flex;
+         flex-direction: column;
+    }
+     [class*=SidebarContainer] {
+         position: initial;
+         width: initial;
+    }
+     [class*=CollectionMain] {
+         padding-left: 0;
+         margin-top: 20px;
+     }
+     
+     /* Publishボタンの表示を確実にする */
+     /* [class*=PublishedToolbarButton],
+     [class*="PublishButton"],
+     [class*="publish-button"],
+     button[class*="publish"],
+     button[class*="Publish"],
+     button[title*="Publish"],
+     button[title*="publish"],
+     button[aria-label*="Publish"],
+     button[aria-label*="publish"] {
+         display: block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+         background: #007cba !important;
+         color: white !important;
+         border: none !important;
+         padding: 12px 24px !important;
+         border-radius: 4px !important;
+         font-size: 16px !important;
+         min-height: 44px !important;
+         margin: 8px 0 !important;
+         position: relative !important;
+         z-index: 9999 !important;
+         width: auto !important;
+         max-width: none !important;
+     } */
+     
+    /* ツールバー全体の調整 */
+    /* エディタ内のToolbarContainerは非表示（JavaScriptで制御） */
+    [class*=ToolbarContainer] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+     
+     /* ボタンが隠れないようにする */
+     [class*=ToolbarSubSectionFirst] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 8px !important;
+     }
+     
+     /* エディタエリアの調整 */
+     [class*=EditorContainer] {
+         position: relative !important;
+         z-index: 1 !important;
+     }
+     
+    /* ===== 書式バーを画面下端に固定（flex は使わず fixed のみ・本文レイアウトはそのまま） ===== 
+    →これを入れるとタグ・本文が崩れるのでコメントアウト
+    */
+    /* .cms-editor-visual [class*="EditorControlBar"] {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: auto !important;
+        background: white !important;
+        z-index: 500 !important;
+        padding: 10px 12px !important;
+        border-top: 1px solid #e1e8ed !important;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.08) !important;
+    } */
+
+    /* .cms-editor-visual [class*="EditorControlBar"] + div {
+        padding-bottom: 64px !important;
+    } */
+     
+     [class*=ToolbarContainer] {
+         position: relative !important;
+         background: transparent !important;
+         z-index: 1 !important;
+         padding: 0 !important;
+         border: none !important;
+     }
+     
+     /* マークダウンエディタの調整 */
+     [class*=MarkdownEditor] {
+         margin-top: 0 !important;
+     }
+     
+     /* ===== リッチテキスト（Slate）本文: 改行・段落の余白を詰める ===== */
+     [data-slate-editor="true"],
+     .cms-editor-visual [role="textbox"] {
+         line-height: 1.5 !important;
+     }
+     
+     [data-slate-editor="true"] p,
+     [data-slate-editor="true"] [class*="StyledP"],
+     .cms-editor-visual [class*="StyledP"] {
+         margin-top: 0 !important;
+         margin-bottom: 0.35em !important;
+         line-height: 1.5 !important;
+     }
+     
+     [data-slate-editor="true"] p + p,
+     .cms-editor-visual [class*="StyledP"] + [class*="StyledP"] {
+         margin-top: 0.35em !important;
+     }
+     
+     /* マークダウン用 textarea（切替時） */
+     [class*=MarkdownEditor] textarea,
+     [class*=EditorContainer] textarea {
+         line-height: 1.5 !important;
+         padding: 12px !important;
+     }
+     
+     /* プレビュー側の段落・改行の余白を詰める */
+     [class*=PreviewPaneContainer] p,
+     [class*=PreviewPaneContainer] .markdown-body p {
+         margin-top: 0 !important;
+         margin-bottom: 0.5em !important;
+         line-height: 1.6 !important;
+     }
+     
+     [class*=PreviewPaneContainer] p + p,
+     [class*=PreviewPaneContainer] .markdown-body p + p {
+         margin-top: 0.5em !important;
+     }
+     
+     [class*=PreviewPaneContainer] br,
+     [class*=PreviewPaneContainer] .markdown-body br {
+         display: block !important;
+         content: "" !important;
+         margin-top: 0.25em !important;
+     }
+     
+     /* プレビューペインの調整 */
+     [class*=PreviewPaneContainer] {
+         margin-top: 0 !important;
+     }
+     
+     /* コントロールペインの調整 */
+     [class*=ControlPaneContainer] {
+         margin-top: 0 !important;
+     }
+     
+     /* Rich Text 固定: Markdown 切替トグルを非表示 */
+     .cms-editor-visual [class*="ToolbarToggle"] {
+         display: none !important;
+     }
+     
+     /* エディタのボタンを横並びに */
+     [class*=EditorControlBar] button,
+     [class*=ToolbarContainer] button,
+     [class*=MarkdownEditor] button {
+         display: inline-block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+         margin: 2px !important;
+         padding: 8px !important;
+         min-width: 32px !important;
+         height: 32px !important;
+     }
+     
+     /* エディタのツールバーグループ */
+     [class*=ToolbarSubSection] {
+         display: flex !important;
+         flex-direction: row !important;
+         flex-wrap: wrap !important;
+         gap: 4px !important;
+         align-items: center !important;
+     }
+     
+     /* ツールバー内のボタンのみ確実に表示（フォーム全体の button は触らない） */
+     [class*="EditorControlBar"] button,
+     [class*="ToolbarContainer"] button {
+         display: inline-block !important;
+         visibility: visible !important;
+         opacity: 1 !important;
+     }
+     
+    /* タグ・タイトル・日付などのラベルを通常サイズに（(optional) を小さく） */
+    [class*="ControlPaneContainer"] [class*="ControlContainer"] label,
+    [class*="ControlPaneContainer"] [class*="ControlTopbar"] label,
+    [class*="FieldLabel"] {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        line-height: 1.3 !important;
+    }
+    [class*="ControlPaneContainer"] [class*="FieldLabel"] span,
+    [class*="FieldLabel"] span {
+        font-size: 12px !important;
+        font-weight: normal !important;
+        color: #666 !important;
+    }
+    /* タグ・著者などの入力欄をコンパクトに（本文以外のフィールド） */
+    [class*="ControlPaneContainer"] input[type="text"],
+    [class*="ControlPaneContainer"] input[type="date"] {
+        min-height: 40px !important;
+    }
+    [class*="ControlHint"] {
+        font-size: 12px !important;
+        margin-top: 4px !important;
+    }
+     
+     
+     /* ===== プレビューエリア ===== */
+     .mobile-preview-pane {
+         display: none !important;
+         position: fixed !important;
+         top: 0 !important;
+         left: 0 !important;
+         right: 0 !important;
+         bottom: 0 !important;
+         background: white !important;
+         z-index: 999 !important;
+         overflow-y: auto !important;
+         padding: 60px 16px 20px !important;
+     }
+     
+     .mobile-preview-pane.active {
+         display: block !important;
+     }
+     
+     .mobile-preview-close {
+         position: fixed !important;
+         top: 20px !important;
+         right: 20px !important;
+         width: 44px !important;
+         height: 44px !important;
+         background: #dc2626 !important;
+         color: white !important;
+         border: none !important;
+         border-radius: 50% !important;
+         font-size: 20px !important;
+         cursor: pointer !important;
+         z-index: 1001 !important;
+     }
+     
+     /* ===== フォーム要素の調整 ===== */
+     input[type="text"],
+     input[type="email"],
+     input[type="url"],
+     input[type="date"],
+     textarea,
+     select {
+         width: 100% !important;
+         font-size: 16px !important;
+         padding: 12px !important;
+         border: 2px solid #e1e8ed !important;
+         border-radius: 8px !important;
+         min-height: 44px !important;
+         box-sizing: border-box !important;
+         margin-bottom: 16px !important;
+     }
+     
+     textarea {
+         min-height: 120px !important;
+         resize: vertical !important;
+     }
+     
+     label {
+         display: block !important;
+         font-size: 16px !important;
+         font-weight: 600 !important;
+         margin-bottom: 8px !important;
+         color: #333 !important;
+     }
+}

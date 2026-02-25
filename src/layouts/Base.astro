@@ -1,0 +1,750 @@
+---
+import "../styles/theme.css";
+import "../styles/release-detail.css";
+import { ViewTransitions } from "astro:transitions";
+import { getCollection } from "astro:content";
+import AudioPlayer from "../components/AudioPlayer.astro";
+import Navigation from "../components/Navigation.astro";
+import Piano from "../components/Piano.astro";
+
+const members = await getCollection("member");
+const memberById = (id: string) => members.find((m) => m.data.id === id)?.data ?? null;
+const daijinMember = memberById("onomatopedaijin");
+const thamesMember = memberById("thamesbeat");
+
+function avatarUrl(m: { avatar?: string; github?: string } | null): string {
+  if (!m) return "/images/illust/fixed_daijin.svg";
+  if (m.avatar) {
+    if (m.avatar.startsWith("http://") || m.avatar.startsWith("https://")) return m.avatar;
+    return m.avatar.startsWith("/") ? m.avatar : `/${m.avatar}`;
+  }
+  if (m.github) return `https://github.com/${m.github}.png?size=128`;
+  return "/images/uploads/default-avatar.png";
+}
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PR0P0SE</title>
+
+    <!-- イラストキャプション用手書き風フォント -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&display=swap" rel="stylesheet" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/images/favicon.ico" />
+
+    <!-- View Transitions でページ遷移時も再生状態を維持 -->
+    <ViewTransitions />
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <!-- タイトル行 -->
+        <div class="header-title">
+          <div class="header-brand-wrap">
+            <a class="brand" href="/">
+              <svg
+                class="brand-logo"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 260.52 50.28"
+                fill="currentColor"
+                aria-label="PR0P0SE"
+              >
+                <path
+                  d="M212.37,47.93l-1.74.16c-.47-.13-.99-.07-1.46.15-1.35.63-.92-.31-2.63.1-.81.19-1.62.22-2.38-.12-1.12.13-2.09-.47-2.77-1.31-.75-.26-1.31-.69-1.86-1.24-1.12-1.13-2.01-2.29-2.74-3.78-.12-.85-.16-1.96.27-2.79,1.1-2.13-.58-.32,1.34-2.83.32-.42.71-.94,1.3-.69.35.15.73.32,1.07.48,1.8.87,1.07.19,2.65,1.61.98.14,1.63.6,2.4,1.09,1.4.89.52.55,2.15,1.11.58-.44,1.13-.51,1.81-.54,1.7-.07.92.47,2.33.76,1.13-1.12.64-.47,1.87-1.29.92-.62,2.59-2.03,2.64-3.12.03-.67-.56-1-.86-1.43-.66-.98-1.21-1.99-2.1-2.82-.73-.68-1.69-.73-2.61-1.59-.61-.16-1.45.11-2.04-.12l-1.29-.52-1.88-.77c-.35-.14-.69-.35-1.08-.44-.47-.12-.89-.28-1.32-.44-1.03-.38-1.84-.84-2.66-1.58-1.29-1.17-1.48-.91-2.64-2.51-.58-.8-.96-1.66-1.28-2.61l-.64-1.86c-.45-1.31-.58-1.56-.52-3.08.04-.93.12-1.79.52-2.65.13-.28.23-.73.36-.96.31-.54.52-.97.74-1.57.15-.42.65-.85.83-1.26.73-1.68,1.89-2.81,3.3-3.92l1.07-.84c.68-.53,1.37-1.06,2.16-1.42.88-.41,1.58-1.02,2.42-1.55.38-.24,1.26-.48,1.72-.41,1.84.3,3.54.35,5.3-.24,1.93.32,2.89.33,4.58,1.26l1.63.91c.35.2.59.69.86.9l1.52,1.14c1.03.77,1.89,1.73,2.09,3.09l-.35,2.08c-.05.27-.39.78-.53,1.01l-.55.88-.68,1.07c-.29.45-1.25,1.02-1.84.99-.44-.02-1.09-.17-1.47-.3l-2.1-1.83-1.92-1.29c-.49-.33-2.52-1.01-3.27-1.22-.56-.16-1.47-.17-2.01.05s-.99.46-1.5.54c-.72.1-.96.59-1.36,1.05-.25.28-.48.51-.62.85l-.93,2.18-.93,2.53c-.27.73.07,1.14.51,1.71.19.25.4.63.68.86.54.45,1.05.8,1.62,1.15.53.33.94.37,1.56.33s1.29.47,1.89.49c.65.02,1.07.2,1.62.46l1.31.62c.72-.55,3.51-.4,4.16-.09l1.02.48c.6.28,2.41,1.4,2.41,2.31.58.27.5.87.71,1.35l.71,1.69c.49,1.16.51,2.45.76,3.1.77,2.01.15,1.54.2,3.06.02.61.05,1.22-.19,1.76-.11.25-.09.47-.16.76l-.63,2.37c-.31,1.16-1,3.46-2.11,4.03-.34.17-.5.53-.76.79l-1.48,1.44c-2.45,2.39-3.01.08-4.16,1.36-.52.58-1.11.86-1.99.94Z"
+                >
+                </path>
+                <path
+                  d="M254.98,37.2l1.1.58c.78,1,.59,2.91.23,3.94l-.54,1.53c-.43,1.24-.14,1.86-1.67,2.55-.32.14-.57.13-.93.1-2.5-.21-3.4.28-4.36.16-1.57-.19-1.42-.23-3,.11l-1,.21c-.6.13-1.23-.11-1.8-.1-.69.01-1.26.09-1.95-.14l-.89-.1-1.18-.39c-.43-.14-.86-.51-1.31-.71-.52-.23-1.15-.55-1.45-1.03-1.1-1.71-1.31-3.55-1.47-5.58l-.5-6.23c-.09-1.12-.06-2.16-.07-3.26l-.04-3.33-.2-2.62-.11-2.04-.22-2.73-.12-1.96-.02-.78c-.01-.58,0-1.07.15-1.63-.44-1.21.12-1.32-.52-2.27-.29-.43-.27-.82-.21-1.32l.12-1.09c.35-.54.51-1.28.89-1.77l1.86-2.44c.19-.24.66-.59.92-.68l1.81-.63c.35-.12.99,0,1.36-.1.47-.12.87-.18,1.35-.2l2.28-.06c1.83-.05,1.98.59,4.09.19,1.71-.32,2.02-.14,2.99-.2,1.09-.07,2.14-.02,3.24-.02.32,0,2.53-.51,3.08.83.44,1.06.2,1.88-.12,2.91-.17.54-.17,1.11-.53,1.65-.53.79-.29,1.79-1.12,2.3-.38.23-.75.08-1.16.03l-2.4-.31c-.61.25-1.18.32-1.82.37l-3.84.3c-.75.06-1.38.11-2.09.3l-1.02.28-1.08.23c-.22.21-.39.77-.43,1.11-.2,1.86.22.84-.11,2.65-.18,1.01.03,2.44.59,3.05,1.47,1.62,1.68,1.39,3.05.95.59-.19,1.1-.1,1.68-.08l2.15.08c.58.02,1.11.08,1.68,0l1.33-.19c.45-.06.84-.04,1.22.18.27.16.61.64.55,1.02-.11.69-.16,1.38-.31,2.01s-.56,1.11-.39,1.87c.13.58-.16,1.15-.33,1.66-.54,1.63-1.23,1.34-2.89,1.61-.31.05-.64.14-.96.17l-1.23.1c-.36.03-.84.1-1.18.08-1.18-.06-2.34-.18-3.48.02-.68.12-.77.74-.7,1.33l.14,1.19.65,2.26.38,1.42c.17.63.86,1.45,1.48,1.64l1.35.42c.92.29,1.76.56,2.74.56.54,0,1.15-.05,1.44.54.7.03,1.35.03,1.99-.09.93-.18,1.76-.27,2.85-.41Z"
+                >
+                </path>
+                <path
+                  d="M11.38,32.11c-.9-.15-2.28.37-2.21,1.01.06.51.1.98.13,1.45l.05.89c.02.37.13.67.26,1.04.23.64.06,1.45.08,2.12.12,3.72-.54,2.66-.71,3.41-.13.57-.2,1.15-.45,1.64l-.49.99c-.25.5-.33,1.21-.87,1.51-.37.21-.64.47-.98.75-.22.19-.76.38-1.06.54-.56.32-1.08.22-1.55-.18-.26-.22-.66-.51-.87-.76-.52-.63-.67-1.53-.64-2.29l.04-.91c.04-.8.02-1.55,0-2.37l.13-.85c.23-1.46-.03-.93-.05-2.51l-.03-2.1-.07-2.51-.39-4.11.03-1.08-.04-.97-.06-3.11c-.01-.62-.17-1.27-.16-1.89,0-.38-.03-.67-.08-1.05-.41-2.78-.54-4.5-.42-7.35l.03-.83.05-1.22c.04-1.04.61-1.85.62-2.86.01-.75.62-1.31.89-1.92.89-2.01,1.56-3.23,4.08-3.31,1.38-.04,2.69-.08,4.06.13,1.56.24,1.85-.13,3.29.1.98.15,1.99.25,2.98.3.78.04,1.87.13,2.48.76,1.26.43,2.2.12,3.04,1.35l.8.34c.81.34,1.36.75,1.91,1.38.65.75,1.36,1.53,1.32,2.61.41.32,1.06,1.95,1.21,2.42l.37,1.18c.13.43.39.85.59,1.3.16.35-.07.85-.08,1.21-.05,1.83.02,1.5.36,3.06.13.58-.27,1.1-.37,1.61l-.51,2.62c-.14.72-.26,1.35-.72,1.94-.62.81-.11.99-1.69,1.44,0,.69-.33,1.11-.84,1.56-.24.21-.45.85-.75.98-.4.17-.72.29-1,.6-1.02,1.14-1.08-.08-2.66.58-.28.12-.76.05-1.02.11l-2.06.46-1.57.72c-.51.23-2.76.1-2.72.09-.63.11-1.11.11-1.73,0ZM14.74,23.88c2.44-1.08,2.81.12,5.67-2.2.28-.23.39-.46.58-.77l1.27-2.03c.41-.65-.83-3.1-1.28-3.79-.59-.9-2.56-1.55-3.38-2-1.19-.64-2.38-1.04-3.71-.67-.64-.6-1.83-.56-2.7-.09-.5.27-1.22.39-1.67.73l-.77.57c-.7.94-.63,2.21-.66,3.31l-.18.74c.78.38.65,1.15.78,1.82l.23,1.19c.06.31.13.89.29,1.12l.5.73c.82-.01,1.48.44,2.19.72.4.16.82.14,1.21.41.35.24,1.2.39,1.62.21Z"
+                >
+                </path>
+                <path
+                  d="M52.85,33.41c-2.4-3.19-1.46-1.51-2.71-2.78-.31-.32-1.04.21-2.17.18l-1.73-.04-.61.53c-.13.62.1,1.23.14,1.88l.11,1.6c.04.53.47,1.07.4,1.58-.24,1.7.3.24.29,2.41,0,1.07-.11,2.04-.54,2.98-.48,1.03-.95,2-1.55,2.97-.37.6-.74,1.06-1.39,1.41-.38.21-.87.43-1.27.23-.51-.26-1.78-.72-1.8-.74-.56-.36-.99-1.08-1.25-1.7-.24-.56.34-3.69.27-4.2l-.2-1.65c.09.7-.02-4.25-.16-3.26.2-1.51-.24-2.77-.25-3.95l-.03-1.89.12-.91c-.05-.81.09-1.66.38-2.48-.26-1.65.07-.89.14-2.71.02-.59,0-1.11,0-1.7l.02-.69c.02-.95-.03-1.82.02-2.77l.08-1.41c-.02.27-.13-1.33-.13-1.82v-1.5s0-1.59,0-1.59l.03-1.7c.02-1.28-.29-2.01.37-2.61.81-.73.49-1.75,2.62-3.54.85-.72,2.61-1.1,3.54-.78,1.34.45.95-.57,2.29-.12,1.41.48,2.27,0,2.98.46.45.3.83.38,1.34.3l.44.03c.43-.23.87-.23,1.33-.04.88.37,1.83.35,2.76.64.48.15,2.65,1.73,3.1,2.25.99,0,1.27.82,1.83,1.43l1.29,1.42c.52.58.65,1.21.89,1.93l.6,1.78c.14.4.22.82.32,1.26l.34,1.55c.48,2.22-.15,2.58-.13,3.72l.02.88c.04,2.14-.31,1-1.25,2.79-.22.43-.65.84-.78,1.31-.33,1.2-.42,2.07-2,2.51l-1.13.31c.25,1.21.78,2.09,1.38,3.09l.63,1.06.15.59c.47.33.57.83.7,1.37l.38,1.67c.06.25.31.68.41.95l.48,1.25c.22.57.55,1.07.67,1.7.53,2.7.22,2.59-.19,5l-.18,1.04c-.04.26-.35.74-.55.96-.17.18-.66.32-.93.42l-.43-.39c-.22.24-.52.5-.76.55-.43.08-.72-.18-1.05-.41l-1.21-.84c-.21-.15-.39-.51-.55-.75l-1.48-2.24c-.52-.79-.92-1.55-1.35-2.39l-.97-1.89c-.42-.82-.82-1.67-1.11-2.55-.25-.73-.5-1.3-1-1.97ZM54,21.66c.96-.84,1.74-.99,2.69-1.85.43-.39.52-1.14.72-1.66.47-1.23.26-1.92-.22-3.16-.19-.5-.37-1.1-.82-1.48-.98-.83-1.52-1.12-2.68-1.43l-1.47-.4c-1.08-.29-1.1.29-2.81-.06-.44-.09-.72.07-1.08.31-.26.18-.94.28-1.12.53l-.68.94c.09.8-.04,1.49-.46,2.18v3.12s.02,1.82.02,1.82c1.34.91,1.22,1.36,2.84,1.79.38.1.71.13,1.1.11l1.63-.07c.67-.56,1.45-.79,2.34-.7Z"
+                >
+                </path>
+                <path
+                  d="M125.74,37.06l.12,1.37c.1,1.05.06,2.22-.51,3.14-.25.4-.32,1.18-.65,1.5-.81.78-1.71,1.58-2.86,1.68-.64.06-1.56-.12-2-.54-1.93-1.81-1.01-1.46-1.26-5.27-.12-1.86.1-1.46-.09-3.24l-.14-1.3-.05-1.11-.07-3.56-.4-2.91-.16-2.15c-.08-1.12-.15-2.12,0-3.23.06-.43-.03-.89-.13-1.29-.24-.98-.24-1.98-.27-3-.02-.53-.13-.98-.22-1.48-.06-.33.02-.82-.09-1.16-.16-.49-.06-.89.03-1.37l.39-1.91c.21-1.03-.41-1.67.16-2.71.46-.84,1.05-1.56,1.6-2.33s1.02-1.11,1.93-1.4c.56-.18,1.1-.89,1.77-1.02.33-.06.78-.3,1.06-.33.76-.1,1.32-.17,2.01-.45.58-.24,1.34-.03,1.95-.05,1.97-.08,4.65.22,6.43,1.07,1.4.68,1.47.11,2.75,1.07,1.72.65,1.77-.08,3.43,1.38l.9.79c.32.28.56.62.81.98,1.2,1.65,1.45,2.45,1.83,4.43.14.72.72,1.37.43,2.18.44.97.15,2.01.06,3.01-.04.49.01.96-.18,1.45-.32.81-.78,1.99-1.76,2.23-.15,2.13-1.2,4.64-3.34,5.5-.21.28-.66.66-.87.9-.62.7-1.04,1.13-1.93,1.51-.45.19-1.68,1.24-2.08,1.28-.82.09-1.36.4-2.05.73-2.38,1.16-3.28.7-5.1,1.46-.88.37-1.48.93-1.47,1.89l.03,2.26ZM135.02,22.51c.65-.25,1.26-.56,1.76-1.03.84-.79,1.87-.91,1.92-3.38.02-1.31-.55-2.15-1.24-3.13-.55-.77-.89-1.84-1.94-2.1l-2.36-.56c-.37-.09-.7-.16-1.11-.24l-2.86-.6c-1.09-.23-2.24.13-2.68,1.35-.5,1.39-.52,1.48-.27,2.79.11.58.02,1.31,0,1.92l-.1,2.73c-.02.44-.01.85,0,1.33s-.1,1.06.46,1.38c2.61,1.52,2.17.42,4.66,1.1,1.43-.41,2.53-.67,3.77-1.56Z"
+                >
+                </path>
+                <path
+                  d="M179.55,41.58c-.56.55-1,.95-1.62,1.34-1.85,1.17-2.3.75-3.94.7l-3.17-.1c-2.19-.07-2.21.77-4.95,1.19-1.07.16-3.71-.75-4.53-1.28-.35-.23-.93-.42-1.2-.71s-.49-.56-.81-.78c-.49-.33-.64-.87-.7-1.47l-.8-.83c-1.07-2.71-1.63-1.19-2.46-4.08-.16-.54-.66-1.51-1-2.37-.37-.96-.73-1.87-1.02-2.87-.49-1.69-1.37-1.59-1-3.98.1-.66.23-1.28.23-1.91v-1.95c-.01-.62,0-1.2.14-1.81l.39-1.74c.33-1.48.07-1.11.24-2.81.22-2.2,3.18-6.64,4.69-8.26.38-.4.65-.66.93-1.16.32-.58.97-1.02,1.44-1.51.57-.6,1.07-1.27,1.81-1.66.58-.3,1.45-.36,1.94-.81,1.88-1.72,3.05-1.02,5.89-1.09.39,0,3.37.38,3.56.45l1.97.81c.28.11.75.49.95.7.47.49,1.02.75,1.64,1.05.48.23.56,1.23,1.21,1.36.43.09.39.62.66.81l1.81,1.28c.13.09.3.38.44.44.99.41,1.4,1.44,1.73,2.47.13.41.59.8.8,1.18.89,1.67.42.38,1.35,2.18.41.8,1.15,1.49,1.41,2.37.11.39-.06,1.01.11,1.35.22.45.18.86.26,1.29l.25,1.4c.12.69.21,1.36,0,2.08-.16.57.01,1.03.04,1.6l.06,1.06c.01.27,0,.76-.08,1-.25.68-.27,1.36-.49,2.03l-.66,1.95c-.21.63-.5,1.31-.59,1.96-.13.94-.37,1.71-.94,2.49-.3.41-.56.89-.83,1.31l-.58.89c-.33.5-.94.83-1.37,1.23-.5.46-.97.91-1.6,1.16-.14.54-.42.88-.79,1.24l-.81.81ZM162.87,23.1c.62-.08,1.23-.36,1.78-.61.3-.13.9-.24,1.11-.45.54-.55.97-1.11,1.57-1.55,1.31-.95,1.61-.71,3.61-2.39.34-.28.81-.5,1.18-.76l2.68-1.86c.53-.37,1.27-.84.96-1.74-.28-.81-1.19-1.48-1.77-2.16-.66-.78-1.37-1.17-2.29-1.5-1.04-.37-2.03-.67-3.17-.68s-1.17.48-1.56.18c-.49-.38-.88.09-1.28.23l-1.19.42c-.27.1-.89.04-1.22.08l-2.24,1.19c-.15.64-.28,1.2-.46,1.75-.24.76-.09,1.42-.12,2.2l-.08,2.02c-.02.4.18.93.24,1.29-.32.74-.18,1.27.07,1.96l.45,1.23c.26.7.73,1.27,1.73,1.15ZM172.14,34.96c1.41.75,2.34.3,3.51-.4.33-.62.79-.82,1.4-1.17,1.02-.58,1.87-1.68,2.11-2.87.08-.41.1-.91.13-1.31l.12-1.81v-1.21c.03-1.05.06-2.03,0-3.11-.02-.48-.58-1.09-.92-1.4l-1.37-.03c-.27,0-.61.27-.86.42-.76.46-1.62.77-2.29,1.32l-1.9,1.57c-.39.32-.69.74-1.16.98l-1.28.65c-.38.2-.65.54-.94.85-1.14,1.22-2.63,2.91-2.47,4.69l.33,1.18c.11.39.33.68.64.91l.77.55c1.61.31,2.77-.57,4.17.18Z"
+                >
+                </path>
+                <path
+                  d="M96.1,44.92c-1.87.83-.03-.26-2.5.94-.58.28-1.08.57-1.62.93-1.86-.03-2.48.31-4.06-.69-1.13-.72-2.24-1.29-3.43-1.88-.14-.1-.43-.37-.58-.45l-1.24-.7c-.59-.33-1.33-.97-1.72-1.54-.35-.51-.94-1.04-1.03-1.66-.22-1.6-.18-.9-.85-2.26s-.29-.57-1.52-1.89c-.48-.51-.78-1.11-.85-1.8-.23-.36-.42-.74-.52-1.16l-.49-2.04-.33-1.61c-.34-1.67-.47-3.44-.13-5.11l.42-2.11c.13-.63.58-1.37.61-2l.12-2.54c.03-.69-.07-1.37.38-1.93.08-2.12,1.39-1.42,1.37-2.84-.01-.77.67-1.21.94-1.78s.48-1.13.91-1.64c.83-.97,1.73-1.87,2.5-2.86.28-.37.47-.7.84-1,.44-.35.86-.76,1.4-1,3.55-1.55,3.21-1.8,7.42-2.02.32-.02,2.12.4,2.65,1.01.6.7,1.43.9,2.28,1.12,1.36.34,2.97.88,3.64,2.16,1.47,2.79,3.92,4.4,4.1,5.17l.28,1.25c.45.52.43.97.55,1.59.09.48.18.91.23,1.41.03.36.3.86.37,1.22.35,2.1.9,1.46,1.1,4.19l.12,1.56.08,1.9c.03.64.03,1.21-.29,1.78.46.82-.44,1.65-.39,2.19l.15,1.65.02,2.71c0,.94-.32,1.22-.3,1.99l-1.03,1.61-.47,1.01c-1.46,3.11-.56.95-2.15,2.77-.45.51-1.34.59-1.86,1.03-1.97,2.46-2.36,1.02-3.28,1.99l-.81.86-.99.44ZM89.19,22.43l1.24-.89c1.78-1.27,1.01-.9,2.7-2.35.43-.37.89-.96,1.51-1.07.5-.09.81-.21,1.22-.53s1.24-.54,1.27-1.23c.03-.64-.14-1.54-.33-2.11-.08-.23-.39-.6-.51-.81-.35-.56-.75-1.13-1.33-1.42-2.28-1.14-1.87-.45-2.92-.69-.72-.16-1.34-.08-1.99.2-.54.24-1.79-.51-3.17,1.81-.23.94-.73,1.69-1.41,2.38-.38.39-.46.87-.6,1.36l-.33,1.15c-.23.8-.32,1.54-.53,2.35-.18.7-.17,1.52-.14,2.17,0,.15-.19.5-.12.62.16.3,1.11.99,1.48.9l1.21-.3,1.05-.67c.58-.37,1.15-.47,1.72-.88ZM90.85,38.21l1.28.05c.52.02,1.21-.25,1.69-.55.6-.37.15-1.24,1.19-2.38.97-1.06.24-.78,1.94-1.65l1.3-1.59c.3-.36.63-.87.82-1.31.85-1.98.2-1.19.53-2.68-.03-.56-.09-1.19.01-1.73l.24-1.22c.07-.38-.01-.95-.37-1.07-.98-.34-1.97-.41-2.78.12l-1.54,1c-.3.19-.82.36-1.14.52-.48.56-.97.96-1.65,1.26-.63.39-.94,1.33-1.5,1.55s-.87.47-1.03,1.08l-1.25.9c-.27,1.03-1.33,1.69-1.33,2.51v.91c0,.65.48,1.28.94,1.72,1.33,1.25.21,1.06,1.57,2.16.33.27.55.41,1.08.43Z"
+                >
+                </path>
+              </svg>
+            </a>
+            <a href="https://tsuchika.com/" target="_blank" rel="noopener noreferrer" class="header-title-credit">
+              © Tsuchika Nishimura
+            </a>
+          </div>
+          <div class="header-illust-wrap">
+            <div class="header-illust">
+              <button
+                type="button"
+                class="header-illust-btn"
+                data-profile-modal="profile-modal-daijin"
+                aria-label="オノマトペ大臣のプロフィールを表示"
+              >
+                <img src="/images/illust/fixed_daijin.svg" alt="" class="header-illust-img daijin" />
+              </button>
+              <button
+                type="button"
+                class="header-illust-btn"
+                data-profile-modal="profile-modal-thames"
+                aria-label="テムズビートのプロフィールを表示"
+              >
+                <img src="/images/illust/fixed_thames.svg" alt="" class="header-illust-img thames" />
+              </button>
+            </div>
+            <a href="https://x.com/fuminggg" target="_blank" rel="noopener noreferrer" class="header-illust-credit">
+              © fuminggg
+            </a>
+          </div>
+
+          <!-- プロフィールモーダル（左: オノマトペ大臣） -->
+          <div
+            id="profile-modal-daijin"
+            class="profile-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-modal-daijin-title"
+            aria-hidden="true"
+          >
+            <div class="profile-modal-backdrop" data-close-modal></div>
+            <div class="profile-modal-content">
+              <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
+              {
+                daijinMember ? (
+                  <div class="profile-modal-body">
+                    <img class="profile-modal-avatar" src={avatarUrl(daijinMember)} alt="" width="72" height="72" />
+                    <div class="profile-modal-text">
+                      <h2 id="profile-modal-daijin-title" class="profile-modal-name">
+                        {daijinMember.name}
+                      </h2>
+                      {daijinMember.bio && <p class="profile-modal-bio">{daijinMember.bio}</p>}
+                    </div>
+                  </div>
+                ) : (
+                  <p class="profile-modal-bio">プロフィールがありません</p>
+                )
+              }
+            </div>
+          </div>
+          <!-- プロフィールモーダル（右: テムズビート） -->
+          <div
+            id="profile-modal-thames"
+            class="profile-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="profile-modal-thames-title"
+            aria-hidden="true"
+          >
+            <div class="profile-modal-backdrop" data-close-modal></div>
+            <div class="profile-modal-content">
+              <button type="button" class="profile-modal-close" data-close-modal aria-label="閉じる">&times;</button>
+              {
+                thamesMember ? (
+                  <div class="profile-modal-body">
+                    <img class="profile-modal-avatar" src={avatarUrl(thamesMember)} alt="" width="72" height="72" />
+                    <div class="profile-modal-text">
+                      <h2 id="profile-modal-thames-title" class="profile-modal-name">
+                        {thamesMember.name}
+                      </h2>
+                      {thamesMember.bio && <p class="profile-modal-bio">{thamesMember.bio}</p>}
+                    </div>
+                  </div>
+                ) : (
+                  <p class="profile-modal-bio">プロフィールがありません</p>
+                )
+              }
+            </div>
+          </div>
+        </div>
+
+        <!-- ソーシャルリンクとオーディオプレーヤー行 -->
+        <div class="header-middle">
+          <div class="header-social">
+            <!-- <a href="https://open.spotify.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/spotify-icon.svg" alt="Spotify" />
+            </a>
+            <a href="https://music.apple.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/Apple_logo_black.svg" alt="AppleMusic" />
+            </a> -->
+            <a href="https://pr0p0se.bandcamp.com/" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/bandcamp-button-bc-circle-green-64.png" alt="Bandcamp" />
+            </a>
+            <a
+              href="https://www.youtube.com/@PR0P0SE-00"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-link youtube-link"
+            >
+              <img src="/images/logo/icons8-red-youtube.svg" alt="YouTube" />
+            </a>
+            <a href="https://soundcloud.com/pr0p0se" target="_blank" rel="noopener noreferrer" class="social-link">
+              <img src="/images/logo/soundcloud-2.svg" alt="SoundCloud" />
+            </a>
+          </div>
+          <!-- オーディオプレイヤー -->
+          <div class="global-player-wrap" transition:persist="audio-player">
+            <AudioPlayer />
+          </div>
+        </div>
+
+        <!-- ナビゲーション -->
+        <Navigation currentPath={Astro.url.pathname} />
+      </header>
+    </div>
+
+    <main class="main">
+      <slot />
+    </main>
+
+    <!-- Floating Piano Button -->
+    <button id="pianoToggle" class="piano-fab" type="button" aria-label="ピアノを開閉" aria-expanded="false">
+      <img src="/images/uploads/piano_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" alt="Piano" />
+    </button>
+
+    <Piano />
+
+    <footer class="footer">
+      © {new Date().getFullYear()} PR0P0SE
+    </footer>
+
+    <!-- グローバルリリースモーダル（works 一覧・プレーヤー曲名から開く） -->
+    <div class="release-overlay" id="global-release-modal" aria-hidden="true" style="display: none;">
+      <div class="release-backdrop" data-close-global-release aria-label="閉じる"></div>
+      <div class="release-content">
+        <button type="button" class="release-close" data-close-global-release aria-label="閉じる">&times;</button>
+        <div id="global-release-detail-slot"></div>
+        <button
+          type="button"
+          class="release-nav release-nav--prev"
+          id="global-release-prev"
+          aria-label="前のリリース"
+          style="display: none;"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          class="release-nav release-nav--next"
+          id="global-release-next"
+          aria-label="次のリリース"
+          style="display: none;"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // プロフィールモーダル: View Transitions 後も動くよう body でイベント委譲
+      function handleProfileModalOpen(e: Event) {
+        const btn = (e.target as Element).closest(".header-illust-btn[data-profile-modal]");
+        if (!btn) return;
+        const modalId = btn.getAttribute("data-profile-modal");
+        if (!modalId) return;
+        const modal = document.getElementById(modalId) as HTMLElement | null;
+        if (!modal) return;
+        modal.setAttribute("aria-hidden", "false");
+        (modal.querySelector(".profile-modal-close") as HTMLElement)?.focus();
+      }
+      function handleProfileModalClose(e: Event) {
+        const closeEl = (e.target as Element).closest("[data-close-modal]");
+        if (!closeEl) return;
+        const modal = closeEl.closest(".profile-modal");
+        if (modal) (modal as HTMLElement).setAttribute("aria-hidden", "true");
+      }
+      function handleProfileModalKeydown(e: KeyboardEvent) {
+        if (e.key !== "Escape") return;
+        document.querySelectorAll(".profile-modal[aria-hidden='false']").forEach((modal) => {
+          (modal as HTMLElement).setAttribute("aria-hidden", "true");
+        });
+      }
+      function setupProfileModals() {
+        document.body.removeEventListener("click", handleProfileModalOpen);
+        document.body.addEventListener("click", handleProfileModalOpen);
+        document.body.removeEventListener("click", handleProfileModalClose);
+        document.body.addEventListener("click", handleProfileModalClose);
+        document.removeEventListener("keydown", handleProfileModalKeydown);
+        document.addEventListener("keydown", handleProfileModalKeydown);
+      }
+      setupProfileModals();
+      document.addEventListener("astro:page-load", setupProfileModals);
+
+      // グローバルリリースモーダル（works 一覧・プレーヤー曲名から開く）
+      let globalReleaseSlugs: string[] = [];
+      let currentGlobalSlug = "";
+
+      async function loadReleaseFragment(slug: string) {
+        const slot = document.getElementById("global-release-detail-slot");
+        if (!slot) return;
+        slot.innerHTML = '<p style="padding:2rem;text-align:center;color:#666;">読み込み中…</p>';
+        try {
+          const res = await fetch(`/works/fragments/${slug}`);
+          if (!res.ok) throw new Error(res.statusText);
+          const html = await res.text();
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          const frag = doc.getElementById("fragment-content");
+          slot.innerHTML = frag ? frag.innerHTML : "";
+        } catch {
+          slot.innerHTML = '<p style="padding:2rem;text-align:center;color:#c00;">読み込みに失敗しました。</p>';
+        }
+      }
+
+      function closeGlobalReleaseModal() {
+        const modal = document.getElementById("global-release-modal");
+        if (modal) {
+          modal.style.display = "none";
+          modal.setAttribute("aria-hidden", "true");
+          document.body.style.overflow = "";
+        }
+      }
+
+      function updateGlobalReleaseNav() {
+        const prevBtn = document.getElementById("global-release-prev");
+        const nextBtn = document.getElementById("global-release-next");
+        const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+        if (prevBtn) prevBtn.style.display = globalReleaseSlugs.length <= 1 || idx <= 0 ? "none" : "flex";
+        if (nextBtn)
+          nextBtn.style.display =
+            globalReleaseSlugs.length <= 1 || idx < 0 || idx >= globalReleaseSlugs.length - 1 ? "none" : "flex";
+      }
+
+      function registerOpenReleaseModal() {
+        (
+          window as unknown as { openReleaseModal: (slug: string, options?: { prevNextSlugs?: string[] }) => void }
+        ).openReleaseModal = function (slug: string, options?: { prevNextSlugs?: string[] }) {
+          const modal = document.getElementById("global-release-modal");
+          const prevBtn = document.getElementById("global-release-prev");
+          const nextBtn = document.getElementById("global-release-next");
+          if (!modal) return;
+
+          globalReleaseSlugs = options?.prevNextSlugs ?? [];
+          currentGlobalSlug = slug;
+
+          modal.style.display = "flex";
+          modal.setAttribute("aria-hidden", "false");
+          document.body.style.overflow = "hidden";
+          loadReleaseFragment(slug);
+          updateGlobalReleaseNav();
+
+          if (prevBtn) {
+            prevBtn.onclick = () => {
+              const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+              if (idx <= 0) return;
+              currentGlobalSlug = globalReleaseSlugs[idx - 1];
+              loadReleaseFragment(currentGlobalSlug);
+              updateGlobalReleaseNav();
+            };
+          }
+          if (nextBtn) {
+            nextBtn.onclick = () => {
+              const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+              if (idx < 0 || idx >= globalReleaseSlugs.length - 1) return;
+              currentGlobalSlug = globalReleaseSlugs[idx + 1];
+              loadReleaseFragment(currentGlobalSlug);
+              updateGlobalReleaseNav();
+            };
+          }
+        };
+      }
+      registerOpenReleaseModal();
+      document.addEventListener("astro:page-load", registerOpenReleaseModal);
+
+      // works のリリースカードクリックは body で委譲。View Transitions 後も動くよう astro:page-load で再登録
+      function getVisibleSlugsForModal() {
+        return Array.from(document.querySelectorAll(".release-card--clickable:not(.hidden)"))
+          .map((c) => (c as HTMLElement).dataset.slug)
+          .filter(Boolean) as string[];
+      }
+      function handleReleaseCardClick(e: MouseEvent) {
+        const card = (e.target as Element).closest(".release-card--clickable");
+        if (!card) return;
+        const slug = (card as HTMLElement).dataset.slug;
+        if (
+          !slug ||
+          typeof (window as unknown as { openReleaseModal?: (s: string, o?: { prevNextSlugs?: string[] }) => void })
+            .openReleaseModal !== "function"
+        )
+          return;
+        if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+          e.preventDefault();
+          (
+            window as unknown as { openReleaseModal: (s: string, o?: { prevNextSlugs?: string[] }) => void }
+          ).openReleaseModal(slug, { prevNextSlugs: getVisibleSlugsForModal() });
+        }
+      }
+      function setupReleaseCardDelegation() {
+        document.body.removeEventListener("click", handleReleaseCardClick);
+        document.body.addEventListener("click", handleReleaseCardClick);
+      }
+      setupReleaseCardDelegation();
+      document.addEventListener("astro:page-load", setupReleaseCardDelegation);
+
+      // 閉じるボタン・バックドロップ: モーダル上でイベント委譲（View Transitions・動的読み込み後も確実に動作）
+      function setupModalCloseDelegation() {
+        const modal = document.getElementById("global-release-modal");
+        if (!modal || modal.hasAttribute("data-close-delegation-set")) return;
+        modal.setAttribute("data-close-delegation-set", "");
+        modal.addEventListener("click", (e: Event) => {
+          if ((e.target as Element).closest("[data-close-global-release]")) {
+            closeGlobalReleaseModal();
+          }
+        });
+      }
+      setupModalCloseDelegation();
+      document.addEventListener("astro:page-load", setupModalCloseDelegation);
+
+      document.addEventListener("keydown", (e: KeyboardEvent) => {
+        const modal = document.getElementById("global-release-modal");
+        if (!modal || modal.getAttribute("aria-hidden") === "true") return;
+        if (e.key === "Escape") {
+          closeGlobalReleaseModal();
+          return;
+        }
+        if (e.key === "ArrowLeft") {
+          const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+          if (idx > 0) {
+            e.preventDefault();
+            document.getElementById("global-release-prev")?.click();
+          }
+        } else if (e.key === "ArrowRight") {
+          const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+          if (idx >= 0 && idx < globalReleaseSlugs.length - 1) {
+            e.preventDefault();
+            document.getElementById("global-release-next")?.click();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  /* ヘッダー全体の設定 */
+  .header {
+    width: 100%;
+    margin-bottom: 0;
+    padding: 1rem 0;
+  }
+
+  /* タイトル行 */
+  .header-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-brand-wrap {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 1rem; /* 題字下のクレジット用スペース */
+  }
+
+  .brand-logo {
+    height: 40px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    color: rgb(123, 166, 176);
+  }
+
+  /* タイトル文字の右下に表示するロゴ作者表記（題字と同色） */
+  .header-title-credit {
+    position: absolute;
+    right: 0;
+    font-family: "Caveat", cursive;
+    font-size: 7px;
+    color: rgb(123, 166, 176); /* 題字 .brand-logo と同じ色 */
+    opacity: 0.8;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .header-title-credit:hover {
+    text-decoration: underline;
+    opacity: 1;
+  }
+
+  .header-illust-wrap {
+    display: flex;
+    flex-direction: column;
+    padding-left: 20px;
+    align-items: flex-end;
+    margin-left: auto;
+  }
+
+  .header-illust {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .header-illust-btn {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: block;
+    line-height: 0;
+    border-radius: 4px;
+    transition: box-shadow 0.2s;
+  }
+  .header-illust-btn:hover {
+    box-shadow: 0 0 0 2px var(--accent, rgba(123, 166, 176, 0.6));
+  }
+  .header-illust-btn:hover .header-illust-img {
+    filter: brightness(1.06);
+  }
+
+  .header-illust-img {
+    height: 40px;
+    width: auto;
+    display: block;
+    object-fit: contain;
+    opacity: 0.65; /* 薄めの黒 */
+    transition:
+      filter 0.2s,
+      opacity 0.2s;
+  }
+
+  /* イラスト作者表記（キャライラスト下） */
+  .header-illust-credit {
+    font-family: "Caveat", cursive;
+    font-size: 7px;
+    color: var(--wa-ink);
+    opacity: 0.8;
+    text-decoration: none;
+    display: block;
+    text-align: right;
+    margin-top: 0.1rem;
+  }
+  .header-illust-credit:hover {
+    text-decoration: underline;
+    opacity: 1;
+  }
+
+  /* プロフィールモーダル */
+  .profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    visibility: hidden;
+    opacity: 0;
+    transition:
+      visibility 0.2s,
+      opacity 0.2s;
+  }
+  .profile-modal[aria-hidden="false"] {
+    visibility: visible;
+    opacity: 1;
+  }
+  .profile-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+  }
+  .profile-modal-content {
+    position: relative;
+    background: var(--bg, var(--wa-paper));
+    color: var(--fg, var(--wa-ink));
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    max-width: 260px;
+    width: 100%;
+    box-shadow: var(--shadow);
+  }
+  .profile-modal-close {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.5rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--fg);
+    opacity: 0.7;
+  }
+  .profile-modal-close:hover {
+    opacity: 1;
+  }
+  .profile-modal-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+  }
+  .profile-modal-avatar {
+    width: 72px;
+    height: 72px;
+    min-width: 72px;
+    object-fit: cover;
+    display: block;
+  }
+  .profile-modal-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .profile-modal-name {
+    font-size: 0.95rem;
+    margin: 0 0 0.35rem;
+    font-weight: 600;
+  }
+  .profile-modal-bio {
+    font-size: 0.75rem;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+    color: var(--muted, #7c6f69);
+  }
+
+  /* ソーシャルリンクとオーディオプレーヤー行 */
+  .header-middle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+
+  .header-social {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(24px, 1.5vw, 50px);
+    align-items: center;
+    justify-items: center;
+  }
+
+  /* 3個の時は三角形配置（上1個、下2個） */
+  .header-social:has(:nth-child(3):last-child) {
+    grid-template-columns: 1fr 1fr;
+    width: fit-content;
+  }
+
+  .header-social:has(:nth-child(3):last-child) :nth-child(1) {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  /* 5個の時は上から2・1・2配置 */
+  .header-social:has(:nth-child(5):last-child) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .header-social:has(:nth-child(5):last-child) :nth-child(3) {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+
+  .social-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    text-decoration: none;
+  }
+
+  .social-link img {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+  }
+
+  .youtube-link img {
+    width: 28px;
+    height: 28px;
+  }
+
+  .global-player-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* main要素（ヘッダー直下の余白を詰める） */
+  .main {
+    margin-top: 0;
+  }
+
+  @media (max-width: 320px) {
+    .header {
+      margin-bottom: 1.5rem;
+      padding: 0.5rem 0;
+    }
+
+    .header-title {
+      flex-direction: column;
+      gap: 0.5rem;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .header-middle {
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .header-social {
+      display: flex;
+      flex-direction: row;
+      gap: 8px;
+    }
+
+    .header-social:has(:nth-child(3):last-child) :nth-child(1),
+    .header-social:has(:nth-child(5):last-child) :nth-child(3) {
+      grid-column: auto;
+      justify-self: auto;
+    }
+
+    .main {
+      margin-top: 0;
+    }
+
+    .brand-logo {
+      height: 28px;
+    }
+
+    .header-illust-wrap {
+      align-self: flex-end;
+    }
+
+    .header-illust-img {
+      height: 36px;
+    }
+
+    .header-illust-credit,
+    .header-title-credit {
+      font-size: 5px;
+    }
+  }
+</style>

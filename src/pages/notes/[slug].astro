@@ -1,0 +1,33 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import NotePost from '../../layouts/NotePost.astro';
+import NoteEmbedLink from '../../components/NoteEmbedLink.astro';
+import NoteImage from '../../components/NoteImage.astro';
+
+// すべてのノート記事を取得
+export const getStaticPaths = (async () => {
+  const posts = await getCollection('notes');
+  return posts.map(post => ({
+    params: { slug: post.slug },
+    props: { post },
+  }));
+}) satisfies GetStaticPaths;
+
+// ページのプロパティ
+interface Props {
+  post: CollectionEntry<'notes'>;
+}
+
+const { post } = Astro.props as Props;
+const { Content } = await post.render();
+---
+
+<NotePost 
+  title={post.data.title}
+  date={post.data.date}
+  author={post.data.author}
+  tags={post.data.tags}
+>
+  <Content components={{ a: NoteEmbedLink, img: NoteImage }} />
+</NotePost>

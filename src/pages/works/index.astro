@@ -1,0 +1,987 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+
+let collectionError: string | null = null;
+let works: Awaited<ReturnType<typeof getCollection<"works">>> = [];
+let tracks: Awaited<ReturnType<typeof getCollection<"tracks">>> = [];
+
+try {
+  works = (await getCollection("works")).sort(
+    (a, b) => b.data.release_date.getTime() - a.data.release_date.getTime(),
+  );
+} catch (_e) {
+  collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
+}
+
+try {
+  tracks = await getCollection("tracks");
+} catch (_e) {
+  tracks = [];
+}
+
+const trackById = new Map(tracks.map((track) => [track.data.id, track]));
+
+const servicePriority = ["spotify", "apple", "bandcamp", "youtube", "other"] as const;
+const serviceIcons: Record<(typeof servicePriority)[number], string> = {
+  spotify: "/images/logo/spotify-icon.svg",
+  apple: "/images/logo/Apple_logo_black.svg",
+  bandcamp: "/images/logo/bandcamp-button-bc-circle-green-64.png",
+  youtube: "/images/logo/icons8-red-youtube.svg",
+  other: "/images/logo/globe_asia_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.svg",
+};
+
+// 各リリースに紐づくメイントラックを取得
+function getMainTrack(item: any) {
+  const isPrimary = Boolean(item.data.is_primary_release);
+
+  // primary の場合: works 側に紐づいている tracks 配列から取得
+  if (isPrimary) {
+    const firstTrackId =
+      Array.isArray(item.data.tracks) && item.data.tracks.length > 0 ? item.data.tracks[0] : null;
+    return firstTrackId ? trackById.get(firstTrackId) : null;
+  }
+
+  // secondary（is_primary_release === false）の場合:
+  // works.id と tracks.works_id を突き合わせて紐づくトラックを探す
+  const workId = item.data.id;
+  if (!workId) return null;
+  return tracks.find((track) => track.data.works_id === workId) ?? null;
+}
+
+// 埋め込み優先順: Spotify → Apple → Bandcamp → YouTube（non-primary でジャケ代わりに表示）
+const embedPriority = ["spotify", "apple", "bandcamp", "youtube"] as const;
+
+function getEmbedUrl(service: string, url: string): string | null {
+  try {
+    if (service === "spotify") {
+      const match = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
+      if (match) return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator`;
+    }
+    if (service === "apple") {
+      const match = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
+      if (match) return `https://embed.music.apple.com/${match[2]}`;
+    }
+    if (service === "bandcamp") {
+      const match = url.match(/bandcamp\.com\/(album|track)\/([^/?]+)/);
+      if (!match) return null;
+      const id = match[2];
+      if (!/^\d+$/.test(id)) return null; // 数値IDのみ有効（slugだと not available）
+      return `https://bandcamp.com/EmbeddedPlayer/${match[1]}=${id}/size=large/bgcol=ffffff/linkcol=0687f5/transparent=true/`;
+    }
+    if (service === "youtube") {
+      const match = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+      if (match) return `https://www.youtube.com/embed/${match[1]}`;
+    }
+  } catch {}
+  return null;
+}
+
+// primary release（is_primary_release が真）のみをカウント
+const singles = works.filter(
+  (w) => w.data.release_type === "single" && Boolean(w.data.is_primary_release),
+);
+const eps = works.filter((w) => w.data.release_type === "ep" && Boolean(w.data.is_primary_release));
+const albums = works.filter(
+  (w) => w.data.release_type === "album" && Boolean(w.data.is_primary_release),
+);
+
+// 「その他」カテゴリ（typeForFilter が "other" になるもの）
+const otherWorks = works.filter((item) => {
+          const rawIsPrimary = item.data.is_primary_release;
+          const isPrimary = Boolean(rawIsPrimary);
+          const mainTrack = getMainTrack(item);
+          const mainTrackData = (mainTrack as any)?.data;
+          const typeForFilter = isPrimary
+            ? item.data.release_type ?? "other"
+            : mainTrackData?.track_type ?? item.data.release_type ?? "other";
+  return typeForFilter === "other";
+});
+
+// track_type ベースの分類（featuring / remix）
+const featuringWorks = works.filter((item) => {
+  const mainTrack = getMainTrack(item);
+  const mainTrackData = (mainTrack as any)?.data;
+  return mainTrackData?.track_type === "featuring";
+});
+
+const remixWorks = works.filter((item) => {
+  const mainTrack = getMainTrack(item);
+  const mainTrackData = (mainTrack as any)?.data;
+  return mainTrackData?.track_type === "remix";
+});
+---
+
+<Base title="PR0P0SE Works">
+  <div id="works-page-root" style="max-width: 1200px; margin: 0 auto; padding: 2rem 1rem;">
+    {collectionError && (
+      <div class="content-error-banner" role="alert">
+        {collectionError}
+      </div>
+    )}
+    <!-- フィルタボタン（notes と同じデザイン） -->
+    <div class="filters-wrapper">
+      <div class="author-buttons">
+        <button class="author-btn active" data-filter="all">すべて ({works.length})</button>
+        <button class="author-btn" data-filter="single">Single ({singles.length})</button>
+        <button class="author-btn" data-filter="ep">EP ({eps.length})</button>
+        <button class="author-btn" data-filter="album">Album ({albums.length})</button>
+        <button class="author-btn" data-filter="featuring">Featuring ({featuringWorks.length})</button>
+        <button class="author-btn" data-filter="remix">Remix ({remixWorks.length})</button>
+        <button class="author-btn" data-filter="other">Other ({otherWorks.length})</button>
+      </div>
+    </div>
+
+    <!-- リリース一覧 -->
+    <div class="releases-grid">
+      {
+        works.map((item) => {
+          const links = item.data.links ?? {};
+          const availableServices = servicePriority.filter(
+            (service) => typeof links?.[service] === "string" && links?.[service],
+          );
+          const rawIsPrimary = item.data.is_primary_release;
+          const isPrimary = Boolean(rawIsPrimary);
+          const firstEmbed = !isPrimary
+            ? (() => {
+                for (const service of embedPriority) {
+                  const rawUrl = links?.[service];
+                  if (!rawUrl) continue;
+                  const embedUrl = getEmbedUrl(service, rawUrl);
+                  if (embedUrl) return { service, embedUrl, rawUrl };
+                }
+                return null;
+              })()
+            : null;
+          const embedSources = availableServices
+            .map((service) => {
+              const rawUrl = links?.[service];
+              const embedUrl = rawUrl ? getEmbedUrl(service, rawUrl) : null;
+              if (!embedUrl) return null;
+              return { service, embedUrl, rawUrl };
+            })
+            .filter(
+              (source): source is { service: (typeof servicePriority)[number]; embedUrl: string; rawUrl: string } =>
+                Boolean(source),
+            );
+          const hasEmbeds = embedSources.length > 0;
+          const defaultService = embedSources[0]?.service;
+          const mainTrack = getMainTrack(item);
+          const mainTrackData = (mainTrack as any)?.data;
+          const typeForFilter = isPrimary
+            ? item.data.release_type ?? "other"
+            : mainTrackData?.track_type ??  "other";
+          const trackIds = Array.isArray(item.data.tracks) ? item.data.tracks : [];
+          const releaseTracks = trackIds
+            .map((trackId) => trackById.get(trackId))
+            .filter((track): track is (typeof tracks)[number] => Boolean(track));
+          const coverDesignBy = item.data.cover_design_by?.trim();
+          const coverIllustrationBy = item.data.cover_illustration_by?.trim();
+          const coverCreditLabel =
+            coverDesignBy && coverIllustrationBy && coverDesignBy === coverIllustrationBy
+              ? "イラスト＆デザイン"
+              : null;
+
+          return (
+            <>
+              <article
+                class={`release-card ${isPrimary ? "" : "release-card--secondary"} release-card--clickable ${!isPrimary && firstEmbed ? "release-card--embed" : ""}`}
+                data-type={typeForFilter}
+                data-slug={item.slug}
+              >
+                <div class="card-media">
+                  {isPrimary ? (
+                    item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
+                      <div class="carousel-container">
+                        <div class="carousel-images">
+                          {item.data.cover_url_list.map((img, idx) => (
+                            <img
+                              src={img}
+                              alt={`${item.data.title} - Image ${idx + 1}`}
+                              class={`carousel-image ${idx === 0 ? "active" : ""}`}
+                              loading="lazy"
+                            />
+                          ))}
+                        </div>
+                        {item.data.cover_url_list.length > 1 && (
+                          <>
+                            <button class="carousel-btn prev" aria-label="prev">
+                              ‹
+                            </button>
+                            <button class="carousel-btn next" aria-label="next">
+                              ›
+                            </button>
+                            <div class="carousel-dots">
+                              {item.data.cover_url_list.map((_, idx) => (
+                                <span class={`dot ${idx === 0 ? "active" : ""}`} />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div class="no-cover" />
+                    )
+                  ) : firstEmbed ? (
+                    // non-primary: 埋め込みをジャケ大で表示。埋め込み上をクリックしてもモーダルが開くようオーバーレイを載せる。
+                    <div class="spotify-embed-container">
+                      <div class="embed-click-overlay" aria-hidden="true" title="詳細を開く"></div>
+                      <iframe
+                        src={firstEmbed.embedUrl}
+                        width="100%"
+                        frameborder="0"
+                        allowfullscreen=""
+                        allowtransparency="true"
+                        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                        loading="lazy"
+                        class="spotify-embed-iframe"
+                      />
+                    </div>
+                  ) : (
+                    // Spotifyがない場合: カバー画像またはプレースホルダー
+                    <div class="secondary-cover-container">
+                      {item.data.cover_url_list && item.data.cover_url_list.length > 0 ? (
+                        <img
+                          src={item.data.cover_url_list[0]}
+                          alt={item.data.title}
+                          class="secondary-cover-image"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div class="no-cover secondary-placeholder" />
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div class="card-content">
+                  <h3 class="card-title">
+                    {isPrimary ? (
+                      <a href={`/works/${item.slug}`} class="card-title-link">
+                        {item.data.title}
+                      </a>
+                    ) : (
+                      <span class="card-title-text">{mainTrackData?.title ?? item.data.title}</span>
+                    )}
+                  </h3>
+                  {item.data.release_artist_name && <div class="card-artist">{item.data.release_artist_name}</div>}
+                  <div class="meta-row">
+                    <div class="card-date">
+                      {item.data.release_date.toLocaleDateString("ja-JP", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                      })}
+                    </div>
+                    {isPrimary ? (
+                      item.data.release_type ? (
+                        <span class="traype-text">{item.data.release_type}</span>
+                      ) : (
+                        <span class="traype-text">other</span>
+                      )
+                    ) : (mainTrackData as any)?.track_type ? (
+                      <span class="traype-text">{(mainTrackData as any).track_type}</span>
+                    ) : typeForFilter === "other" ? (
+                      <span class="traype-text">other</span>
+                    ) : null}
+                  </div>
+                </div>
+              </article>
+            </>
+          );
+        })
+      }
+    </div>
+
+    {
+      works.length === 0 && (
+        <div style="text-align: center; padding: 3rem; color: #666;">
+          <p style="font-size: 1.2rem;">N0NE</p>
+        </div>
+      )
+    }
+  </div>
+
+  <style>
+    .content-error-banner {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.95rem;
+    }
+    /* フィルターボタン（notes と同一デザイン） */
+    .filters-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .author-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.375rem;
+      flex-wrap: wrap;
+    }
+
+    .author-btn {
+      appearance: none;
+      border: 1.5px solid var(--wa-butter);
+      background: white;
+      color: var(--fg);
+      padding: 0.375rem 0.875rem;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .author-btn:hover {
+      background: var(--wa-cream);
+      border-color: var(--accent);
+    }
+
+    .author-btn.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+
+    /* EP / Featuring / Remix 等のバッジ（小さい文字・丸いピル型・青系） */
+    .traype-text {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.2em 0.5em;
+      border-radius: 999px;
+      background: #718bc4;
+      border: 1px solid #718bc4;
+      color: white;
+      line-height: 1.2;
+    }
+
+    .releases-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .release-card {
+      overflow: hidden;
+      transition: all 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .release-card:hover {
+      border-color: #6f42c1;
+      box-shadow: 0 8px 24px rgba(111, 66, 193, 0.15);
+      transform: translateY(-4px);
+    }
+
+    .release-card.hidden {
+      display: none;
+    }
+
+    .card-media {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      background: transparent;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .carousel-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #f5f5f5;
+      overflow: hidden;
+    }
+
+    .carousel-images {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .carousel-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .carousel-image.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .carousel-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 2;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+    }
+
+    .carousel-container:hover .carousel-btn {
+      opacity: 1;
+    }
+
+    .carousel-btn:hover {
+      background: rgba(0, 0, 0, 0.8);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .carousel-btn.prev {
+      left: 10px;
+    }
+
+    .carousel-btn.next {
+      right: 10px;
+    }
+
+    .carousel-dots {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      z-index: 2;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .dot.active {
+      background: white;
+      width: 24px;
+      border-radius: 4px;
+    }
+
+    .card-content {
+      padding: 0.4rem 0.4rem 0.2rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 80px;
+    }
+
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0;
+      color: #333;
+      line-height: 1.25;
+    }
+
+    .card-title-link {
+      text-decoration: none;
+      color: inherit;
+      display: inline-block;
+    }
+
+    .card-title-link:hover {
+      color: #6f42c1;
+    }
+
+    .card-artist {
+      font-size: 0.8rem;
+      color: #666;
+      font-weight: 500;
+      line-height: 1.25;
+    }
+
+    .card-date {
+      font-size: 0.78rem;
+      color: #666;
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
+    }
+
+    .type-text {
+      font-size: 0.72rem;
+      color: #888;
+      text-transform: lowercase;
+    }
+
+    .service-links {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .service-link {
+      width: 32px;
+      height: 32px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(111, 66, 193, 0.08);
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .service-link img {
+      width: 18px;
+      height: 18px;
+      object-fit: contain;
+    }
+
+    .service-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(111, 66, 193, 0.2);
+    }
+
+    .card-detail {
+      margin-top: auto;
+    }
+
+    .spotify-embed-container {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      margin: 0 auto;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+      box-sizing: border-box;
+    }
+
+    .embed-click-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      cursor: pointer;
+    }
+
+    .spotify-embed-container iframe {
+      width: 100%;
+      height: 352px;
+      border: 0;
+      display: block;
+    }
+
+    .embed-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      padding: 0.85rem 0.85rem 1rem;
+    }
+
+    .embed-tabs {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: flex-end;
+    }
+
+    .embed-tab {
+      width: 36px;
+      height: 36px;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .embed-tab img {
+      width: 18px;
+      height: 18px;
+    }
+
+    .embed-tab.active {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(111, 66, 193, 0.25);
+      background: #6f42c1;
+    }
+
+    .embed-tab.active img {
+      filter: brightness(0) invert(1);
+    }
+
+    .embed-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .embed-frames {
+      position: relative;
+      width: 100%;
+    }
+
+    .embed-frame {
+      width: 100%;
+      border: none;
+      display: none;
+      background: #000;
+    }
+
+    .embed-frame.active {
+      display: block;
+    }
+
+    .no-cover {
+      width: 100%;
+      aspect-ratio: 1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .secondary-placeholder {
+      background: linear-gradient(135deg, rgba(111, 66, 193, 0.3), rgba(111, 66, 193, 0.1));
+    }
+
+    .release-card--clickable {
+      cursor: pointer;
+    }
+
+    .secondary-cover-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .secondary-cover-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .spotify-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 20px;
+      transition: all 0.2s ease;
+    }
+
+    .release-card--clickable:hover .spotify-badge {
+      background: rgba(30, 215, 96, 0.9);
+      transform: scale(1.05);
+    }
+
+    .spotify-badge-icon {
+      width: 20px;
+      height: 20px;
+      filter: brightness(0) invert(1);
+    }
+
+    .release-card--clickable:hover .spotify-badge-icon {
+      filter: none;
+    }
+
+    .spotify-badge-text {
+      color: white;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .card-title-text {
+      color: inherit;
+    }
+
+    @media (max-width: 768px) {
+      .releases-grid {
+        --gap: 0.75rem;
+        --col: calc((100% - var(--gap)) / 2);
+
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--gap);
+        align-items: start;
+      }
+
+      .release-card {
+        width: 100%;
+      }
+
+      .release-card--embed,
+    .release-card--spotify-embed {
+        grid-column: span 2;
+      }
+
+      .release-card--centered-single {
+        grid-column: 1 / -1;
+        justify-self: center;
+        width: var(--col);
+      }
+
+      h1 {
+        font-size: 1.4rem !important;
+      }
+
+      .author-btn {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.8rem;
+      }
+
+      .spotify-embed-container iframe,
+      .spotify-embed-iframe {
+        width: 100% !important;
+        height: clamp(152px, 40vw, 352px);
+      }
+    }
+  </style>
+
+  <script is:inline>
+    function initWorksPage() {
+      const root = document.getElementById("works-page-root");
+      if (!root || root.hasAttribute("data-works-inited")) return;
+      root.setAttribute("data-works-inited", "");
+
+      const filterBtns = document.querySelectorAll(".author-btn");
+      const cards = document.querySelectorAll(".release-card");
+
+      // URL の ?filter= を反映（/works/slug から history.back() したとき用）
+      const params = new URLSearchParams(window.location.search);
+      const urlFilter = params.get("filter") || "all";
+      const validFilters = ["all", "single", "ep", "album", "featuring", "remix", "other"];
+      const filterToApply = validFilters.includes(urlFilter) ? urlFilter : "all";
+      filterBtns.forEach((b) => {
+        b.classList.toggle("active", b.dataset.filter === filterToApply);
+      });
+      cards.forEach((card) => {
+        if (filterToApply === "all") {
+          card.classList.remove("hidden");
+        } else {
+          card.classList.toggle("hidden", card.dataset.type !== filterToApply);
+        }
+      });
+
+      function updateCenteredSingleCards() {
+        const visibleCards = Array.from(cards).filter((c) => !c.classList.contains("hidden"));
+        visibleCards.forEach((c) => c.classList.remove("release-card--centered-single"));
+
+        let colIndex = 0;
+        for (let i = 0; i < visibleCards.length; i++) {
+          const card = visibleCards[i];
+          const isEmbed = card.classList.contains("release-card--embed");
+
+          if (isEmbed) {
+            if (colIndex === 1) {
+              visibleCards[i - 1].classList.add("release-card--centered-single");
+            }
+            colIndex = 0;
+          } else {
+            if (colIndex === 0) {
+              colIndex = 1;
+              const nextIsEmbed =
+                i + 1 < visibleCards.length && visibleCards[i + 1].classList.contains("release-card--embed");
+              if (i === visibleCards.length - 1 || nextIsEmbed) {
+                card.classList.add("release-card--centered-single");
+              }
+            } else {
+              colIndex = 0;
+            }
+          }
+        }
+      }
+
+      updateCenteredSingleCards();
+
+      filterBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const filter = btn.dataset.filter;
+
+          filterBtns.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          cards.forEach((card) => {
+            if (filter === "all") {
+              card.classList.remove("hidden");
+            } else {
+              if (card.dataset.type === filter) {
+                card.classList.remove("hidden");
+              } else {
+                card.classList.add("hidden");
+              }
+            }
+          });
+
+          updateCenteredSingleCards();
+          // 履歴に残して /works/slug から戻ったときにフィルタを復元
+          const url = filter === "all" ? "/works" : `/works?filter=${encodeURIComponent(filter)}`;
+          window.history.replaceState({}, "", url);
+        });
+      });
+
+      // カルーセル機能
+      cards.forEach((card) => {
+        const images = card.querySelectorAll(".carousel-image");
+        const dots = card.querySelectorAll(".dot");
+        const prevBtn = card.querySelector(".carousel-btn.prev");
+        const nextBtn = card.querySelector(".carousel-btn.next");
+
+        if (images.length > 1) {
+          let currentIndex = 0;
+
+          function showImage(index) {
+            images.forEach((img, i) => {
+              img.classList.toggle("active", i === index);
+            });
+            dots.forEach((dot, i) => {
+              dot.classList.toggle("active", i === index);
+            });
+          }
+
+          function nextImage(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            currentIndex = (currentIndex + 1) % images.length;
+            showImage(currentIndex);
+          }
+
+          function prevImage(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            currentIndex = (currentIndex - 1 + images.length) % images.length;
+            showImage(currentIndex);
+          }
+
+          nextBtn?.addEventListener("click", nextImage);
+          prevBtn?.addEventListener("click", prevImage);
+
+          dots.forEach((dot, index) => {
+            dot.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              currentIndex = index;
+              showImage(currentIndex);
+            });
+          });
+
+          // タッチスワイプ対応
+          let touchStartX = 0;
+          let touchEndX = 0;
+
+          card.addEventListener(
+            "touchstart",
+            (e) => {
+              touchStartX = e.changedTouches[0].screenX;
+            },
+            { passive: true },
+          );
+
+          card.addEventListener(
+            "touchend",
+            (e) => {
+              touchEndX = e.changedTouches[0].screenX;
+              handleSwipe();
+            },
+            { passive: true },
+          );
+
+          function handleSwipe() {
+            if (touchEndX < touchStartX - 50) {
+              currentIndex = (currentIndex + 1) % images.length;
+              showImage(currentIndex);
+            }
+            if (touchEndX > touchStartX + 50) {
+              currentIndex = (currentIndex - 1 + images.length) % images.length;
+              showImage(currentIndex);
+            }
+          }
+        }
+
+        const embedWrapper = card.querySelector(".embed-wrapper");
+        if (embedWrapper) {
+          const frames = Array.from(embedWrapper.querySelectorAll(".embed-frame"));
+          const tabs = Array.from(embedWrapper.querySelectorAll(".embed-tab"));
+          const defaultService = embedWrapper.getAttribute("data-default");
+
+          const activate = (service) => {
+            frames.forEach((frame) => {
+              frame.classList.toggle("active", frame.dataset.service === service);
+            });
+            tabs.forEach((tab) => {
+              tab.classList.toggle("active", tab.dataset.service === service);
+              tab.setAttribute("aria-selected", tab.dataset.service === service ? "true" : "false");
+            });
+          };
+
+          if (defaultService) {
+            activate(defaultService);
+          }
+
+          tabs.forEach((tab) => {
+            tab.addEventListener("click", (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const service = tab.dataset.service;
+              if (service) {
+                activate(service);
+              }
+            });
+          });
+        }
+      });
+
+      // カードクリックでモーダルを開く処理は Base で body に委譲している（initWorksPage の実行順に依存しない）
+    }
+
+    // 初回ロード（直接 /works を開いた場合）
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initWorksPage);
+    } else {
+      initWorksPage();
+    }
+    // View Transitions で他ページから遷移してきた場合
+    document.addEventListener("astro:page-load", initWorksPage);
+  </script>
+</Base>
