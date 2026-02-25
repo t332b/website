@@ -3,11 +3,65 @@ import Base from "../../layouts/Base.astro";
 ---
 
 <Base title="PR0P0SE SHOP">
-  <div style="max-width: 900px; margin: 0 auto; padding: 2rem 1rem;">
-    <h1 style="font-size: 1.6rem; font-weight: 800; margin: 0 0 1rem 0;">SHOP</h1>
-    <p style="color: var(--muted); line-height: 1.7; margin: 0;">
-      現在準備中です。
-    </p>
+  <div class="shop-page">
+    <h1 class="shop-title">SHOP</h1>
+    <a
+      href="https://suzuri.jp/PR0P0SE"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shop-link"
+      aria-label="SUZURIショップを開く"
+    >
+      <span class="shop-link-text">SUZURI</span>
+      <img src="/images/logo/suzuri.png" alt="" class="shop-link-icon" width="28" height="28" />
+    </a>
   </div>
+
+  <style>
+    .shop-page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .shop-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 0 0 1rem;
+    }
+
+    .shop-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--fg, #2f2a28);
+      border: 1px solid var(--wa-butter, #f5d19a);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      background: white;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .shop-link:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .shop-link-text {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      font-size: 0.95rem;
+    }
+
+    .shop-link-icon {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      display: block;
+    }
+  </style>
 </Base>
 

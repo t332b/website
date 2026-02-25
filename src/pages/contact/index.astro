@@ -1,0 +1,211 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base title="PR0P0SE CONTACT">
+  <section class="contact-page">
+    <h1 class="contact-title">C0NTACT</h1>
+    <p class="contact-description">
+      お問い合わせは下記メールアドレスまでお願いします。
+    </p>
+
+    <div class="mail-card">
+      <div class="mail-row">
+        <canvas
+          id="contact-mail-image"
+          class="mail-image"
+          width="520"
+          height="64"
+          role="img"
+          aria-label="連絡先メールアドレス画像"
+        ></canvas>
+
+        <button
+          id="copy-mail-button"
+          class="copy-button"
+          type="button"
+          aria-label="メールアドレスをコピー"
+          data-default-label="copy"
+        >
+          copy
+        </button>
+      </div>
+
+      <p class="notice-text">
+        個人運営のため、返信まで数日〜1週間ほどお時間をいただきます。ご了承ください。
+      </p>
+    </div>
+  </section>
+
+  <script>
+    const MAIL_CHAR_CODES = [105, 110, 102, 111, 64, 112, 114, 48, 112, 48, 115, 101, 46, 99, 111, 109];
+    const emailAddress = String.fromCharCode(...MAIL_CHAR_CODES);
+
+    /**
+     * @param {HTMLCanvasElement} canvas
+     * @param {string} text
+     */
+    function drawMailImage(canvas, text) {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#fff9f1";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = "#f5d19a";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
+
+      ctx.font = "600 34px Menlo, 'PT Mono', 'Courier New', monospace";
+      ctx.fillStyle = "#2f2a28";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
+
+    }
+
+    /**
+     * @param {string} text
+     * @param {HTMLButtonElement} copyButton
+     */
+    async function copyMailAddress(text, copyButton) {
+      const defaultLabel = copyButton.getAttribute("data-default-label") || "copy";
+      try {
+        await navigator.clipboard.writeText(text);
+        copyButton.textContent = "✓ copied";
+        copyButton.classList.add("is-copied");
+      } catch {
+        copyButton.textContent = "failed";
+        copyButton.classList.remove("is-copied");
+      } finally {
+        window.setTimeout(() => {
+          copyButton.textContent = defaultLabel;
+          copyButton.classList.remove("is-copied");
+        }, 1800);
+      }
+    }
+
+    function setupContactPage() {
+      /** @type {HTMLCanvasElement | null} */
+      const canvas = document.getElementById("contact-mail-image");
+      /** @type {HTMLButtonElement | null} */
+      const copyButton = document.getElementById("copy-mail-button");
+      if (!canvas || !copyButton) return;
+
+      drawMailImage(canvas, emailAddress);
+
+      copyButton.onclick = () => {
+        copyMailAddress(emailAddress, copyButton);
+      };
+    }
+
+    setupContactPage();
+    document.addEventListener("astro:page-load", setupContactPage);
+  </script>
+
+  <style>
+    .contact-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1rem 2.5rem;
+    }
+
+    .contact-title {
+      margin: 0 0 0.5rem;
+      font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+      color: var(--fg, var(--wa-ink));
+    }
+
+    .contact-description {
+      margin: 0 0 1.1rem;
+      color: var(--muted, #7c6f69);
+      font-size: 0.95rem;
+    }
+
+    .mail-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.95rem;
+      background: var(--card, #fff9f1);
+      border: 2px solid var(--wa-butter);
+      border-radius: 12px;
+      padding: 1.1rem 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .mail-row {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .mail-image {
+      width: min(100%, 500px);
+      height: auto;
+      border-radius: 8px;
+      image-rendering: auto;
+    }
+
+    .copy-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--accent, #2d7a78);
+      background: transparent;
+      color: var(--accent, #2d7a78);
+      border-radius: 7px;
+      padding: 0.42rem 0.7rem;
+      min-width: 88px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .copy-button:hover {
+      background: var(--accent, #2d7a78);
+      color: #fff;
+    }
+
+    .copy-button:active {
+      transform: scale(0.98);
+    }
+
+    .copy-button.is-copied {
+      background: var(--accent, #2d7a78);
+      color: #fff;
+      border-color: var(--accent, #2d7a78);
+    }
+
+    .notice-text {
+      margin: 0;
+      color: var(--muted, #7c6f69);
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 640px) {
+      .contact-page {
+        padding: 1rem 0.75rem 1.5rem;
+      }
+
+      .mail-card {
+        padding: 0.9rem 0.75rem;
+      }
+
+      .mail-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .copy-button {
+        align-self: flex-end;
+      }
+    }
+  </style>
+</Base>

@@ -1,12 +1,7 @@
 ---
-
 ---
 
-<div class="piano-root">
-    <button id="pianoFab" class="piano-fab">
-        <img src="/images/uploads/piano_24dp_1F1F1F_FILL0_wght400_GRAD0_opsz24.svg" />
-    </button>
-
+<div id="pianoRoot" class="piano-root" transition:persist="piano-ui">
     <div id="pianoPanel" class="piano-panel hidden">
         <div id="pianoBackground" class="piano-background"></div>
     </div>
@@ -14,107 +9,343 @@
 
 <script>
     function initPiano() {
+        const root = document.getElementById("pianoRoot");
         const pianoBackground = document.getElementById("pianoBackground");
-        const fab = document.getElementById("pianoFab");
+        const fab = document.getElementById("pianoToggle") || document.getElementById("pianoFab");
         const panel = document.getElementById("pianoPanel");
 
-        if (!pianoBackground || !fab || !panel) return;
-        if (pianoBackground.dataset.init === "1") return;
-        pianoBackground.dataset.init = "1";
+        if (!root || !pianoBackground || !panel) return;
+        if (root.dataset.init === "1") return;
+        root.dataset.init = "1";
 
-        const noteCharList = ["A", "As", "B", "C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs"];
-        const baseNote = {
-            C: 0,
-            Cs: 1,
-            D: 2,
-            Ds: 3,
-            E: 4,
-            F: 5,
-            Fs: 6,
-            G: 7,
-            Gs: 8,
-            A: 9,
-            As: 10,
-            B: 11,
-        };
+        const state = (window.__pianoState ??= { isOpen: false });
+        const engine = (window.__pianoEngine ??= {
+            audioContext: null,
+            buffers: new Map(),
+            loadingBuffers: new Map(),
+            activeNotes: new Map(),
+            loopPoints: {},
+            loopPointsLoaded: false,
+        });
 
-        function noteToMidi(note) {
-            const match = note.match(/^([A-G][s]?)(\d)$/);
-            if (!match) return null;
-            const [, pitch, octave] = match;
-            return (parseInt(octave) + 1) * 12 + baseNote[pitch];
+        const NOTE_NAMES = ["C", "Cs", "D", "Ds", "E", "F", "Fs", "G", "Gs", "A", "As", "B"];
+        const FULL_PIANO_MIN_MIDI = 21;
+        const FULL_PIANO_MAX_MIDI = 108;
+        const FULL_PIANO_KEY_COUNT = 88;
+        const DEFAULT_LOOP = { loopStart: 0.08, release: 0.05, gain: 1 };
+        const DEFAULT_LOOP_END_OFFSET = 0.02;
+
+        const pointerToNote = new Map();
+        const noteHoldCount = new Map();
+        const noteElement = new Map();
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
         }
 
         function midiToNote(midiNumber) {
             const octave = Math.floor(midiNumber / 12) - 1;
-            const pitchIndex = midiNumber % 12;
-            const pitch = Object.keys(baseNote).find((n) => baseNote[n] === pitchIndex);
+            const pitch = NOTE_NAMES[midiNumber % 12];
             return `${pitch}${octave}`;
         }
 
-        function play(note) {
-            const audio = new Audio(`/piano/audio/${note}.mp3`);
-            audio.currentTime = 0;
-            audio.play();
+        function isBlackKey(note) {
+            return note.includes("s");
+        }
+
+        function getKeyRangeByViewport(viewportWidth) {
+            if (viewportWidth <= 640) return { min: 12, max: 24, targetWhiteKeyPx: 26 };
+            if (viewportWidth <= 960) return { min: 24, max: 48, targetWhiteKeyPx: 24 };
+            if (viewportWidth <= 1280) return { min: 36, max: 72, targetWhiteKeyPx: 22 };
+            return { min: 48, max: FULL_PIANO_KEY_COUNT, targetWhiteKeyPx: 20 };
+        }
+
+        function getFirstMidi(keyCount) {
+            if (keyCount >= FULL_PIANO_KEY_COUNT) return FULL_PIANO_MIN_MIDI;
+            const centerMidi = 60;
+            const maxStart = FULL_PIANO_MAX_MIDI - keyCount + 1;
+            const rawStart = Math.round(centerMidi - keyCount / 2);
+            return clamp(rawStart, FULL_PIANO_MIN_MIDI, maxStart);
+        }
+
+        function getAudioContext() {
+            if (engine.audioContext) return engine.audioContext;
+            const Ctor = window.AudioContext || window.webkitAudioContext;
+            if (!Ctor) return null;
+            engine.audioContext = new Ctor({ latencyHint: "interactive" });
+            return engine.audioContext;
+        }
+
+        async function ensureLoopPointsLoaded() {
+            if (engine.loopPointsLoaded) return;
+            try {
+                const response = await fetch("/piano/loop-points.json", { cache: "no-store" });
+                if (!response.ok) {
+                    engine.loopPoints = {};
+                } else {
+                    const raw = await response.json();
+                    engine.loopPoints = raw && typeof raw === "object" ? raw : {};
+                }
+            } catch (_) {
+                engine.loopPoints = {};
+            } finally {
+                engine.loopPointsLoaded = true;
+            }
+        }
+
+        function resolveLoopForNote(note, duration) {
+            const defaults = engine.loopPoints._default ?? {};
+            const config = engine.loopPoints[note] ?? {};
+
+            const requestedLoopStart = config.loopStart ?? defaults.loopStart ?? DEFAULT_LOOP.loopStart;
+            const safeLoopStart = clamp(requestedLoopStart, 0, Math.max(0, duration - 0.03));
+            const requestedLoopEnd =
+                config.loopEnd ??
+                defaults.loopEnd ??
+                duration - (config.loopEndOffset ?? defaults.loopEndOffset ?? DEFAULT_LOOP_END_OFFSET);
+            const minLoopEnd = safeLoopStart + 0.01;
+            const safeLoopEnd = clamp(requestedLoopEnd, minLoopEnd, duration);
+
+            const release = clamp(config.release ?? defaults.release ?? DEFAULT_LOOP.release, 0.005, 0.3);
+            const gain = clamp(config.gain ?? defaults.gain ?? DEFAULT_LOOP.gain, 0, 1);
+            return { loopStart: safeLoopStart, loopEnd: safeLoopEnd, release, gain };
+        }
+
+        async function loadBuffer(note) {
+            const cached = engine.buffers.get(note);
+            if (cached) return cached;
+
+            const loading = engine.loadingBuffers.get(note);
+            if (loading) return loading;
+
+            const promise = (async () => {
+                const context = getAudioContext();
+                if (!context) throw new Error("AudioContext is unavailable");
+
+                const response = await fetch(`/piano/audio/${note}.mp3`);
+                if (!response.ok) throw new Error(`Audio file not found: ${note}`);
+                const arrayBuffer = await response.arrayBuffer();
+                const audioBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
+                engine.buffers.set(note, audioBuffer);
+                return audioBuffer;
+            })();
+
+            engine.loadingBuffers.set(note, promise);
+            try {
+                return await promise;
+            } finally {
+                engine.loadingBuffers.delete(note);
+            }
+        }
+
+        function stopActiveVoice(note) {
+            const active = engine.activeNotes.get(note);
+            if (!active) return;
+
+            const context = getAudioContext();
+            if (!context) return;
+
+            const now = context.currentTime;
+            const currentGain = active.gainNode.gain.value;
+            active.gainNode.gain.cancelScheduledValues(now);
+            active.gainNode.gain.setValueAtTime(currentGain, now);
+            active.gainNode.gain.linearRampToValueAtTime(0, now + active.release);
+
+            try {
+                active.source.stop(now + active.release + 0.02);
+            } catch (_) {}
+
+            engine.activeNotes.delete(note);
+        }
+
+        async function startNote(note) {
+            const currentCount = noteHoldCount.get(note) ?? 0;
+            noteHoldCount.set(note, currentCount + 1);
+            if (currentCount > 0) return;
+
+            const key = noteElement.get(note);
+            key?.classList.add("is-pressed");
+
+            try {
+                await ensureLoopPointsLoaded();
+                const context = getAudioContext();
+                if (!context) return;
+                if (context.state === "suspended") await context.resume();
+
+                const buffer = await loadBuffer(note);
+                if ((noteHoldCount.get(note) ?? 0) <= 0) return;
+
+                stopActiveVoice(note);
+
+                const loopConfig = resolveLoopForNote(note, buffer.duration);
+                const source = context.createBufferSource();
+                source.buffer = buffer;
+                source.loop = true;
+                source.loopStart = loopConfig.loopStart;
+                source.loopEnd = loopConfig.loopEnd;
+
+                const gainNode = context.createGain();
+                const now = context.currentTime;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(loopConfig.gain, now + 0.004);
+
+                source.connect(gainNode);
+                gainNode.connect(context.destination);
+                source.start(now, 0);
+
+                source.onended = () => {
+                    const active = engine.activeNotes.get(note);
+                    if (active?.source === source) engine.activeNotes.delete(note);
+                };
+
+                engine.activeNotes.set(note, { source, gainNode, release: loopConfig.release });
+            } catch (_) {
+                noteHoldCount.delete(note);
+                key?.classList.remove("is-pressed");
+            }
+        }
+
+        function stopNote(note) {
+            const currentCount = noteHoldCount.get(note) ?? 0;
+            if (currentCount <= 1) {
+                noteHoldCount.delete(note);
+                const key = noteElement.get(note);
+                key?.classList.remove("is-pressed");
+                stopActiveVoice(note);
+                return;
+            }
+            noteHoldCount.set(note, currentCount - 1);
+        }
+
+        function stopPointer(pointerId) {
+            const note = pointerToNote.get(pointerId);
+            if (!note) return;
+            pointerToNote.delete(pointerId);
+            stopNote(note);
+        }
+
+        function stopAllNotes() {
+            pointerToNote.clear();
+            for (const note of noteHoldCount.keys()) {
+                noteElement.get(note)?.classList.remove("is-pressed");
+            }
+            noteHoldCount.clear();
+            for (const note of Array.from(engine.activeNotes.keys())) {
+                stopActiveVoice(note);
+            }
+        }
+
+        function setPanelOpen(isOpen) {
+            state.isOpen = isOpen;
+            panel.classList.toggle("hidden", !isOpen);
+            fab?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            if (!isOpen) stopAllNotes();
         }
 
         function createKeys() {
+            stopAllNotes();
             pianoBackground.innerHTML = "";
+            noteElement.clear();
+            pointerToNote.clear();
+            noteHoldCount.clear();
 
-            const panelWidth = window.innerWidth * 0.9;
-            const whiteKeys = Math.floor(panelWidth / 24);
-            const numberOfKeys = Math.floor((whiteKeys / 7) * 12);
+            const viewportWidth = window.innerWidth;
+            const { min, max, targetWhiteKeyPx } = getKeyRangeByViewport(viewportWidth);
+            const panelMaxWidth = Math.min(viewportWidth * 0.92, 1120);
+            const estimatedWhiteKeys = Math.floor(panelMaxWidth / targetWhiteKeyPx);
+            const estimatedTotalKeys = Math.floor((estimatedWhiteKeys * 12) / 7);
+            const keyCount = clamp(estimatedTotalKeys, min, max);
 
-            const whiteKeyWidth = 4;
+            const firstMidi = getFirstMidi(keyCount);
+            const notes = Array.from({ length: keyCount }, (_, i) => midiToNote(firstMidi + i));
+
+            const whiteKeyCount = notes.filter((note) => !isBlackKey(note)).length;
+            const whiteKeyWidth = clamp(panelMaxWidth / whiteKeyCount, 18, 32);
             const blackKeyWidth = whiteKeyWidth * 0.6;
             const blackHalf = blackKeyWidth / 2;
-            const gap = whiteKeyWidth / 20;
+            const blackGapAdjust = whiteKeyWidth / 20;
+            const whiteKeyHeight = clamp(whiteKeyWidth * 5.6, 90, 200);
+            const blackKeyHeight = whiteKeyHeight * 0.62;
 
-            const firstNotePitch = "C3";
-            const firstMidi = noteToMidi(firstNotePitch);
+            pianoBackground.style.width = `${Math.round(whiteKeyCount * whiteKeyWidth)}px`;
+            pianoBackground.style.height = `${Math.round(whiteKeyHeight)}px`;
+            pianoBackground.style.setProperty("--white-key-height", `${Math.round(whiteKeyHeight)}px`);
+            pianoBackground.style.setProperty("--black-key-height", `${Math.round(blackKeyHeight)}px`);
 
             let whiteCount = 0;
-            let totalWidth = 0;
 
-            for (let i = 0; i < numberOfKeys; i++) {
-                const midi = firstMidi + i;
-                const note = midiToNote(midi);
-                const noteChar = note.match(/^([A-G][s]?)/)[1];
+            for (const note of notes) {
+                const noteChar = note.match(/^([A-G][s]?)/)?.[1];
+                if (!noteChar) continue;
 
-                const key = document.createElement("div");
-                key.classList.add("key");
+                const key = document.createElement("button");
+                key.type = "button";
+                key.className = "key";
                 key.dataset.note = note;
+                key.setAttribute("aria-label", note);
 
                 if (noteChar.includes("s")) {
                     key.classList.add("black-key");
-                    key.style.width = `${blackKeyWidth}vw`;
-
-                    let pos = whiteKeyWidth * whiteCount - blackHalf;
-
-                    if (noteChar === "Cs" || noteChar === "Fs") pos -= gap;
-                    if (noteChar === "Ds" || noteChar === "As") pos += gap;
-
-                    key.style.left = `${pos}vw`;
+                    key.style.width = `${blackKeyWidth}px`;
+                    let left = whiteKeyWidth * whiteCount - blackHalf;
+                    if (noteChar === "Cs" || noteChar === "Fs") left -= blackGapAdjust;
+                    if (noteChar === "Ds" || noteChar === "As") left += blackGapAdjust;
+                    key.style.left = `${left}px`;
                 } else {
                     key.classList.add("white-key");
-                    key.style.width = `${whiteKeyWidth}vw`;
-                    key.style.left = `${whiteKeyWidth * whiteCount}vw`;
-                    whiteCount++;
-                    totalWidth += whiteKeyWidth;
+                    key.style.width = `${whiteKeyWidth}px`;
+                    key.style.left = `${whiteKeyWidth * whiteCount}px`;
+                    whiteCount += 1;
                 }
 
-                key.addEventListener("mousedown", () => play(note));
+                key.addEventListener("pointerdown", (event) => {
+                    if (event.pointerType === "mouse" && event.button !== 0) return;
+                    event.preventDefault();
+                    key.setPointerCapture(event.pointerId);
+                    pointerToNote.set(event.pointerId, note);
+                    void startNote(note);
+                });
+
+                const releasePointer = (event) => {
+                    event.preventDefault();
+                    stopPointer(event.pointerId);
+                    try {
+                        key.releasePointerCapture(event.pointerId);
+                    } catch (_) {}
+                };
+
+                key.addEventListener("pointerup", releasePointer);
+                key.addEventListener("pointercancel", releasePointer);
+                key.addEventListener("lostpointercapture", (event) => {
+                    stopPointer(event.pointerId);
+                });
+
+                noteElement.set(note, key);
                 pianoBackground.appendChild(key);
             }
-
-            pianoBackground.style.width = `${totalWidth}vw`;
         }
 
-        fab.addEventListener("click", () => {
-            panel.classList.toggle("hidden");
+        let resizeTimer;
+        const onResize = () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(() => {
+                createKeys();
+            }, 120);
+        };
+
+        fab?.addEventListener("click", () => {
+            setPanelOpen(panel.classList.contains("hidden"));
         });
 
+        window.addEventListener("resize", onResize);
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopAllNotes();
+        });
+        window.addEventListener("pagehide", stopAllNotes);
+        window.addEventListener("pointerup", (event) => stopPointer(event.pointerId));
+
         createKeys();
+        setPanelOpen(Boolean(state.isOpen));
     }
 
     document.addEventListener("astro:page-load", initPiano);
@@ -124,8 +355,8 @@
 <style>
     .piano-root {
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        right: clamp(12px, 1.8vmin, 20px);
+        bottom: clamp(12px, 1.8vmin, 20px);
         z-index: 9999;
     }
 
@@ -133,20 +364,25 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: white;
         border: none;
+        background: #fff;
         cursor: pointer;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     }
 
     .piano-panel {
         position: fixed;
-        bottom: 100px;
-        right: 20px;
-        background: #111;
-        padding: 1rem;
-        border-radius: 12px;
+        right: clamp(8px, 1.5vmin, 20px);
+        bottom: clamp(78px, 10vmin, 100px);
+        width: min(1120px, 94vw);
+        max-width: 94vw;
+        background: #101010;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: clamp(8px, 1.5vmin, 12px);
+        padding: clamp(6px, 1.2vmin, 12px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
         overflow-x: auto;
+        overflow-y: hidden;
     }
 
     .hidden {
@@ -155,24 +391,49 @@
 
     :global(.piano-background) {
         position: relative;
-        height: 12vw;
+        margin: 0 auto;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: none;
+        caret-color: transparent;
     }
 
     :global(.key) {
         position: absolute;
+        top: 0;
+        border: none;
+        padding: 0;
+        margin: 0;
+        appearance: none;
         cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
     }
 
     :global(.white-key) {
-        height: 12vw;
-        background: white;
-        border: 1px solid #444;
+        height: var(--white-key-height);
+        background: #fff;
+        border: 1px solid #2e2e2e;
         z-index: 1;
+        border-radius: 0 0 4px 4px;
     }
 
     :global(.black-key) {
-        height: 7vw;
-        background: black;
+        height: var(--black-key-height);
+        background: #101010;
         z-index: 2;
+        border-radius: 0 0 3px 3px;
+        box-shadow: inset -1px -1px 1px rgba(255, 255, 255, 0.08);
+    }
+
+    :global(.white-key.is-pressed) {
+        background: #e8eef3;
+    }
+
+    :global(.black-key.is-pressed) {
+        background: #2f2f2f;
     }
 </style>

@@ -101,8 +101,8 @@ html,body{
 
 .piano-fab {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+  right: calc(env(safe-area-inset-right, 0px) + 16px);
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -110,7 +110,7 @@ html,body{
   background: white;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  z-index: 9999;
+  z-index: 10000;
   transition: transform 0.2s ease;
 }
 
