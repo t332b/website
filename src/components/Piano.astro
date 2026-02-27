@@ -4,10 +4,24 @@
 <div id="pianoRoot" class="piano-root" transition:persist="piano-ui">
     <div id="pianoPanel" class="piano-panel hidden">
         <div class="piano-controls">
-            <label class="piano-start-label" for="pianoStartRange">
-                Start: <span id="pianoStartLabel">C3</span>
-            </label>
-            <input id="pianoStartRange" class="piano-start-range" type="range" min="21" max="108" step="1" value="48" />
+            <button id="pianoCloseBtn" class="piano-close-btn" type="button" aria-label="ピアノを閉じる">✕</button>
+
+            <div class="piano-side-controls">
+                <div class="piano-start-controls" aria-label="開始位置調整">
+                    <button id="pianoOctDown" class="piano-ctrl-btn" type="button" aria-label="開始位置を1オクターブ下げる">≪</button>
+                    <button id="pianoStepDown" class="piano-ctrl-btn" type="button" aria-label="開始位置を半音下げる">‹</button>
+                    <div id="pianoStartLabel" class="piano-start-readout">Start: C3</div>
+                    <button id="pianoStepUp" class="piano-ctrl-btn" type="button" aria-label="開始位置を半音上げる">›</button>
+                    <button id="pianoOctUp" class="piano-ctrl-btn" type="button" aria-label="開始位置を1オクターブ上げる">≫</button>
+                </div>
+
+                <div class="piano-volume-controls" aria-label="音量調整">
+                    <label class="piano-volume-label" for="pianoVolumeRange">
+                        Volume: <span id="pianoVolumeLabel">50%</span>
+                    </label>
+                    <input id="pianoVolumeRange" class="piano-volume-range" type="range" min="0" max="1" step="0.01" value="0.5" />
+                </div>
+            </div>
         </div>
         <div id="pianoBackground" class="piano-background"></div>
     </div>
@@ -18,14 +32,34 @@
         const root = document.getElementById("pianoRoot");
         const pianoBackground = document.getElementById("pianoBackground");
         const panel = document.getElementById("pianoPanel");
-        const startRange = document.getElementById("pianoStartRange");
+        const closeBtn = document.getElementById("pianoCloseBtn");
+        const octDownBtn = document.getElementById("pianoOctDown");
+        const stepDownBtn = document.getElementById("pianoStepDown");
+        const stepUpBtn = document.getElementById("pianoStepUp");
+        const octUpBtn = document.getElementById("pianoOctUp");
+        const volumeRange = document.getElementById("pianoVolumeRange");
         const startLabel = document.getElementById("pianoStartLabel");
+        const volumeLabel = document.getElementById("pianoVolumeLabel");
 
-        if (!root || !pianoBackground || !panel || !startRange || !startLabel) return;
+        if (
+            !root ||
+            !pianoBackground ||
+            !panel ||
+            !closeBtn ||
+            !octDownBtn ||
+            !stepDownBtn ||
+            !stepUpBtn ||
+            !octUpBtn ||
+            !volumeRange ||
+            !startLabel ||
+            !volumeLabel
+        )
+            return;
 
-        const state = (window.__pianoState ??= { isOpen: false, startMidi: 48 });
+        const state = (window.__pianoState ??= { isOpen: false, startMidi: 48, volume: 0.5 });
         const engine = (window.__pianoEngine ??= {
             audioContext: null,
+            masterGain: null,
             buffers: new Map(),
             loadingBuffers: new Map(),
             activeNotes: new Map(),
@@ -35,7 +69,7 @@
         const ui = (window.__pianoUi ??= {
             delegatedToggleBound: false,
             resizeBound: false,
-            rangeBound: false,
+            controlBound: false,
             longPressGuardBound: false,
         });
 
@@ -43,6 +77,8 @@
         const FULL_PIANO_MIN_MIDI = 21;
         const FULL_PIANO_MAX_MIDI = 108;
         const FULL_PIANO_KEY_COUNT = 88;
+        const PIANO_MAX_WIDTH = 1900;
+        const MAX_WHITE_KEY_WIDTH = 38;
         const DEFAULT_LOOP = { loopStart: 0.08, release: 0.05, gain: 1 };
         const DEFAULT_LOOP_END_OFFSET = 0.02;
 
@@ -64,20 +100,37 @@
             return note.includes("s");
         }
 
-        function getKeyRangeByViewport(viewportWidth, viewportHeight) {
-            const isLandscape = viewportWidth > viewportHeight;
-            const isMobileLike = viewportWidth <= 1024;
+        function getTargetWhiteKeyWidth(viewportWidth) {
+            if (viewportWidth <= 430) return 44;
+            if (viewportWidth <= 640) return 40;
+            if (viewportWidth <= 820) return 34;
+            if (viewportWidth <= 1024) return 30;
+            if (viewportWidth <= 1366) return 26;
+            return 24;
+        }
 
-            if (viewportWidth <= 640) {
-                if (isLandscape) return { min: 18, max: 36, targetWhiteKeyPx: 22 };
-                return { min: 16, max: 19, targetWhiteKeyPx: 34 };
-            }
-            if (viewportWidth <= 960) {
-                if (isLandscape && isMobileLike) return { min: 30, max: 56, targetWhiteKeyPx: 20 };
-                return { min: 24, max: 48, targetWhiteKeyPx: 24 };
-            }
-            if (viewportWidth <= 1280) return { min: 36, max: 72, targetWhiteKeyPx: 22 };
-            return { min: 48, max: FULL_PIANO_KEY_COUNT, targetWhiteKeyPx: 20 };
+        function getMaxKeysByViewport(viewportWidth) {
+            if (viewportWidth < 720) return 24;
+            if (viewportWidth < 960) return 32;
+            if (viewportWidth < 1280) return 48;
+            if (viewportWidth < 1600) return 64;
+            if (viewportWidth < 2000) return 76;
+            return FULL_PIANO_KEY_COUNT; // 88鍵は超広幅時のみ
+        }
+
+        function getKeyCountFromPanelWidth(panelInnerWidth, viewportWidth) {
+            const minWhiteKeys = 7; // 12鍵相当
+            const maxWhiteKeys = 52; // 88鍵相当
+            const targetWhiteKeyWidth = getTargetWhiteKeyWidth(viewportWidth);
+            const minWhiteKeysByMaxWidth = Math.ceil(panelInnerWidth / MAX_WHITE_KEY_WIDTH);
+            const whiteKeyCount = clamp(
+                Math.max(Math.round(panelInnerWidth / targetWhiteKeyWidth), minWhiteKeysByMaxWidth),
+                minWhiteKeys,
+                maxWhiteKeys,
+            );
+            const estimatedTotalKeys = Math.round((whiteKeyCount * 12) / 7);
+            const maxKeys = getMaxKeysByViewport(viewportWidth);
+            return clamp(estimatedTotalKeys, 12, maxKeys);
         }
 
         function getFirstMidi(keyCount, preferredStartMidi) {
@@ -92,6 +145,9 @@
             const Ctor = window.AudioContext || window.webkitAudioContext;
             if (!Ctor) return null;
             engine.audioContext = new Ctor({ latencyHint: "interactive" });
+            engine.masterGain = engine.audioContext.createGain();
+            engine.masterGain.gain.value = clamp(state.volume ?? 0.5, 0, 1);
+            engine.masterGain.connect(engine.audioContext.destination);
             return engine.audioContext;
         }
 
@@ -209,7 +265,7 @@
                 gainNode.gain.linearRampToValueAtTime(loopConfig.gain, now + 0.004);
 
                 source.connect(gainNode);
-                gainNode.connect(context.destination);
+                gainNode.connect(engine.masterGain || context.destination);
                 source.start(now, 0);
 
                 source.onended = () => {
@@ -268,14 +324,50 @@
         }
 
         function updateStartLabel(midi) {
-            startLabel.textContent = noteLabelFromMidi(midi);
+            startLabel.textContent = `Start: ${noteLabelFromMidi(midi)}`;
         }
 
         function setPanelOpen(isOpen) {
             state.isOpen = isOpen;
             panel.classList.toggle("hidden", !isOpen);
             updateToggleAria(isOpen);
+            const fab = getToggleButton();
+            fab?.classList.toggle("is-hidden-while-open", isOpen);
             if (!isOpen) stopAllNotes();
+            updateBodySafeSpace();
+        }
+
+        function updateBodySafeSpace() {
+            const body = document.body;
+            if (!body) return;
+            if (!state.isOpen) {
+                body.classList.remove("piano-open");
+                body.style.removeProperty("--piano-safe-space");
+                return;
+            }
+            const panelRect = panel.getBoundingClientRect();
+            const extra = Math.ceil(panelRect.height + 20);
+            body.classList.add("piano-open");
+            body.style.setProperty("--piano-safe-space", `${extra}px`);
+        }
+
+        function clampStartMidi(value, keyCount) {
+            const maxStartMidi = FULL_PIANO_MAX_MIDI - keyCount + 1;
+            return clamp(value, FULL_PIANO_MIN_MIDI, maxStartMidi);
+        }
+
+        function updateVolumeLabel() {
+            volumeLabel.textContent = `${Math.round((state.volume ?? 0.5) * 100)}%`;
+            volumeRange.value = String(state.volume ?? 0.5);
+        }
+
+        function setMasterVolume(nextVolume) {
+            state.volume = clamp(nextVolume, 0, 1);
+            const context = getAudioContext();
+            if (context && engine.masterGain) {
+                engine.masterGain.gain.setValueAtTime(state.volume, context.currentTime);
+            }
+            updateVolumeLabel();
         }
 
         function createKeys() {
@@ -286,34 +378,26 @@
             noteHoldCount.clear();
 
             const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            const { min, max, targetWhiteKeyPx } = getKeyRangeByViewport(viewportWidth, viewportHeight);
             const panelStyle = window.getComputedStyle(panel);
             const panelHorizontalPadding = parseFloat(panelStyle.paddingLeft) + parseFloat(panelStyle.paddingRight);
             const measuredPanelWidth = panel.getBoundingClientRect().width || panel.clientWidth || 0;
             // hidden(display:none) 時は幅が 0 になるため、viewport から安全にフォールバックする
-            const fallbackPanelWidth = Math.min(viewportWidth - 28, 1120);
+            const fallbackPanelWidth = Math.min(viewportWidth - 28, PIANO_MAX_WIDTH);
             const panelInnerWidth = Math.max(
                 220,
                 (measuredPanelWidth > 0 ? measuredPanelWidth : fallbackPanelWidth) - panelHorizontalPadding,
             );
-            const panelMaxWidth = Math.min(panelInnerWidth, 1120);
-            const estimatedWhiteKeys = Math.floor(panelMaxWidth / targetWhiteKeyPx);
-            const estimatedTotalKeys = Math.floor((estimatedWhiteKeys * 12) / 7);
-            const keyCount = clamp(estimatedTotalKeys, min, max);
-            const maxStartMidi = FULL_PIANO_MAX_MIDI - keyCount + 1;
+            const panelMaxWidth = Math.min(panelInnerWidth, PIANO_MAX_WIDTH);
+            const keyCount = getKeyCountFromPanelWidth(panelMaxWidth, viewportWidth);
 
-            state.startMidi = clamp(state.startMidi ?? 48, FULL_PIANO_MIN_MIDI, maxStartMidi);
-            startRange.min = String(FULL_PIANO_MIN_MIDI);
-            startRange.max = String(maxStartMidi);
-            startRange.value = String(state.startMidi);
+            state.startMidi = clampStartMidi(state.startMidi ?? 48, keyCount);
             updateStartLabel(state.startMidi);
 
             const firstMidi = getFirstMidi(keyCount, state.startMidi);
             const notes = Array.from({ length: keyCount }, (_, i) => midiToNote(firstMidi + i));
 
             const whiteKeyCount = notes.filter((note) => !isBlackKey(note)).length;
-            const whiteKeyWidth = clamp(panelMaxWidth / whiteKeyCount, 22, 40);
+            const whiteKeyWidth = panelMaxWidth / whiteKeyCount;
             const blackKeyWidth = whiteKeyWidth * 0.6;
             const blackHalf = blackKeyWidth / 2;
             const blackGapAdjust = whiteKeyWidth / 20;
@@ -383,6 +467,7 @@
             clearTimeout(resizeTimer);
             resizeTimer = window.setTimeout(() => {
                 createKeys();
+                updateBodySafeSpace();
             }, 120);
         };
 
@@ -394,28 +479,51 @@
                 if (!toggleBtn) return;
                 const currentPanel = document.getElementById("pianoPanel");
                 if (!currentPanel) return;
-                state.isOpen = currentPanel.classList.contains("hidden");
-                currentPanel.classList.toggle("hidden", !state.isOpen);
-                updateToggleAria(state.isOpen);
-                if (!state.isOpen) {
+                const shouldOpen = currentPanel.classList.contains("hidden");
+                setPanelOpen(shouldOpen);
+                if (!shouldOpen) {
                     stopAllNotes();
                 } else {
                     // 表示後の実幅で鍵盤数を再計算
                     window.requestAnimationFrame(() => {
                         createKeys();
+                        updateBodySafeSpace();
                     });
                 }
             });
             ui.delegatedToggleBound = true;
         }
 
-        if (!ui.rangeBound) {
-            startRange.addEventListener("input", () => {
-                state.startMidi = Number(startRange.value);
+        if (!ui.controlBound) {
+            const adjustStartBy = (deltaMidi) => {
+                const viewportWidth = window.innerWidth;
+                const panelStyle = window.getComputedStyle(panel);
+                const panelHorizontalPadding = parseFloat(panelStyle.paddingLeft) + parseFloat(panelStyle.paddingRight);
+                const measuredPanelWidth = panel.getBoundingClientRect().width || panel.clientWidth || 0;
+                const fallbackPanelWidth = Math.min(viewportWidth - 28, PIANO_MAX_WIDTH);
+                const panelInnerWidth = Math.max(
+                    220,
+                    (measuredPanelWidth > 0 ? measuredPanelWidth : fallbackPanelWidth) - panelHorizontalPadding,
+                );
+                const panelMaxWidth = Math.min(panelInnerWidth, PIANO_MAX_WIDTH);
+                const keyCount = getKeyCountFromPanelWidth(panelMaxWidth, viewportWidth);
+
+                state.startMidi = clampStartMidi((state.startMidi ?? 48) + deltaMidi, keyCount);
                 updateStartLabel(state.startMidi);
                 createKeys();
+            };
+
+            closeBtn.addEventListener("click", () => setPanelOpen(false));
+            stepDownBtn.addEventListener("click", () => adjustStartBy(-1));
+            stepUpBtn.addEventListener("click", () => adjustStartBy(1));
+            octDownBtn.addEventListener("click", () => adjustStartBy(-12));
+            octUpBtn.addEventListener("click", () => adjustStartBy(12));
+
+            volumeRange.addEventListener("input", () => {
+                setMasterVolume(Number(volumeRange.value));
             });
-            ui.rangeBound = true;
+
+            ui.controlBound = true;
         }
 
         if (!ui.longPressGuardBound) {
@@ -452,7 +560,9 @@
         } else {
             createKeys();
         }
+        updateVolumeLabel();
         setPanelOpen(Boolean(state.isOpen));
+        updateBodySafeSpace();
     }
 
     document.addEventListener("astro:page-load", initPiano);
@@ -481,10 +591,10 @@
         position: fixed;
         left: 14px;
         right: 14px;
-        bottom: clamp(78px, 10vmin, 100px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
         width: auto;
-        max-width: 1120px;
-        background: #101010;
+        max-width: 1900px;
+        background: #282828;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: clamp(8px, 1.5vmin, 12px);
         padding: clamp(8px, 1.6vmin, 14px);
@@ -496,11 +606,11 @@
         -webkit-touch-callout: none;
     }
 
-    @media (min-width: 1180px) {
+    @media (min-width: 1940px) {
         .piano-panel {
             left: 50%;
             right: auto;
-            width: 1120px;
+            width: 1900px;
             transform: translateX(-50%);
         }
     }
@@ -511,22 +621,101 @@
 
     .piano-controls {
         display: flex;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 8px;
         margin-bottom: 8px;
         color: #eee;
         font-size: 12px;
     }
 
-    .piano-start-label {
-        min-width: 72px;
-        font-family: "Menlo", "PT Mono", "Courier New", monospace;
-        font-size: 11px;
+    .piano-close-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 999px;
+        border: 1px solid #b75a5a;
+        background: #d05d5d;
+        color: #fff;
+        cursor: pointer;
+        flex: 0 0 auto;
+        font-size: 18px;
+        line-height: 1;
+        margin-right: clamp(8px, 1.2vw, 18px);
     }
 
-    .piano-start-range {
-        flex: 1;
+    .piano-side-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .piano-start-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-width: 0;
+        flex-wrap: nowrap;
+    }
+
+    .piano-ctrl-btn {
+        min-width: 36px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid #555;
+        background: #282828;
+        color: #fff;
+        cursor: pointer;
+        padding: 0 8px;
+    }
+
+    .piano-start-readout {
+        min-width: 110px;
+        text-align: center;
+        font-family: "Menlo", "PT Mono", "Courier New", monospace;
+        font-size: 11px;
+        line-height: 28px;
+        border: 1px solid #3f3f3f;
+        border-radius: 6px;
+        background: #282828;
+        padding: 0 8px;
+    }
+
+    .piano-volume-controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .piano-volume-label {
+        font-family: "Menlo", "PT Mono", "Courier New", monospace;
+        font-size: 11px;
+        min-width: 92px;
+    }
+
+    .piano-volume-range {
+        flex: 1 1 auto;
         min-width: 120px;
+        max-width: 260px;
+    }
+
+    @media (min-width: 1024px) {
+        .piano-side-controls {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .piano-start-controls {
+            flex: 1 1 auto;
+        }
+
+        .piano-volume-controls {
+            flex: 0 0 auto;
+            min-width: 0;
+        }
     }
 
     :global(.piano-background) {
@@ -563,7 +752,7 @@
 
     :global(.black-key) {
         height: var(--black-key-height);
-        background: #121212;
+        background: #282828;
         z-index: 2;
         border-radius: 0 0 3px 3px;
         box-shadow:
@@ -576,8 +765,16 @@
     }
 
     :global(.black-key.is-pressed) {
-        background: #5a5a5a;
+        background: #6c6c6c;
         transform: translateY(1px);
         box-shadow: inset 0 0 0 1px rgba(180, 220, 255, 0.6);
+    }
+
+    :global(.piano-fab.is-hidden-while-open) {
+        display: none;
+    }
+
+    :global(body.piano-open) {
+        padding-bottom: max(var(--piano-safe-space, 0px), env(safe-area-inset-bottom, 0px));
     }
 </style>
