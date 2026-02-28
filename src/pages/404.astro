@@ -1,0 +1,278 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="ページが見つかりません">
+  <main class="error-page">
+    <div class="error-container">
+      <div class="error-content">
+        <div class="error-hero">
+          <span class="error-text left">Twice</span>
+
+          <h1 class="error-code">404</h1>
+
+          <span class="error-text right">
+            is
+            <img src="/images/uploads/808.jpeg" alt="" class="audio-trigger" />
+          </span>
+        </div>
+        <h2 class="error-title">Page Not Found</h2>
+        <p class="error-description">The page you're looking for may not exist or may have been moved.</p>
+        <div class="error-actions">
+          <a href="/" class="btn">Back to Home</a>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  .error-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+    color: #2c3e50;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  .error-container {
+    text-align: center;
+    max-width: 500px;
+    padding: 2rem;
+  }
+
+  .error-content {
+    background: white;
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+  }
+
+  .error-code {
+    font-size: 6rem;
+    font-weight: 300;
+    margin: 0;
+    line-height: 1;
+    color: #6c757d;
+    letter-spacing: -0.02em;
+  }
+  .error-code.rave {
+    animation: bounce 0.5s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  @keyframes bounce {
+    0% {
+      transform: translateY(0) scale(1);
+    }
+    8% {
+      transform: translateY(-6px) scale(1.03) rotate(-0.5deg);
+    }
+    12% {
+      transform: translateY(4px) scale(0.99) rotate(0.4deg);
+    }
+    16% {
+      transform: translateY(-2px) scale(1.01) rotate(-0.3deg);
+    }
+    25% {
+      transform: translateY(0) scale(1);
+    }
+    60% {
+      transform: translateY(1px);
+    }
+
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  .error-title {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin: 1.5rem 0 1rem;
+    color: #2c3e50;
+  }
+
+  .error-description {
+    font-size: 1rem;
+    margin: 0 0 2rem;
+    color: #6c757d;
+    line-height: 1.6;
+  }
+
+  .error-actions {
+    display: flex;
+    justify-content: center;
+  }
+  /* 404左右の極小要素 */
+  .error-content {
+    position: relative;
+  }
+
+  .error-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.6rem;
+  }
+
+  .error-text {
+    font-size: 0.3rem;
+    white-space: nowrap;
+  }
+
+  .error-text.right {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .error-text img {
+    width: 18px;
+    height: auto;
+    opacity: 0.8;
+  }
+  .audio-trigger {
+    cursor: pointer;
+    transition:
+      transform 0.15s ease,
+      opacity 0.2s ease;
+  }
+
+  .audio-trigger:hover {
+    transform: scale(1.08);
+  }
+
+  .audio-trigger.playing {
+    transform: scale(1.4);
+    box-shadow: 0 0 14px rgba(255, 7, 176, 0.82);
+    cursor: pointer;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 0.75rem 2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    background: #2c3e50;
+    color: white;
+    border: 1px solid #2c3e50;
+  }
+
+  .btn:hover {
+    background: #34495e;
+    border-color: #34495e;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.15);
+  }
+
+  @media (max-width: 768px) {
+    .error-container {
+      padding: 1rem;
+    }
+
+    .error-content {
+      padding: 2rem 1.5rem;
+    }
+
+    .error-code {
+      font-size: 4rem;
+    }
+
+    .error-title {
+      font-size: 1.25rem;
+    }
+
+    .error-description {
+      font-size: 0.9rem;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    const trigger = document.querySelector(".audio-trigger");
+    const codeEl = document.querySelector(".error-code");
+    if (!trigger) return;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    const res = await fetch("/music/808.ogg");
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+    // --- 末尾の無音っぽい区間を検出して loopEnd を決める ---
+    function detectLoopEnd(buf, threshold = 0.0008, tailSec = 0.6) {
+      const sr = buf.sampleRate;
+      const tailSamples = Math.min(buf.length, Math.floor(sr * tailSec));
+      const start = buf.length - tailSamples;
+
+      // 複数chの最大振幅を見る
+      let lastLoud = -1;
+      for (let i = buf.length - 1; i >= start; i--) {
+        let amp = 0;
+        for (let ch = 0; ch < buf.numberOfChannels; ch++) {
+          const v = Math.abs(buf.getChannelData(ch)[i]);
+          if (v > amp) amp = v;
+        }
+        if (amp > threshold) {
+          lastLoud = i;
+          break;
+        }
+      }
+      if (lastLoud === -1) return buf.duration; // 尾部が全部無音なら諦め
+      // ほんの少し余裕（クリック防止）
+      const end = (lastLoud + Math.floor(sr * 0.005)) / sr; // +5ms
+      return Math.min(buf.duration, Math.max(0.05, end));
+    }
+
+    const loopStart = 0;
+    const loopEnd = detectLoopEnd(buffer);
+
+    let source = null;
+    let isPlaying = false;
+
+    function playLoop() {
+      source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.loopStart = loopStart;
+      source.loopEnd = loopEnd;
+      source.connect(audioCtx.destination);
+      source.start();
+    }
+
+    function stopLoop() {
+      if (source) {
+        try {
+          source.stop();
+        } catch {}
+        try {
+          source.disconnect();
+        } catch {}
+        source = null;
+      }
+    }
+
+    trigger.addEventListener("click", async () => {
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+
+      if (!isPlaying) {
+        playLoop();
+        trigger.classList.add("playing");
+        codeEl?.classList.add("rave");
+        isPlaying = true;
+      } else {
+        stopLoop();
+        trigger.classList.remove("playing");
+        codeEl?.classList.remove("rave");
+        isPlaying = false;
+      }
+    });
+  });
+</script>

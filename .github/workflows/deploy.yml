@@ -1,0 +1,90 @@
+name: Build & FTP deploy (Lolipop)
+
+on:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: "main"
+    secrets:
+      FTP_HOST:
+        required: true
+      FTP_USERNAME:
+        required: true
+      FTP_PASSWORD:
+        required: true
+      FTP_REMOTE_DIR:
+        required: true
+
+concurrency:
+  group: deploy-${{ inputs.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # 依存が変わっていないときは node_modules を復元して npm install のみ（数十秒短縮）
+      - name: Cache node_modules
+        id: node-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install deps
+        run: |
+          if [ "${{ steps.node-cache.outputs.cache-hit }}" = "true" ]; then
+            npm install
+          else
+            npm ci
+          fi
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build output directory 'dist' not found!"
+            exit 1
+          fi
+          echo "Build verification successful"
+
+      # FTP はサーバー上の .ftp-deploy-sync-state.json で差分だけアップロード（新記事だけ反映）
+      - name: FTP Deploy to Lolipop
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftp
+          port: 21
+          local-dir: dist/
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          timeout: 120000
+          log-level: minimal
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/README.md
+            **/.env*
+            **/.github/**
+            **/admin/vendor/**

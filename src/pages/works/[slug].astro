@@ -1,0 +1,148 @@
+---
+import Base from "../../layouts/Base.astro";
+import type { CollectionEntry } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
+import ReleaseDetail from "../../components/ReleaseDetail.astro";
+import "../../styles/release-detail.css";
+
+export async function getStaticPaths() {
+  const works = await getCollection("works");
+  return works.map((work) => ({
+    params: { slug: work.slug },
+    props: { work },
+  }));
+}
+
+const { slug } = Astro.params;
+const work = await getEntry("works", slug!);
+
+if (!work) {
+  return Astro.redirect("/404");
+}
+
+const allWorks = (await getCollection("works")).sort(
+  (a, b) => b.data.release_date.getTime() - a.data.release_date.getTime()
+);
+const allTracks = await getCollection("tracks");
+
+function getMainTrack(item: CollectionEntry<"works">) {
+  const isPrimary = Boolean(item.data.is_primary_release);
+  if (isPrimary) {
+    const firstTrackId =
+      Array.isArray(item.data.tracks) && item.data.tracks.length > 0 ? item.data.tracks[0] : null;
+    return firstTrackId ? allTracks.find((t) => t.data.id === firstTrackId) ?? null : null;
+  }
+  const workId = item.data.id;
+  if (!workId) return null;
+  return allTracks.find((t) => t.data.works_id === workId) ?? null;
+}
+
+const worksListForNav = allWorks.map((item) => {
+  const isPrimary = Boolean(item.data.is_primary_release);
+  const mainTrack = getMainTrack(item);
+  const mainTrackData = mainTrack?.data;
+  const typeForFilter = isPrimary
+    ? item.data.release_type ?? "other"
+    : mainTrackData?.track_type ?? item.data.release_type ?? "other";
+  return { slug: item.slug, typeForFilter };
+});
+---
+
+<Base title={work.data.title}>
+  <div class="release-overlay" id="release-overlay">
+    <div class="release-backdrop" data-close-release aria-label="閉じる"></div>
+    <div class="release-content">
+      <button type="button" class="release-close" data-close-release aria-label="閉じる">&times;</button>
+      <ReleaseDetail work={work} />
+      <a href="#" class="release-nav release-nav--prev" id="release-nav-prev" aria-label="前のリリース" data-direction="prev">‹</a>
+      <a href="#" class="release-nav release-nav--next" id="release-nav-next" aria-label="次のリリース" data-direction="next">›</a>
+    </div>
+  </div>
+
+  <script define:vars={{ worksListForNav, slug }}>
+    (function () {
+      const list = Array.isArray(worksListForNav) ? worksListForNav : [];
+      function getFilter() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get("filter") || "all";
+      }
+      function getReturnUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const returnPath = params.get("return");
+        if (!returnPath || typeof returnPath !== "string") return null;
+        if (!returnPath.startsWith("/")) return null;
+        try {
+          const u = new URL(returnPath, window.location.origin);
+          if (u.origin !== window.location.origin) return null;
+          return u.pathname + u.search;
+        } catch {
+          return null;
+        }
+      }
+      function getFilteredList() {
+        const filter = getFilter();
+        if (filter === "all") return list;
+        return list.filter((w) => w.typeForFilter === filter);
+      }
+      function updateNav() {
+        const filtered = getFilteredList();
+        const idx = filtered.findIndex((w) => w.slug === slug);
+        const prevLink = document.getElementById("release-nav-prev");
+        const nextLink = document.getElementById("release-nav-next");
+        const filter = getFilter();
+        const returnUrl = getReturnUrl();
+        const params = new URLSearchParams();
+        if (filter !== "all") params.set("filter", filter);
+        if (returnUrl) params.set("return", returnUrl);
+        const q = params.toString() ? "?" + params.toString() : "";
+        if (prevLink) {
+          if (filtered.length <= 1 || idx <= 0) {
+            prevLink.style.display = "none";
+          } else {
+            prevLink.style.display = "flex";
+            prevLink.href = `/works/${filtered[idx - 1].slug}${q}`;
+          }
+        }
+        if (nextLink) {
+          if (filtered.length <= 1 || idx < 0 || idx >= filtered.length - 1) {
+            nextLink.style.display = "none";
+          } else {
+            nextLink.style.display = "flex";
+            nextLink.href = `/works/${filtered[idx + 1].slug}${q}`;
+          }
+        }
+      }
+      function close() {
+        const returnUrl = getReturnUrl();
+        if (returnUrl) {
+          window.location.href = returnUrl;
+          return;
+        }
+        const filter = getFilter();
+        const url = filter !== "all" ? `/works?filter=${encodeURIComponent(filter)}` : "/works";
+        window.location.href = url;
+      }
+      document.querySelectorAll("[data-close-release]").forEach((el) => {
+        el.addEventListener("click", close);
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          close();
+        } else if (e.key === "ArrowLeft") {
+          const prev = document.getElementById("release-nav-prev");
+          if (prev && prev.style.display !== "none") {
+            e.preventDefault();
+            prev.click();
+          }
+        } else if (e.key === "ArrowRight") {
+          const next = document.getElementById("release-nav-next");
+          if (next && next.style.display !== "none") {
+            e.preventDefault();
+            next.click();
+          }
+        }
+      });
+      updateNav();
+    })();
+  </script>
+</Base>

@@ -1,0 +1,20 @@
+---
+// admin.astro - CMS管理画面（try-sveltia-cms ブランチでは Sveltia CMS）
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>CMS管理画面 (Sveltia) - pr0p0se</title>
+
+    <link rel="cms-config-url" type="text/yaml" href="/admin/config.yml" />
+    <link rel="stylesheet" href="/admin/cms.css" />
+  </head>
+  <body>
+    <div id="nc-root"></div>
+    <script src="https://unpkg.com/@sveltia/cms@latest/dist/sveltia-cms.js" is:inline></script>
+    <link href="/admin/mobile-overrides.css" rel="stylesheet" />
+  </body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "pr0p0se-website",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "predev": "node scripts/generate-music-list.mjs",
+    "prebuild": "node scripts/generate-music-list.mjs",
+    "generate:music": "node scripts/generate-music-list.mjs",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "sync:content": "node scripts/sync-content-from-sheets.mjs",
+    "test:sheets": "node scripts/test-sheets-access.mjs"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.5.1",
+    "astro": "^5.13.3",
+    "googleapis": "^144.0.0",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "@astrojs/mdx": "^4.3.4",
+    "cloudinary": "^2.7.0",
+    "decap-cms": "^3.6.2",
+    "dotenv": "^17.2.3",
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1"
+  }
+}

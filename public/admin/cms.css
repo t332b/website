@@ -1,0 +1,8 @@
+/* Decap CMS 用（最小構成） */
+.cms-hint {
+  font-size: 0.9rem !important;
+  color: #666 !important;
+}
+[role="textbox"] p {
+  margin: 0 !important;
+}

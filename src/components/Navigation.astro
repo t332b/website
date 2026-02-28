@@ -1,0 +1,74 @@
+---
+// ナビゲーションコンポーネント
+const { currentPath } = Astro.props;
+
+function isActive(path: string) {
+  if (!currentPath) return false;
+  // /notes/ または /notes で始まる場合にマッチ
+  if (path === "/notes/") {
+    return currentPath.startsWith("/notes");
+  }
+  // /shop または /shop/ で完全マッチ
+  if (path === "/shop") {
+    return currentPath === "/shop" || currentPath === "/shop/";
+  }
+  // /works または /works/ で完全マッチ
+  if (path === "/works") {
+    return currentPath === "/works" || currentPath === "/works/" || currentPath.startsWith("/works/");
+  }
+  // /live または /live/ で完全マッチ
+  if (path === "/live") {
+    return currentPath === "/live" || currentPath === "/live/";
+  }
+  if (path === "/contact") {
+    return currentPath === "/contact" || currentPath === "/contact/";
+  }
+  return false;
+}
+---
+
+<nav class="main-nav">
+  <a href="/works" class={`nav-item ${isActive("/works") ? "active" : ""}`}>W0RKS</a>
+  <a href="/live" class={`nav-item ${isActive("/live") ? "active" : ""}`}>L1VE</a>
+  <a href="/shop/" class={`nav-item ${isActive("/shop") ? "active" : ""}`}>SH0P</a>
+  <a href="/notes/" class={`nav-item ${isActive("/notes/") ? "active" : ""}`}>N0TES</a>
+  <a href="/contact/" class={`nav-item ${isActive("/contact") ? "active" : ""}`}>C0NTACT</a>
+</nav>
+
+<style>
+  .main-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+  }
+
+  .nav-item {
+    padding: 0.35rem 1rem;
+    text-decoration: none;
+    color: #333;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-item:hover {
+    border-color: var(--accent, #6f42c1);
+    background-color: rgba(111, 66, 193, 0.05);
+  }
+
+  .nav-item:active {
+    transform: scale(0.95);
+  }
+
+  .nav-item.active {
+    border-color: var(--accent, #6f42c1);
+    background-color: rgba(111, 66, 193, 0.1);
+    color: var(--accent, #6f42c1);
+  }
+</style>

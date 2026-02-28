@@ -1,0 +1,69 @@
+---
+import Base from "../../layouts/Base.astro";
+---
+
+<Base title="PR0P0SE SHOP">
+  <div class="shop-page">
+    <a
+      href="https://suzuri.jp/PR0P0SE"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="shop-link"
+      aria-label="SUZURIショップを開く"
+    >
+      <span class="shop-link-text">SUZURI</span>
+      <img src="/images/logo/suzuri.png" alt="" class="shop-link-icon" width="28" height="28" />
+    </a>
+  </div>
+
+  <style>
+    .shop-page {
+      display: flex;
+      justify-content: center;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    .shop-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 0 0 1rem;
+    }
+
+    .shop-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--fg, #2f2a28);
+      border: 1px solid var(--wa-butter, #f5d19a);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      background: white;
+      transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .shop-link:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .shop-link-text {
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      font-size: 0.95rem;
+    }
+
+    .shop-link-icon {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      display: block;
+      background: white;
+    }
+  </style>
+</Base>
+

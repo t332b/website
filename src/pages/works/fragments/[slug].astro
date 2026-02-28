@@ -1,0 +1,23 @@
+---
+import FragmentLayout from "../../../layouts/Fragment.astro";
+import ReleaseDetail from "../../../components/ReleaseDetail.astro";
+import { getCollection, getEntry } from "astro:content";
+
+export async function getStaticPaths() {
+  const works = await getCollection("works");
+  return works.map((work) => ({
+    params: { slug: work.slug },
+    props: { work },
+  }));
+}
+
+const { slug } = Astro.params;
+const work = await getEntry("works", slug!);
+if (!work) {
+  return Astro.redirect("/404");
+}
+---
+
+<FragmentLayout>
+  <ReleaseDetail work={work} />
+</FragmentLayout>

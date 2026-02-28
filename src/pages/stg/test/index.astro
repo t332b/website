@@ -1,0 +1,146 @@
+---
+import Base from "../../../layouts/Base.astro";
+import { getCollection } from "astro:content";
+
+/* 最新 Primary Release を1件取得 */
+const latestWork =
+  (await getCollection("works"))
+    .filter((w) => w.data.is_primary_release !== false)
+    .sort((a, b) => b.data.release_date.getTime() - a.data.release_date.getTime())[0] ?? null;
+
+/* embed URL生成 */
+function getEmbedUrl(service: string, url: string): string | null {
+  if (service === "spotify") {
+    const m = url.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)/);
+    if (m) return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`;
+  }
+
+  if (service === "youtube") {
+    const m = url.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/);
+    if (m) return `https://www.youtube.com/embed/${m[1]}`;
+  }
+
+  if (service === "apple") {
+    const m = url.match(/music\.apple\.com\/[^/]+\/[^/]+\/(album|song)\/([^/?]+)/);
+    if (m) return `https://embed.music.apple.com/${m[2]}`;
+  }
+
+  return null;
+}
+---
+
+<Base title="PR0P0SE">
+  <!-- <div class="home-container">
+    {
+      latestWork && (
+        <section class="home-release-section">
+          <h1 class="home-release-title">{latestWork.data.title}</h1>
+
+          <p class="home-release-date">{latestWork.data.release_date.toLocaleDateString("ja-JP")}</p>
+
+          <div class="home-release-wrap">
+            {/* ジャケット */}
+            {latestWork.data.cover_url_list?.[0] && (
+              <div class="home-release-cover">
+                <img src={latestWork.data.cover_url_list[0]} alt={latestWork.data.title} />
+              </div>
+            )}
+
+            {/* 埋め込み */}
+            {latestWork.data.links &&
+              (() => {
+                const services = ["spotify", "apple", "youtube", "bandcamp"];
+
+                for (const s of services) {
+                  const raw = latestWork.data.links[s];
+                  if (!raw) continue;
+
+                  const embed = getEmbedUrl(s, raw);
+                  if (embed) {
+                    return (
+                      <div class="home-release-embed">
+                        <iframe
+                          src={embed}
+                          width="100%"
+                          height="380"
+                          frameborder="0"
+                          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                          loading="lazy"
+                        />
+                      </div>
+                    );
+                  }
+                }
+
+                return null;
+              })()}
+          </div>
+        </section>
+      )
+    }
+  </div> -->
+
+  <style>
+    .home-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .home-release-section {
+      text-align: center;
+    }
+
+    .home-release-title {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 900;
+      margin: 0 0 0.5rem 0;
+      color: var(--wa-ink);
+    }
+
+    .home-release-date {
+      color: var(--muted);
+      margin-bottom: 2.5rem;
+    }
+
+    .home-release-wrap {
+      max-width: 500px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .home-release-cover img {
+      width: 100%;
+      border-radius: 18px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    .home-release-embed iframe {
+      border-radius: 18px;
+    }
+
+    .home-release-btn {
+      display: inline-block;
+      padding: 0.8rem 2rem;
+      border: 2px solid var(--wa-ink);
+      text-decoration: none;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+      color: var(--wa-ink);
+    }
+
+    .home-release-btn:hover {
+      background: var(--wa-ink);
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .home-release-wrap {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+    }
+  </style>
+</Base>

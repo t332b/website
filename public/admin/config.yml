@@ -1,0 +1,203 @@
+# Sveltia CMS 用設定（try-sveltia-cms ブランチ）
+# 認証: base_url に Decap 互換の OAuth プロキシを指定するか、ログイン画面で「Sign in with Token」で GitHub PAT を入力
+backend:
+  name: github
+  repo: t332b/website
+  branch: main
+  base_url: https://cms-login-proxy.pages.dev   # OAuth 用（Decap 互換プロキシが使える場合）
+
+site_url: https://pr0p0se.com
+display_url: https://pr0p0se.com
+
+# 画像は Cloudinary のみ利用。media_folder を省略すると内部（リポジトリ）アップロードが無効になり Cloudinary のみになる
+# media_folder: "public/uploads"
+# public_folder: "/uploads"
+
+# Sveltia は media_libraries で Cloudinary をネイティブ対応（API secret は不要）
+media_libraries:
+  cloudinary:
+    config:
+      cloud_name: djzxpyzu3
+      api_key: 719521938943924
+      default_transformations:
+        - - fetch_format: auto
+            quality: auto
+            width: 1600
+            crop: limit
+
+collections:
+  - name: "notes"
+    label: "Notes"
+    folder: "src/content/notes"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    format: "frontmatter"
+    fields:
+      - label: "タイトル"
+        name: "title"
+        widget: "string"
+        required: true
+        hint: "記事のタイトルを入力してください（50文字以内推奨）"
+      # 投稿した瞬間の日時を自動で登録（入力欄は出さない）
+      - label: "公開日時"
+        name: "date"
+        widget: "hidden"
+        default: "{{datetime}}"
+      - label: "著者"
+        name: "author"
+        widget: "relation"
+        collection: "member"
+        search_fields: ["name","id"]
+        value_field: "id"
+        display_fields: ["name"]
+        multiple: false
+        required: true
+        hint: "記事の著者を選択してください"
+      - label: "タグ"
+        name: "tags"
+        widget: "list"
+        required: false
+        hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）。1行につき1つのタグを入力してください。"
+      - label: "本文"
+        name: "body"
+        widget: "markdown"
+        required: true
+        hint: "画像は「メディアを追加」で Cloudinary から選択してください"
+
+  # ライブ
+  - name: "live"
+    label: "Live"
+    folder: "src/content/live"
+    extension: "mdx"
+    create: true
+    slug: "{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "イベント名", name: "title", widget: "string", required: true, hint: "必須です" }
+      - { label: "開始日", name: "startDate", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: false }
+      - { label: "開始時刻", name: "startTime", widget: "string", required: false, hint: "例: 19:00" }
+      - { label: "終了日", name: "endDate", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: false, hint: "日をまたぐ場合のみ" }
+      - { label: "終了時刻", name: "endTime", widget: "string", required: false, hint: "例: 21:00" }
+      - { label: "会場", name: "venue", widget: "string", required: false }
+      - { label: "都市", name: "city", widget: "string", required: false }
+      - { label: "チケットURL", name: "ticketUrl", widget: "string", required: false }
+      - label: "フライヤー画像"
+        name: "flyer"
+        widget: "image"
+        required: false
+        hint: "Cloudinary から選択してください"
+        media_libraries:
+          cloudinary:
+            config:
+              default_transformations:
+                - - fetch_format: auto
+                    quality: auto
+                    width: 1200
+                    crop: limit
+      - { label: "備考", name: "body", widget: "markdown", required: false }
+
+
+  - name: "member"
+    label: "メンバー"
+    folder: "src/content/member"
+    extension: "mdx"
+    create: true
+    slug: "{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "ID（英数字）", name: "id", widget: "string" }
+      - { label: "表示名", name: "name", widget: "string" }
+      - { label: "プロフィール", name: "bio", widget: "text", required: false }
+      - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
+      - label: "アイコン画像"
+        name: "avatar"
+        widget: "image"
+        required: false
+        hint: "Cloudinary から選択してください"
+        media_libraries:
+          cloudinary:
+            config:
+              default_transformations:
+                - - fetch_format: auto
+                    quality: auto
+                    width: 400
+                    crop: limit
+
+  # 曲
+  - name: "tracks"
+    label: "曲リスト"
+    folder: "src/content/tracks"
+    extension: "mdx"
+    create: true
+    slug: "{{slug}}"          # ファイル名＝slug
+    format: "frontmatter"
+    fields:
+      - { label: "タイトル", name: "title", widget: "string", required: true }
+      - { label: "長さ", name: "duration", widget: "string", required: false, hint: "例: 3:45" }
+      - { label: "作詞", name: "lyrics_by", widget: "string", required: false }
+      - { label: "作曲", name: "music_by", widget: "string", required: false }
+      - label: "リンク"
+        name: "links"
+        widget: "object"
+        fields:
+          - { label: "Spotify",  name: "spotify",  widget: "string", required: false }
+          - { label: "Apple",    name: "apple",    widget: "string", required: false }
+          - { label: "Bandcamp", name: "bandcamp", widget: "string", required: false }
+          - { label: "YouTube",  name: "youtube",  widget: "string", required: false }
+          - { label: "SoundCloud",  name: "soundcloud",  widget: "string", required: false }
+          - { label: "ミュージックビデオ (YouTube)", name: "music_video", widget: "string", required: false, hint: "ミュージックビデオのYouTube URL" }
+      - { label: "本文（歌詞や解説）", name: "body", widget: "markdown", required: false }
+
+  # 作品（release/feature/remix/appearance）
+  - name: "works"
+    label: "作品"
+    folder: "src/content/works"
+    extension: "mdx"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    format: "frontmatter"
+    fields:
+      - { label: "タイトル", name: "title", widget: "string", required: true }
+      - { label: "日付", name: "date", widget: "datetime", format: "YYYY-MM-DD", time_format: false, required: true }
+      - { label: "カテゴリ", name: "category", widget: "select", options: ["release","feature","remix","appearance"], default: "release" }
+      - { label: "種別（任意）", name: "type", widget: "select", options: ["single","EP","album"], required: false }
+      - label: "カバー画像"
+        name: "cover"
+        widget: "image"
+        required: false
+        hint: "Cloudinary から選択してください"
+        media_libraries:
+          cloudinary:
+            config:
+              default_transformations:
+                - - fetch_format: auto
+                    quality: auto
+                    width: 1600
+                    crop: limit
+      - label: "トラックリスト"
+        name: "tracks"
+        widget: "relation"
+        collection: "tracks"
+        search_fields: ["title", "slug"]
+        value_field: "slug"
+        display_fields: ["title"]
+        multiple: true
+      - label: "クレジット（feat./prod./remix等）"
+        name: "credits"
+        widget: "list"
+        required: false
+        fields:
+          - { label: "名前", name: "name", widget: "string" }
+          - { label: "役割", name: "role", widget: "string", hint: "feat., prod., remix など" }
+      - label: "リミックス元（任意）"
+        name: "original_track"
+        widget: "relation"
+        collection: "tracks"
+        search_fields: ["title","slug"]
+        value_field: "slug"
+        required: false
+      - { label: "本文（任意）", name: "body", widget: "markdown", required: false }
+
+      - { label: "動画URL（任意）", name: "video", widget: "string", required: false, hint: "Cloudinaryの動画URL（メディアから動画を選択/アップロード可）" }
+

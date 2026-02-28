@@ -1,0 +1,316 @@
+---
+import Base from "./Base.astro";
+import { getCollection } from "astro:content";
+
+export interface Props {
+  title: string;
+  date: Date;
+  author: string;
+  tags?: string[];
+}
+
+const { title, date, author, tags } = Astro.props;
+
+// メンバー情報を取得
+const members = await getCollection("member");
+const member = members.find((m) => m.data.id === author);
+
+function getAvatarUrl(m: { avatar?: string; github?: string } | null): string {
+  if (!m) return "/images/uploads/default-avatar.png";
+  if (m.avatar) {
+    if (m.avatar.startsWith("http://") || m.avatar.startsWith("https://")) return m.avatar;
+    return m.avatar.startsWith("/") ? m.avatar : `/${m.avatar}`;
+  }
+  if (m.github) return `https://github.com/${m.github}.png?size=64`;
+  return "/images/uploads/default-avatar.png";
+}
+
+const avatarUrl = getAvatarUrl(member?.data ?? null);
+const dateStr = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+const timeStr = date.toLocaleTimeString("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const dateTimeDisplay = `${dateStr} ${timeStr}`;
+---
+
+<Base title={title}>
+  <article class="note-post">
+
+
+    <header class="post-header">
+      <h1 class="post-title">{title}</h1>
+
+      <div class="post-meta">
+        <a
+          href={`/notes/?author=${encodeURIComponent(author)}`}
+          class="post-author-link"
+          aria-label={`${member?.data.name || author}のノート一覧`}
+        >
+          <img src={avatarUrl} alt="" class="post-author-avatar" width="48" height="48" />
+        </a>
+        <div class="post-meta-right">
+          <a href={`/notes/?author=${encodeURIComponent(author)}`} class="post-author">{member?.data.name || author}</a>
+          <time class="post-date" datetime={date.toISOString()}>{dateTimeDisplay}</time>
+        </div>
+      </div>
+
+      {
+        tags && tags.length > 0 && (
+          <div class="post-tags">
+            {tags.map((tag) => (
+              <a href={`/notes/?tag=${encodeURIComponent(tag)}`} class="tag">#{tag}</a>
+            ))}
+          </div>
+        )
+      }
+    </header>
+
+    <!-- 本文 -->
+    <div class="post-content content">
+      <slot />
+    </div>
+
+    <!-- 戻るリンク -->
+    <div class="post-footer">
+      <a href="/notes/" class="back-link" aria-label="Back to notes list">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          width="20"
+          height="20"
+          aria-hidden="true"
+        >
+          <path d="M19 12H5M12 19l-7-7 7-7"></path>
+        </svg>
+        Back
+      </a>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .note-post {
+    max-width: 500px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0.5rem 1rem;
+    box-sizing: border-box;
+    background: white; 
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    text-decoration: none;
+    border: 1.5px solid var(--wa-butter);
+    color: var(--wa-ink);
+    background: #fff;
+    font-weight: 600;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    background: var(--wa-cream);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .nav-home {
+    margin-left: auto;
+  }
+
+  .post-header {
+    margin-bottom: 2rem;
+  }
+
+  .post-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: var(--fg);
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+
+  .post-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    font-size: 0.9375rem;
+    color: var(--muted);
+  }
+
+  .post-author-link {
+    flex-shrink: 0;
+    line-height: 0;
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    transition: opacity 0.2s ease;
+  }
+
+  .post-author-link:hover {
+    opacity: 0.85;
+  }
+
+  .post-author-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .post-meta-right {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .post-author {
+    color: var(--wa-ink);
+    text-decoration: underline;
+    cursor: pointer;
+    text-underline-offset: 0.2em;
+    font-weight: 600;
+    transition:
+      color 0.2s ease,
+      text-decoration-color 0.2s ease;
+  }
+
+  .post-author:hover {
+    color: var(--wa-mustard);
+    text-decoration-color: var(--wa-mustard);
+  }
+
+  .post-date {
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .post-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    color: var(--accent);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    text-decoration: none;
+    text-underline-offset: 0.2em;
+  }
+
+  .tag:hover {
+    text-decoration: underline;
+  }
+
+  .post-content {
+    line-height: 1;
+    font-size: 1rem;
+    color: var(--fg);
+  }
+
+  .post-content :global(p) {
+    margin: 0 0 1em;
+  }
+
+  .post-content :global(h1),
+  .post-content :global(h2),
+  .post-content :global(h3) {
+    margin: 1.75em 0 0.5em;
+    font-weight: 700;
+    line-height: 1.35;
+  }
+
+  .post-content :global(h1) {
+    font-size: 1.5rem;
+  }
+  .post-content :global(h2) {
+    font-size: 1.25rem;
+  }
+  .post-content :global(h3) {
+    font-size: 1.125rem;
+  }
+
+  /* 本文中の画像: 記事幅いっぱいで中央、縁なし */
+  .post-content :global(img) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1.5rem auto;
+    border-radius: 12px;
+    border: none;
+  }
+
+  /* 本文中にそのまま貼られた iframe 埋め込みの幅を整える（YouTube/Spotify/Apple/Bandcamp など） */
+  .post-content :global(iframe) {
+    max-width: 100%;
+    width: 100%;
+    display: block;
+    margin: 1.5rem auto;
+    border: none;
+    border-radius: 12px;
+  }
+
+  .post-footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--wa-butter);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--wa-ink);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    transition:
+      color 0.2s ease,
+      opacity 0.2s ease;
+  }
+
+  .back-link:hover {
+    color: var(--wa-mustard);
+    cursor: pointer;
+  }
+
+  .back-link svg {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .note-post {
+      padding: 1.5rem 1rem;
+    }
+
+    .post-title {
+      font-size: 1.5rem;
+    }
+
+    .post-content {
+      font-size: 16px;
+    }
+  }
+</style>

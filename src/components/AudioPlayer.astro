@@ -1,0 +1,982 @@
+---
+import { getCollection } from "astro:content";
+import { musicItems } from "../data/musicList.generated";
+
+// 生成されたアイテム（releaseSlug と cover を含む）
+const items = musicItems as Array<{ filename: string; releaseSlug: string; src: string; cover?: string }>;
+const musicList = items.map((it) => it.src);
+
+// リストをランダムにシャッフル
+const shuffledItems = [...items].sort(() => Math.random() - 0.5);
+const shuffledList = shuffledItems.map((it) => it.src);
+
+// 初期画像を取得
+let initialJacketSrc = "/images/uploads/default-album.png";
+if (shuffledItems.length > 0 && shuffledItems[0].cover) {
+  initialJacketSrc = shuffledItems[0].cover;
+}
+
+// ファイル名から曲名を取得（"_" の後ろ、.mp3 除く）
+function titleFromFilename(filename: string): string {
+  const base = filename.replace(/\.mp3$/i, "");
+  const i = base.indexOf("_");
+  return i >= 0 ? base.slice(i + 1).trim() : base;
+}
+const initialTitle = shuffledItems.length > 0 ? titleFromFilename(shuffledItems[0].filename) : "";
+---
+
+<div class="audio-player-wrapper">
+  <div class="player-controls">
+    <button class="track-navigation-btn prev" id="prevBtn" aria-label="前の曲">
+      <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
+        <polygon points="16,6 8,36 16,66"></polygon>
+      </svg>
+    </button>
+    <div
+      class="circular-player"
+      id="circle"
+      aria-label="再生位置スライダー"
+      role="slider"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+      tabindex="0"
+    >
+      <img class="jacket" src={initialJacketSrc} alt="cover image" loading="lazy" />
+      <svg viewBox="6 6 88 88">
+        <!-- トラック（未再生） -->
+        <circle cx="50" cy="50" r="42" stroke="var(--ring)" stroke-width="1.5" fill="none"></circle>
+        <!-- 進捗パス（青） -->
+        <path id="progressPath" d="" stroke="#009cb8" stroke-width="1.5" stroke-linecap="round" fill="none"></path>
+        <!-- つまみ（ノブ） -->
+        <circle id="knob" cx="50" cy="8" r="1.7" fill="#009cb8"></circle>
+      </svg>
+
+      <div class="center-ui">
+        <div class="stack">
+          <a
+            class="track-title track-title-link"
+            id="trackTitle"
+            href={shuffledItems.length > 0 && shuffledItems[0].releaseSlug
+              ? `/works/${shuffledItems[0].releaseSlug}`
+              : "/works"}
+            aria-live="polite"
+          >
+            {initialTitle}
+          </a>
+          <button id="play" class="play" aria-label="再生/一時停止" title="スペースキーでも操作可">
+            <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M8 5v14l11-7-11-7z"></path>
+            </svg>
+          </button>
+
+          <div class="time" aria-live="polite">
+            <span id="cur">00:00</span>
+            <span>/</span>
+            <span id="dur">00:00</span>
+          </div>
+
+          <div class="volume vol-theme-emerald">
+            <div class="vol-rail">
+              <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量" />
+            </div>
+            <button id="muteBtn" class="mute-btn" aria-label="消音切り替え" title="Mキーでも操作可">
+              <svg id="muteIcon" width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"></path>
+                <path d="M16 8a5 5 0 010 8" stroke="currentColor"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="track-navigation-btn next" id="nextBtn" aria-label="次の曲">
+      <svg viewBox="0 0 24 72" fill="currentColor" aria-hidden="true">
+        <polygon points="8,6 16,36 8,66"></polygon>
+      </svg>
+    </button>
+  </div>
+
+  <div class="playlist-dots">
+    {
+      shuffledItems.map((_, idx) => (
+        <button class={`dot ${idx === 0 ? "active" : ""}`} data-index={idx} aria-label={`Track ${idx + 1}`} />
+      ))
+    }
+  </div>
+
+  <!-- 非表示のaudio要素（プログラム制御用） -->
+  <audio id="audio" preload="metadata"></audio>
+</div>
+
+<style>
+  .audio-player-wrapper {
+    /* CSS変数をラッパー内に限定 */
+    --bg: #0f1417; /* 背景 */
+    --ring: #333333; /* 未再生トラック */
+    --progress: #1e8f54; /* 進捗（濃い緑） */
+    --knob: #a7ffcb; /* ノブ */
+    --text: #e6f1f5;
+    --sub: #9bb2bd;
+    --accent: #29b36b; /* ボタンのアクセント */
+    --danger: #e74c3c;
+    --radius: 18px;
+    /* 円サイズと時間表示の位置係数（円に対する比率で下方向） */
+    --circle-size: clamp(144px, 42vw, 252px);
+    --time-shift: 0.28;
+    /* 全体レイアウト：上下に配置 */
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .audio-player-wrapper .player-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .audio-player-wrapper .circular-player {
+    position: relative;
+    width: var(--circle-size);
+    height: var(--circle-size);
+    flex-shrink: 0;
+  }
+  .audio-player-wrapper .circular-player .jacket {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 55%;
+    height: 55%;
+    transform: translate(-50%, -50%);
+    object-fit: contain; /* 元の四角い比率のまま */
+    z-index: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    opacity: 0.6; /* ボタン表示時は透過 */
+  }
+
+  /* 再生中でボタン非表示時（非アクティブ）：ジャケットを不透明に */
+  .audio-player-wrapper .circular-player.is-playing:not(.is-active) .jacket {
+    opacity: 1;
+  }
+
+  /* PC: ホバー時はshow-buttonクラスでジャケットを透過 */
+  .audio-player-wrapper .circular-player.show-button .jacket {
+    opacity: 0.6;
+  }
+  .audio-player-wrapper .circular-player svg {
+    position: relative;
+    z-index: 1;
+  }
+
+  .audio-player-wrapper svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .audio-player-wrapper .center-ui {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .audio-player-wrapper .center-ui .stack {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .audio-player-wrapper .play {
+    width: clamp(2.1rem, 9vw, 3.225rem);
+    height: clamp(2.1rem, 9vw, 3.225rem);
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(180deg, #444, #333);
+    color: white;
+    display: grid;
+    place-items: center;
+    transition:
+      transform 0.08s ease,
+      filter 0.2s ease,
+      opacity 0.3s ease;
+    opacity: 0.85;
+  }
+  /* ホバー効果（タッチデバイス以外） */
+  @media (hover: hover) and (pointer: fine) {
+    .audio-player-wrapper .play:hover {
+      opacity: 1;
+    }
+  }
+
+  /* 再生中は非表示、ホバー/アクティブ時のみ表示 */
+  .audio-player-wrapper .play.playing {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  /* PC: ホバー時に表示 */
+  @media (hover: hover) and (pointer: fine) {
+    .audio-player-wrapper .play.playing:hover {
+      opacity: 0.9;
+    }
+  }
+
+  /* スマホ: アクティブ状態なら再生中でも表示 */
+  .audio-player-wrapper .circular-player.is-active .play.playing {
+    opacity: 0.9;
+  }
+
+  .audio-player-wrapper .play:active {
+    transform: scale(0.98);
+  }
+
+  .audio-player-wrapper .play svg {
+    width: clamp(0.9rem, 3.6vw, 1.35rem);
+    height: clamp(0.9rem, 3.6vw, 1.35rem);
+  }
+
+  .audio-player-wrapper .track-title {
+    font-family: "Menlo", "PT Mono", "Courier New", monospace;
+    font-size: clamp(0.48rem, 1.92vw, 0.804rem);
+    font-weight: bold;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    color: #333333;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    /* 上方向のオフセット（数値を大きくするとさらに上へ） */
+    transform: translate(-50%, calc(-1.35 * var(--time-shift, 0.32) * var(--circle-size)));
+    text-align: center;
+    max-width: 85%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .audio-player-wrapper .track-title-link {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+  /* 当たり判定拡張 */
+  .audio-player-wrapper .track-title-link::after {
+    content: "";
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -16px;
+    right: -16px;
+    z-index: -1; /* ←重要 */
+  }
+  .audio-player-wrapper .track-title-link:hover {
+    text-decoration: underline;
+  }
+
+  .audio-player-wrapper .time {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.1rem, 1vw, 0.3rem);
+    font-feature-settings:
+      "tnum" 1,
+      "lnum" 1;
+    /* font-family: "PT Mono", "Courier New", monospace; */
+    font-family: "Menlo", "PT Mono", "Courier New", monospace;
+    font-size: clamp(0.48rem, 1.92vw, 0.804rem);
+    font-weight: bold;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: #333333;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(var(--time-shift, 0.32) * var(--circle-size)));
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .audio-player-wrapper .volume {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    max-width: 36px !important;
+    min-width: 36px !important;
+    box-sizing: border-box !important;
+    position: absolute;
+    right: 10%;
+    top: 55%;
+    transform: translateY(-50%);
+    flex-shrink: 0;
+    gap: clamp(0.3rem, 3.6vw, 1.8rem) !important;
+  }
+
+  .audio-player-wrapper .mute-btn {
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    transition: background-color 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    color: inherit !important;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+
+  .audio-player-wrapper .mute-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .audio-player-wrapper .mute-btn svg {
+    width: 16.8px !important;
+    height: 16.8px !important;
+    fill: currentColor !important;
+    color: inherit !important;
+  }
+
+  .audio-player-wrapper .mute-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* ===== Volume スライダー共通設定 ===== */
+
+  .audio-player-wrapper .volume input[type="range"] {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: clamp(48px, 10.8vw, 66px) !important; /* 回転後の縦長確保 */
+    height: 3.6px !important; /* 回転後の横幅（バーの太さ） */
+    border-radius: 999px !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    touch-action: none !important;
+    transform: rotate(-90deg); /* ←ここで物理的に縦向きにする */
+    transform-origin: center; /* 回転軸を中央に */
+
+    /* カラー設定 */
+    --vol-fill: #333333;
+    --vol-track: #bfc1c3;
+    --vol-thumb: #333333;
+    --vol-thumb-border: #333333;
+    --vol-pct: 80%;
+  }
+
+  /* WebKit: トラック */
+  .audio-player-wrapper .volume input[type="range"]::-webkit-slider-runnable-track {
+    border-radius: 999px !important;
+    background: linear-gradient(
+      to right,
+      var(--vol-fill) 0%,
+      var(--vol-fill) var(--vol-pct),
+      var(--vol-track) var(--vol-pct),
+      var(--vol-track) 100%
+    ) !important;
+    height: 3.6px !important;
+  }
+
+  /* WebKit: つまみ */
+  .audio-player-wrapper .volume input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none !important;
+    appearance: none !important;
+    width: 8.4px !important;
+    height: 8.4px !important;
+    border-radius: 50% !important;
+    background: var(--vol-thumb) !important;
+    border: 1.6px solid var(--vol-thumb-border) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    margin-top: -2.4px; /* トラック中央に配置 */
+  }
+
+  /* Firefox */
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-track {
+    background: var(--vol-track) !important;
+    border-radius: 999px !important;
+    height: 3.6px !important;
+  }
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-progress {
+    background: var(--vol-fill) !important;
+    border-radius: 999px !important;
+    height: 3.6px !important;
+  }
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-thumb {
+    width: 9.6px !important;
+    height: 9.6px !important;
+    border-radius: 50% !important;
+    background: var(--vol-thumb) !important;
+    border: 1.6px solid var(--vol-thumb-border) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* Firefox: トラック＆プログレス */
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-track {
+    background: var(--vol-track) !important;
+    border-radius: 999px !important;
+  }
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-progress {
+    background: var(--vol-fill) !important;
+    border-radius: 999px !important;
+  }
+
+  /* Firefox: つまみ */
+  .audio-player-wrapper .volume input[type="range"]::-moz-range-thumb {
+    width: 13.2px !important;
+    height: 13.2px !important;
+    border-radius: 50% !important;
+    background: var(--vol-thumb) !important;
+    border: 1.56px solid var(--vol-thumb-border) !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  /* hover/activeで軽くフィードバック（任意） */
+  .audio-player-wrapper .volume input[type="range"]:hover {
+    filter: brightness(1.02);
+  }
+  .audio-player-wrapper .volume input[type="range"]:active {
+    filter: brightness(0.98);
+  }
+
+  /* ボリュームが効かない環境（iOS等）ではボリュームUIを非表示 */
+  .audio-player-wrapper.volume-unsupported .volume {
+    display: none !important;
+  }
+
+  /* モバイル用の調整 */
+  @media (max-width: 768px) {
+    .audio-player-wrapper .volume {
+      right: 10%;
+      max-width: 39.6px !important;
+      min-width: 39.6px !important;
+    }
+  }
+
+  .playlist-dots {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: clamp(10px, 2.5vw, 18px); /* 円の外側下に余白 */
+  }
+
+  .playlist-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #c8c8c8; /* 灰色 */
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .playlist-dots .dot.active {
+    background: #111; /* アクティブは黒 */
+    width: 24px;
+    border-radius: 6px;
+  }
+
+  .track-navigation-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #111;
+    width: 28px;
+    height: clamp(60px, 24vw, 132px);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .track-navigation-btn svg {
+    height: 100%;
+    width: auto;
+  }
+  .track-navigation-btn:hover {
+    color: #000;
+  }
+  .track-navigation-btn:active {
+    transform: scale(0.98);
+  }
+</style>
+
+<script define:vars={{ shuffledItems }}>
+  const audio = document.getElementById("audio");
+  const playBtn = document.getElementById("play");
+  const playIcon = document.getElementById("playIcon");
+  const circleEl = document.getElementById("circle");
+  const progressPath = document.getElementById("progressPath");
+  const knob = document.getElementById("knob");
+  const curEl = document.getElementById("cur");
+  const durEl = document.getElementById("dur");
+  const vol = document.getElementById("vol");
+  const muteBtn = document.getElementById("muteBtn");
+  const muteIcon = document.getElementById("muteIcon");
+  const jacketImg = document.querySelector(".jacket");
+  const trackTitleEl = document.getElementById("trackTitle");
+  const dots = Array.from(document.querySelectorAll(".playlist-dots .dot"));
+
+  // iOSではWebの音量制御が効かないため、ボリュームUIを非表示にする（PCではそのまま表示・動作）
+  const isVolumeSupported = !/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const wrapper = document.querySelector(".audio-player-wrapper");
+  if (wrapper && !isVolumeSupported) wrapper.classList.add("volume-unsupported");
+
+  function titleFromFilename(filename) {
+    const base = filename.replace(/\.mp3$/i, "");
+    const i = base.indexOf("_");
+    return i >= 0 ? base.slice(i + 1).trim() : base;
+  }
+  const prevBtn = document.getElementById("prevBtn");
+  const nextBtn = document.getElementById("nextBtn");
+
+  // 楽曲リスト
+  const items = shuffledItems;
+  const musicList = items.map((it) => it.src);
+  let currentIndex = 0;
+
+  // 初期音量（ボリュームUIが有効な環境のみ。iOS等ではデフォルトのまま）
+  if (isVolumeSupported && vol) {
+    audio.volume = parseFloat(vol.value);
+  }
+  let lastVolume = audio.volume; // 消音前の音量を保存
+
+  // 次の曲へ
+  function nextTrack() {
+    currentIndex = (currentIndex + 1) % musicList.length;
+    loadTrack(musicList[currentIndex]);
+  }
+
+  // 前の曲へ
+  function prevTrack() {
+    currentIndex = (currentIndex - 1 + musicList.length) % musicList.length;
+    loadTrack(musicList[currentIndex]);
+  }
+
+  // トラックを読み込み
+  async function loadTrack(src) {
+    const wasPlaying = !audio.paused;
+    audio.src = src;
+    audio.load();
+
+    // ジャケット画像と曲名・リリースリンクを更新
+    const item = items.find((it) => it.src === src);
+    if (item) {
+      if (item.cover) jacketImg.setAttribute("src", item.cover);
+      if (trackTitleEl) {
+        trackTitleEl.textContent = titleFromFilename(item.filename);
+        trackTitleEl.href = item.releaseSlug ? `/works/${item.releaseSlug}` : "/works";
+        trackTitleEl.removeAttribute("aria-disabled");
+      }
+    } else {
+      if (trackTitleEl) {
+        trackTitleEl.textContent = "";
+        trackTitleEl.href = "/works";
+        trackTitleEl.removeAttribute("aria-disabled");
+      }
+    }
+
+    if (wasPlaying) {
+      await audio.play();
+    }
+    updateActiveDot();
+  }
+
+  // 初期曲を読み込み
+  if (musicList.length > 0) {
+    audio.src = musicList[0];
+    audio.load();
+    updateActiveDot();
+  }
+
+  // ボタン操作
+  prevBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    prevTrack();
+  });
+  nextBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    nextTrack();
+  });
+
+  function updateActiveDot() {
+    dots.forEach((d, i) => d.classList.toggle("active", i === currentIndex));
+  }
+
+  dots.forEach((d) => {
+    d.addEventListener("click", () => {
+      const idx = parseInt(d.getAttribute("data-index")) || 0;
+      currentIndex = idx;
+      loadTrack(musicList[currentIndex]);
+      updateActiveDot();
+    });
+  });
+
+  // 曲名クリック時：グローバルリリースモーダルで開く（どこからでも同じモーダル）
+  if (trackTitleEl && trackTitleEl.tagName === "A") {
+    trackTitleEl.addEventListener("click", (e) => {
+      const href = trackTitleEl.getAttribute("href");
+      if (!href || href === "/works") return;
+      e.preventDefault();
+      const slug = href.replace(/^\/works\//, "").replace(/\?.*$/, "");
+      if (slug && typeof window["openReleaseModal"] === "function") {
+        window["openReleaseModal"](slug);
+      } else {
+        window.location.href = href;
+      }
+    });
+  }
+
+  // 音量バーの背景を更新する関数（ボリュームUIが有効なときのみ）
+  function updateVolumeBackground() {
+    if (!isVolumeSupported || !vol) return;
+    const value = parseFloat(vol.value);
+    const percentage = value * 100;
+    vol.style.setProperty("--vol-pct", `${percentage}%`);
+  }
+
+  // 初期表示時に背景を更新（PCのみ）
+  if (isVolumeSupported) updateVolumeBackground();
+
+  // タッチデバイスかどうかを検知（変数を先に宣言）
+  let isTouchDevice = false;
+  let wasPlayingBeforeClick = false; // クリック前の再生状態を保存
+
+  // 再生/一時停止
+  function setPlayingUI(playing) {
+    playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+    playIcon.innerHTML = playing
+      ? '<path d="M6 6h4v12H6zM14 6h4v12h-4z"/>' // pause
+      : '<path d="M8 5v14l11-7-11-7z"/>'; // play
+
+    // 再生中はplayingクラスを追加
+    if (playing) {
+      playBtn.classList.add("playing");
+      circleEl.classList.add("is-playing");
+
+      // 停止→再生の切り替え時のみ、自動的に非アクティブ化
+      if (!wasPlayingBeforeClick) {
+        circleEl.classList.remove("is-active");
+        circleEl.classList.remove("show-button");
+      }
+    } else {
+      playBtn.classList.remove("playing");
+      circleEl.classList.remove("is-playing");
+      circleEl.classList.remove("show-button"); // 停止時はホバー状態もリセット
+    }
+  }
+  playBtn.addEventListener("click", () => {
+    if (audio.src === "") return; // ファイル未選択
+
+    // クリック前の再生状態を保存
+    wasPlayingBeforeClick = !audio.paused;
+
+    // スマホの場合、タップでアクティブ化
+    if (isTouchDevice) {
+      circleEl.classList.add("is-active");
+    }
+
+    if (audio.paused) audio.play();
+    else audio.pause();
+  });
+
+  audio.addEventListener("play", () => setPlayingUI(true));
+  audio.addEventListener("pause", () => setPlayingUI(false));
+
+  // タッチイベントが発生したらタッチデバイスとしてマーク
+  const markAsTouchDevice = () => {
+    isTouchDevice = true;
+    document.body.classList.add("is-touch-device"); // ボディにマーク
+  };
+
+  playBtn.addEventListener("touchstart", markAsTouchDevice, { passive: true });
+  circleEl.addEventListener("touchstart", markAsTouchDevice, { passive: true });
+
+  // PC: ボタンホバー時にジャケットを透過
+  playBtn.addEventListener("mouseenter", () => {
+    if (isTouchDevice) return; // タッチデバイスでは無視
+    if (!audio.paused) {
+      circleEl.classList.add("show-button");
+    }
+  });
+
+  playBtn.addEventListener("mouseleave", () => {
+    if (isTouchDevice) return;
+    circleEl.classList.remove("show-button");
+  });
+
+  // スマホ: サークル外をタップしたら非アクティブ化
+  if (isTouchDevice || "ontouchstart" in window) {
+    document.addEventListener(
+      "touchstart",
+      (e) => {
+        // サークル外をタップした場合
+        if (!circleEl.contains(e.target)) {
+          circleEl.classList.remove("is-active");
+        }
+      },
+      { passive: true },
+    );
+  }
+
+  // 時間表示
+  const fmt = (s) => {
+    if (!isFinite(s)) return "00:00";
+    const m = Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0");
+    const sec = Math.floor(s % 60)
+      .toString()
+      .padStart(2, "0");
+    return `${m}:${sec}`;
+  };
+
+  audio.addEventListener("loadedmetadata", () => {
+    durEl.textContent = fmt(audio.duration);
+    updateProgress();
+  });
+  audio.addEventListener("timeupdate", updateProgress);
+
+  // 円弧描画（12時始点→時計回り）
+  function polarToCartesian(cx, cy, r, deg) {
+    const rad = ((deg - 90) * Math.PI) / 180.0;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+  function describeArc(x, y, r, start, end) {
+    const startPt = polarToCartesian(x, y, r, end);
+    const endPt = polarToCartesian(x, y, r, start);
+    const largeArcFlag = end - start <= 180 ? "0" : "1";
+    return ["M", startPt.x, startPt.y, "A", r, r, 0, largeArcFlag, 0, endPt.x, endPt.y].join(" ");
+  }
+
+  function updateProgress() {
+    const cur = audio.currentTime || 0;
+    const dur = audio.duration || 0;
+    curEl.textContent = fmt(cur);
+    durEl.textContent = fmt(dur);
+
+    const pct = dur ? cur / dur : 0;
+    const endDeg = 360 * pct; // 0→360
+    // 角度0=12時から endDeg までを描く
+    if (endDeg <= 0) {
+      progressPath.setAttribute("d", "");
+    } else {
+      const d = describeArc(50, 50, 42, 0, endDeg);
+      progressPath.setAttribute("d", d);
+    }
+    // ノブ位置を更新
+    const k = polarToCartesian(50, 50, 42, endDeg);
+    knob.setAttribute("cx", k.x.toFixed(3));
+    knob.setAttribute("cy", k.y.toFixed(3));
+    circleEl.setAttribute("aria-valuenow", Math.round(pct * 100));
+  }
+
+  // リングでのシーク（クリック/ドラッグ）
+  let dragging = false;
+  function pointToAngle(clientX, clientY) {
+    const rect = circleEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    let deg = (Math.atan2(dy, dx) * 180) / Math.PI + 90; // 12時基準
+    if (deg < 0) deg += 360;
+    return deg; // 0..360
+  }
+  function withinRing(clientX, clientY) {
+    const rect = circleEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = clientX - cx;
+    const dy = clientY - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const outer = rect.width * 0.5; // 半径=幅の半分
+    const inner = outer - 20; // トラック幅(約6) + 余白を広げる
+    return dist <= outer && dist >= inner;
+  }
+
+  function seekFromClientXY(x, y) {
+    if (!isFinite(audio.duration)) return;
+    const deg = pointToAngle(x, y);
+    const pct = deg / 360;
+    audio.currentTime = audio.duration * pct;
+    updateProgress();
+  }
+
+  circleEl.addEventListener("pointerdown", (e) => {
+    if (withinRing(e.clientX, e.clientY)) {
+      dragging = true;
+      circleEl.setPointerCapture(e.pointerId);
+      seekFromClientXY(e.clientX, e.clientY);
+    }
+  });
+  circleEl.addEventListener("pointermove", (e) => {
+    if (dragging) {
+      seekFromClientXY(e.clientX, e.clientY);
+    }
+  });
+  const endDrag = (e) => {
+    dragging = false;
+    try {
+      circleEl.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+  };
+  circleEl.addEventListener("pointerup", endDrag);
+  circleEl.addEventListener("pointercancel", endDrag);
+  circleEl.addEventListener("lostpointercapture", () => (dragging = false));
+
+  // キーボード操作（フォーカスを円に当てた状態）
+  circleEl.addEventListener("keydown", (e) => {
+    if (!isFinite(audio.duration)) return;
+    const step = 5; // 秒
+    if (e.key === "ArrowRight") {
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + step);
+      e.preventDefault();
+    }
+    if (e.key === "ArrowLeft") {
+      audio.currentTime = Math.max(0, audio.currentTime - step);
+      e.preventDefault();
+    }
+    if (e.key === "Home") {
+      audio.currentTime = 0;
+      e.preventDefault();
+    }
+    if (e.key === "End") {
+      audio.currentTime = audio.duration;
+      e.preventDefault();
+    }
+    updateProgress();
+  });
+
+  // 全体のキーボード（スペースと音量）
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      if (audio.src === "") return;
+      if (
+        document.activeElement === circleEl ||
+        document.activeElement === document.body ||
+        document.activeElement === playBtn
+      ) {
+        e.preventDefault();
+        if (audio.paused) audio.play();
+        else audio.pause();
+      }
+    } else if (isVolumeSupported && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "m" || e.key === "M")) {
+      if (e.key === "ArrowUp") {
+        audio.volume = Math.min(1, audio.volume + 0.05);
+        if (vol) vol.value = audio.volume.toFixed(2);
+        lastVolume = audio.volume;
+        updateMuteIcon();
+        updateVolumeBackground();
+      } else if (e.key === "ArrowDown") {
+        audio.volume = Math.max(0, audio.volume - 0.05);
+        if (vol) vol.value = audio.volume.toFixed(2);
+        lastVolume = audio.volume;
+        updateMuteIcon();
+        updateVolumeBackground();
+      } else if (e.key === "m" || e.key === "M") {
+        muteBtn?.click();
+      }
+    }
+  });
+
+  // 消音切り替え（ボリュームUIが有効なときのみ表示される）
+  function updateMuteIcon() {
+    if (!isVolumeSupported || !muteBtn || !muteIcon) return;
+    const isMuted = audio.volume === 0;
+    muteBtn.setAttribute("aria-pressed", isMuted ? "true" : "false");
+    if (isMuted) {
+      muteIcon.innerHTML =
+        '<path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"/><path d="M16 8a5 5 0 010 8" stroke="currentColor" stroke-width="2"/><path d="M2 2l20 20" stroke="currentColor" stroke-width="2"/>';
+    } else {
+      muteIcon.innerHTML =
+        '<path d="M5 10v4h3l4 3V7l-4 3H5z" fill="currentColor"/><path d="M16 8a5 5 0 010 8" stroke="currentColor"/>';
+    }
+  }
+
+  if (isVolumeSupported) {
+    vol?.addEventListener("input", () => {
+      audio.volume = parseFloat(vol.value);
+      lastVolume = audio.volume;
+      updateMuteIcon();
+      updateVolumeBackground();
+    });
+
+    muteBtn?.addEventListener("click", () => {
+      if (audio.volume === 0) {
+        audio.volume = lastVolume;
+        if (vol) vol.value = lastVolume;
+      } else {
+        lastVolume = audio.volume;
+        audio.volume = 0;
+        if (vol) vol.value = 0;
+      }
+      updateMuteIcon();
+      updateVolumeBackground();
+    });
+
+    updateMuteIcon();
+  }
+
+  // 再生終了時: 次の曲へ
+  audio.addEventListener("ended", () => {
+    updateProgress();
+    setPlayingUI(false);
+    nextTrack(); // 次の曲へ自動移動
+  });
+
+  // スワイプ検出（左右で次の曲/前の曲）
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  circleEl.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    },
+    { passive: true },
+  );
+
+  circleEl.addEventListener(
+    "touchend",
+    (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeDistance = touchStartX - touchEndX;
+
+      // スワイプ距離が50px以上の時
+      if (Math.abs(swipeDistance) > 50) {
+        if (swipeDistance > 0) {
+          // 左スワイプ: 次の曲
+          nextTrack();
+        } else {
+          // 右スワイプ: 前の曲
+          prevTrack();
+        }
+      }
+    },
+    { passive: true },
+  );
+
+  // キーボードショートカット: 左右矢印で次の曲/前の曲
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "MediaTrackNext" || (e.shiftKey && e.key === "ArrowRight")) {
+      nextTrack();
+      e.preventDefault();
+    } else if (e.key === "MediaTrackPrevious" || (e.shiftKey && e.key === "ArrowLeft")) {
+      prevTrack();
+      e.preventDefault();
+    }
+  });
+</script>
