@@ -19,7 +19,7 @@
                     <label class="piano-volume-label" for="pianoVolumeRange">
                         Volume: <span id="pianoVolumeLabel">50%</span>
                     </label>
-                    <input id="pianoVolumeRange" class="piano-volume-range" type="range" min="0" max="1" step="0.01" value="0.5" />
+                    <input id="pianoVolumeRange" class="piano-volume-range" type="range" min="0" max="2" step="0.01" value="0.8" />
                 </div>
             </div>
         </div>
@@ -56,7 +56,9 @@
         )
             return;
 
-        const state = (window.__pianoState ??= { isOpen: false, startMidi: 48, volume: 0.5 });
+        const DEFAULT_MASTER_VOLUME = 0.8;
+        const MAX_MASTER_VOLUME = 2;
+        const state = (window.__pianoState ??= { isOpen: false, startMidi: 48, volume: DEFAULT_MASTER_VOLUME });
         const engine = (window.__pianoEngine ??= {
             audioContext: null,
             masterGain: null,
@@ -101,21 +103,43 @@
         }
 
         function getTargetWhiteKeyWidth(viewportWidth) {
-            if (viewportWidth <= 430) return 44;
-            if (viewportWidth <= 640) return 40;
-            if (viewportWidth <= 820) return 34;
-            if (viewportWidth <= 1024) return 30;
-            if (viewportWidth <= 1366) return 26;
-            return 24;
+            if (viewportWidth <= 430) return 50;
+            if (viewportWidth <= 480) return 49;
+            if (viewportWidth <= 520) return 48;
+            if (viewportWidth <= 560) return 47;
+            if (viewportWidth <= 600) return 46;
+            if (viewportWidth <= 640) return 45;
+            if (viewportWidth <= 700) return 42;
+            if (viewportWidth <= 760) return 40;
+            if (viewportWidth <= 820) return 38;
+            if (viewportWidth <= 900) return 35;
+            if (viewportWidth <= 1024) return 32;
+            if (viewportWidth <= 1200) return 30;
+            if (viewportWidth <= 1366) return 28;
+            if (viewportWidth <= 1600) return 26;
+            if (viewportWidth <= 1920) return 24;
+            return 22;
         }
 
         function getMaxKeysByViewport(viewportWidth) {
-            if (viewportWidth < 720) return 24;
-            if (viewportWidth < 960) return 32;
-            if (viewportWidth < 1280) return 48;
-            if (viewportWidth < 1600) return 64;
-            if (viewportWidth < 2000) return 76;
-            return FULL_PIANO_KEY_COUNT; // 88鍵は超広幅時のみ
+            if (viewportWidth <= 430) return 12;
+            if (viewportWidth <= 480) return 13;
+            if (viewportWidth <= 520) return 14;
+            if (viewportWidth <= 560) return 15;
+            if (viewportWidth <= 600) return 16;
+            if (viewportWidth <= 640) return 17;
+            if (viewportWidth <= 700) return 18;
+            if (viewportWidth <= 760) return 19;
+            if (viewportWidth <= 820) return 20;
+            if (viewportWidth <= 900) return 22;
+            if (viewportWidth <= 1024) return 24;
+            if (viewportWidth <= 1200) return 28;
+            if (viewportWidth <= 1366) return 32;
+            if (viewportWidth <= 1600) return 40;
+            if (viewportWidth <= 1920) return 52;
+            if (viewportWidth <= 2560) return 64;
+            if (viewportWidth <= 3200) return 76;
+            return FULL_PIANO_KEY_COUNT; // 88鍵は超大型ディスプレイ前提
         }
 
         function getKeyCountFromPanelWidth(panelInnerWidth, viewportWidth) {
@@ -146,7 +170,7 @@
             if (!Ctor) return null;
             engine.audioContext = new Ctor({ latencyHint: "interactive" });
             engine.masterGain = engine.audioContext.createGain();
-            engine.masterGain.gain.value = clamp(state.volume ?? 0.5, 0, 1);
+            engine.masterGain.gain.value = clamp(state.volume ?? DEFAULT_MASTER_VOLUME, 0, MAX_MASTER_VOLUME);
             engine.masterGain.connect(engine.audioContext.destination);
             return engine.audioContext;
         }
@@ -357,12 +381,12 @@
         }
 
         function updateVolumeLabel() {
-            volumeLabel.textContent = `${Math.round((state.volume ?? 0.5) * 100)}%`;
-            volumeRange.value = String(state.volume ?? 0.5);
+            volumeLabel.textContent = `${Math.round((state.volume ?? DEFAULT_MASTER_VOLUME) * 100)}%`;
+            volumeRange.value = String(state.volume ?? DEFAULT_MASTER_VOLUME);
         }
 
         function setMasterVolume(nextVolume) {
-            state.volume = clamp(nextVolume, 0, 1);
+            state.volume = clamp(nextVolume, 0, MAX_MASTER_VOLUME);
             const context = getAudioContext();
             if (context && engine.masterGain) {
                 engine.masterGain.gain.setValueAtTime(state.volume, context.currentTime);
@@ -535,6 +559,12 @@
                 event.preventDefault();
             });
             document.addEventListener("selectstart", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (!target.closest("#pianoPanel, #pianoBackground, .key")) return;
+                event.preventDefault();
+            });
+            document.addEventListener("dblclick", (event) => {
                 const target = event.target;
                 if (!(target instanceof Element)) return;
                 if (!target.closest("#pianoPanel, #pianoBackground, .key")) return;
@@ -724,7 +754,7 @@
         user-select: none;
         -webkit-user-select: none;
         -webkit-touch-callout: none;
-        touch-action: none;
+        touch-action: manipulation;
         caret-color: transparent;
     }
 
@@ -738,7 +768,8 @@
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
     }
 
