@@ -408,6 +408,55 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
       setupModalCloseDelegation();
       document.addEventListener("astro:page-load", setupModalCloseDelegation);
 
+      // モーダル本体の左右スワイプで前後の作品へ移動
+      function setupModalSwipeDelegation() {
+        const modal = document.getElementById("global-release-modal");
+        if (!modal || modal.hasAttribute("data-swipe-delegation-set")) return;
+        modal.setAttribute("data-swipe-delegation-set", "");
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+        const swipeThreshold = 50;
+
+        modal.addEventListener(
+          "touchstart",
+          (e: TouchEvent) => {
+            if (e.changedTouches.length === 0) return;
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
+          },
+          { passive: true },
+        );
+
+        modal.addEventListener(
+          "touchend",
+          (e: TouchEvent) => {
+            if (modal.getAttribute("aria-hidden") === "true" || e.changedTouches.length === 0) return;
+
+            touchEndX = e.changedTouches[0].clientX;
+            touchEndY = e.changedTouches[0].clientY;
+
+            const deltaX = touchEndX - touchStartX;
+            const deltaY = touchEndY - touchStartY;
+
+            // 縦スクロールを誤認しないよう、横移動が優位なときだけ判定
+            if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+
+            const idx = globalReleaseSlugs.indexOf(currentGlobalSlug);
+            if (deltaX < 0 && idx >= 0 && idx < globalReleaseSlugs.length - 1) {
+              document.getElementById("global-release-next")?.click();
+            } else if (deltaX > 0 && idx > 0) {
+              document.getElementById("global-release-prev")?.click();
+            }
+          },
+          { passive: true },
+        );
+      }
+      setupModalSwipeDelegation();
+      document.addEventListener("astro:page-load", setupModalSwipeDelegation);
+
       document.addEventListener("keydown", (e: KeyboardEvent) => {
         const modal = document.getElementById("global-release-modal");
         if (!modal || modal.getAttribute("aria-hidden") === "true") return;

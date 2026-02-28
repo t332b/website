@@ -89,6 +89,13 @@ function getAvatarUrl(member: any) {
     </div>
   </div>
 
+  <div id="activeTagFilter" class="active-tag-filter" style="display: none;">
+    <button id="activeTagPill" type="button" class="active-tag-pill" aria-label="タグ絞り込みを解除">
+      <span id="activeTagText"></span>
+      <span aria-hidden="true">×</span>
+    </button>
+  </div>
+
   <!-- 一覧 -->
   <div id="list" class="notes-list" style="display:grid; gap:16px;">
     {posts.map(p => {
@@ -178,8 +185,40 @@ function getAvatarUrl(member: any) {
       const clearDates = document.getElementById('clearDates');
       const q = document.getElementById('q');
       const clearQ = document.getElementById('clearQ');
+      const activeTagFilter = document.getElementById('activeTagFilter');
+      const activeTagPill = document.getElementById('activeTagPill');
+      const activeTagText = document.getElementById('activeTagText');
 
       let author = 'ALL';
+      let activeTag = '';
+
+      function normalizeTag(raw: string) {
+        return raw.replace(/^#/, '').trim();
+      }
+
+      function renderActiveTag() {
+        const normalized = activeTag.toLowerCase();
+        if (activeTag && activeTagText && activeTagFilter) {
+          activeTagText.textContent = `#${activeTag}`;
+          activeTagFilter.style.display = '';
+        } else if (activeTagFilter) {
+          activeTagFilter.style.display = 'none';
+        }
+
+        document.querySelectorAll('.card-tags .tag').forEach((el) => {
+          const tagEl = el as HTMLElement;
+          const tagValue = normalizeTag(tagEl.dataset.tag || tagEl.textContent || '').toLowerCase();
+          tagEl.classList.toggle('tag-filter-active', Boolean(normalized) && tagValue === normalized);
+        });
+      }
+
+      function setActiveTag(rawTag: string) {
+        const next = normalizeTag(rawTag);
+        if (!next) return;
+        activeTag = activeTag.toLowerCase() === next.toLowerCase() ? '' : next;
+        renderActiveTag();
+        applyFilters();
+      }
 
       detailToggle?.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -271,36 +310,46 @@ function getAvatarUrl(member: any) {
         tagEl.addEventListener('click', (e) => {
           e.stopPropagation();
           const raw = tagEl.dataset.tag || tagEl.textContent || '';
-          const tagText = raw.replace(/^#/, '').trim();
-          if (qEl) {
-            qEl.value = tagText;
-          }
-          applyFilters();
+          setActiveTag(raw);
         });
+      });
+
+      activeTagPill?.addEventListener('click', () => {
+        activeTag = '';
+        renderActiveTag();
+        applyFilters();
       });
 
       function applyFilters() {
         const from = fromEl?.value ? new Date(fromEl.value) : null;
         const to = toEl?.value ? new Date(toEl.value) : null;
         const query = (qEl?.value ?? '').trim().toLowerCase();
+        const activeTagNormalized = activeTag.toLowerCase();
 
         items.forEach(item => {
           const el = item as HTMLElement;
           const a = el.dataset.author;
           const d = new Date(el.dataset.date || '');
           const text = ((el.dataset.title || '') + ' ' + (el.dataset.tags || '')).toLowerCase();
+          const tags = (el.dataset.tags || '')
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean);
           let ok = true;
           if (author !== 'ALL' && a !== author) ok = false;
           if (from && d < from) ok = false;
           if (to && d > to) ok = false;
+          if (activeTagNormalized && !tags.includes(activeTagNormalized)) ok = false;
           if (query && !text.includes(query)) ok = false;
           el.style.display = ok ? '' : 'none';
         });
       }
 
-      // URL の ?author=xxx があればその著者で絞り込み（記事ページから「名前/アイコン」で飛んできた場合）
+      // URL パラメータを反映（記事ページから飛んできた場合）
       const urlParams = new URLSearchParams(window.location.search);
       const authorParam = urlParams.get('author');
+      const tagParam = (urlParams.get('tag') || '').trim();
+      if (tagParam) setActiveTag(tagParam);
       if (authorParam) {
         filterByAuthor(authorParam);
       } else {
@@ -315,13 +364,36 @@ function getAvatarUrl(member: any) {
   }
   document.addEventListener('astro:page-load', () => {
     initNotesPage();
-    // View Transitions で /notes/?author=xxx に遷移した場合も絞り込みを適用
+    // View Transitions で /notes/?author=xxx や /notes/?tag=xxx に遷移した場合も絞り込みを適用
     const onNotesIndex = location.pathname === '/notes' || location.pathname === '/notes/';
     if (!onNotesIndex) return;
-    const authorParam = new URLSearchParams(location.search).get('author');
-    if (!authorParam) return;
-    const btn = document.querySelector(`.author-btn[data-author="${CSS.escape(authorParam)}"]`) as HTMLElement | null;
-    if (btn) btn.click();
+    const params = new URLSearchParams(location.search);
+    const authorParam = params.get('author');
+    const tagParam = (params.get('tag') || '').trim();
+    const activeTagFilter = document.getElementById('activeTagFilter');
+    const activeTagText = document.getElementById('activeTagText');
+
+    if (authorParam) {
+      const btn = document.querySelector(`.author-btn[data-author="${CSS.escape(authorParam)}"]`) as HTMLElement | null;
+      if (btn) {
+        btn.click();
+      }
+    }
+
+    const normalizedTag = tagParam.replace(/^#/, '').trim().toLowerCase();
+    if (activeTagFilter && activeTagText) {
+      if (normalizedTag) {
+        activeTagText.textContent = `#${tagParam.replace(/^#/, '').trim()}`;
+        activeTagFilter.style.display = '';
+      } else {
+        activeTagFilter.style.display = 'none';
+      }
+    }
+    document.querySelectorAll('.card-tags .tag').forEach((el) => {
+      const tagEl = el as HTMLElement;
+      const tagValue = (tagEl.dataset.tag || tagEl.textContent || '').replace(/^#/, '').trim().toLowerCase();
+      tagEl.classList.toggle('tag-filter-active', Boolean(normalizedTag) && tagValue === normalizedTag);
+    });
   });
   </script>
 
@@ -347,6 +419,33 @@ function getAvatarUrl(member: any) {
 
     .notes-list {
       min-width: 0;
+    }
+
+    .active-tag-filter {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .active-tag-pill {
+      appearance: none;
+      border: 1.5px solid var(--accent);
+      background: var(--wa-cream);
+      color: var(--accent);
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      line-height: 1.2;
+      transition: all 0.2s ease;
+    }
+
+    .active-tag-pill:hover {
+      background: #fff;
     }
 
     /* 絞り込みUIラッパー */
@@ -662,6 +761,12 @@ function getAvatarUrl(member: any) {
 
     .card-tags .tag:hover {
       color: var(--wa-mustard);
+    }
+
+    .card-tags .tag.tag-filter-active {
+      color: var(--accent);
+      text-decoration: underline;
+      font-weight: 700;
     }
     
     /* レスポンシブ */
