@@ -17,6 +17,7 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       ref: "develop"
+      base_path: "/stg/"
     secrets:
       FTP_HOST: ${{ secrets.FTP_HOST }}
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}

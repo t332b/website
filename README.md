@@ -45,6 +45,7 @@
 - `push-deploy-stg.yml`
   - `develop` への push（対象パス）または手動実行で起動
   - 再利用ワークフロー `deploy.yml` を `ref: develop` で呼び出し
+  - ビルド時の `base_path` を `/stg/` に設定（CSS/JS を `/stg/assets/...` 参照にする）
   - 本番と同じ FTP Secrets を使い、`FTP_REMOTE_DIR + stg/` に配置
 
 ### 2. Google Sheets 同期
