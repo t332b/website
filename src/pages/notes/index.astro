@@ -7,7 +7,7 @@ let posts: Awaited<ReturnType<typeof getCollection<"notes">>> = [];
 let members: Awaited<ReturnType<typeof getCollection<"member">>> = [];
 
 try {
-  posts = (await getCollection('notes'))
+  posts = (await getCollection('notes', ({ data }) => data.is_public !== false))
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 } catch (_e) {
   collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";

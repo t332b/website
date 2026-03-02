@@ -18,6 +18,7 @@ const notes = defineCollection({
     date: z.date(),
     author: z.string(),          // member.id を入れる
     tags: z.array(z.string()).optional(),
+    is_public: z.boolean().default(true),
   }),
 });
 
