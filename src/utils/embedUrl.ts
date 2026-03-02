@@ -1,7 +1,13 @@
 /**
  * 各種サービスのURLから埋め込み用 iframe URL を取得する
  */
-export type EmbedService = "youtube" | "spotify" | "bandcamp" | "apple";
+export type EmbedService =
+  | "youtube"
+  | "spotify"
+  | "bandcamp"
+  | "apple"
+  | "cloudinaryVideo"
+  | "cloudinaryAudio";
 
 export interface EmbedInfo {
   service: EmbedService;
@@ -45,6 +51,18 @@ export function getEmbedInfoFromUrl(url: string): EmbedInfo | null {
       return {
         service: "apple",
         embedUrl,
+      };
+    }
+    if (/res\.cloudinary\.com/i.test(u) && /\/video\/upload\//i.test(u)) {
+      const pathname = new URL(u).pathname.toLowerCase();
+      const fileName = pathname.split("/").pop() ?? "";
+      const extMatch = fileName.match(/\.([a-z0-9]+)$/i);
+      const ext = extMatch ? extMatch[1] : "";
+      const audioExts = new Set(["mp3", "m4a", "aac", "wav", "flac", "ogg", "oga", "opus"]);
+      const isAudio = !!ext && audioExts.has(ext);
+      return {
+        service: isAudio ? "cloudinaryAudio" : "cloudinaryVideo",
+        embedUrl: u,
       };
     }
   } catch {

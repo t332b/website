@@ -59,11 +59,17 @@ collections:
         widget: "list"
         required: false
         hint: "記事に関連するタグを追加してください（例：音楽、ライブ、ニュース）。1行につき1つのタグを入力してください。"
+      - label: "公開する"
+        name: "is_public"
+        widget: "boolean"
+        default: true
+        required: false
+        hint: "OFF にすると記事は削除せず非公開になります"
       - label: "本文"
         name: "body"
         widget: "markdown"
         required: true
-        hint: "画像は「メディアを追加」で Cloudinary から選択してください"
+        hint: "画像は「メディアを追加」で Cloudinary から選択。音声/動画は Cloudinary の配信URLを本文に貼ると埋め込み表示されます"
 
   # ライブ
   - name: "live"

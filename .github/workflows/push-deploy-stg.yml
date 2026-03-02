@@ -1,0 +1,25 @@
+name: Actions Build & FTP deploy STG (Lolipop)
+
+on:
+  push:
+    branches: [ "develop" ]
+    paths:
+      - "src/**"
+      - "public/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "astro.config.*"
+  workflow_dispatch:
+
+jobs:
+  call-deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: "develop"
+      base_path: "/stg/"
+    secrets:
+      FTP_HOST: ${{ secrets.FTP_HOST }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_REMOTE_DIR: ${{ endsWith(secrets.FTP_REMOTE_DIR, '/') && format('{0}stg/', secrets.FTP_REMOTE_DIR) || format('{0}/stg/', secrets.FTP_REMOTE_DIR) }}

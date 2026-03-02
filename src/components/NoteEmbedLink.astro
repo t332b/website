@@ -8,6 +8,14 @@ interface Props {
 
 const { href = "", title } = Astro.props;
 const embed = href ? getEmbedInfoFromUrl(href) : null;
+const embedOpenLabel =
+  embed?.service === "cloudinaryVideo"
+    ? "動画を開く"
+    : embed?.service === "cloudinaryAudio"
+      ? "音声を開く"
+      : embed
+        ? `${embed.service}で開く`
+        : "";
 ---
 
 {embed ? (
@@ -25,6 +33,22 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
         />
       </div>
     )}
+    {embed.service === "cloudinaryVideo" && (
+      <div class="note-embed-video">
+        <video controls playsinline preload="metadata">
+          <source src={embed.embedUrl} />
+          お使いのブラウザでは動画を再生できません。
+        </video>
+      </div>
+    )}
+    {embed.service === "cloudinaryAudio" && (
+      <div class="note-embed-audio note-embed-audio--cloudinary">
+        <audio controls preload="metadata">
+          <source src={embed.embedUrl} />
+          お使いのブラウザでは音声を再生できません。
+        </audio>
+      </div>
+    )}
     {(embed.service === "spotify" || embed.service === "bandcamp" || embed.service === "apple") && (
       <div class="note-embed-audio">
         <iframe
@@ -38,9 +62,7 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
         />
       </div>
     )}
-    <a href={href} class="note-embed-link" target="_blank" rel="noopener noreferrer">
-      {embed.service}で開く
-    </a>
+    <a href={href} class="note-embed-link" target="_blank" rel="noopener noreferrer">{embedOpenLabel}</a>
   </div>
 ) : (
   <a href={href} title={title} target="_blank" rel="noopener noreferrer">
@@ -64,6 +86,7 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
   }
 
   .note-embed-video iframe,
+  .note-embed-video video,
   .note-embed-audio iframe {
     display: block;
     border: none;
@@ -77,6 +100,23 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
     width: 100%;
     height: auto;
     aspect-ratio: 16 / 9;
+  }
+
+  .note-embed-video video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+
+  .note-embed-audio--cloudinary {
+    background: transparent;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .note-embed-audio--cloudinary audio {
+    width: 100%;
   }
 
   .note-embed-link {

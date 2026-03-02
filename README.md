@@ -8,6 +8,7 @@
 - 編集内容は GitHub リポジトリ（`main`）へコミット
 - `main` への push をトリガーに GitHub Actions がビルド
 - ビルド成果物 `dist/` を FTP で本番サーバーへデプロイ
+- `develop` への push をトリガーに STG 環境へ自動デプロイ（本番反映前の確認用）
 
 ## ディレクトリ責務
 
@@ -39,6 +40,14 @@
   - Node 20 / 依存インストール / `npm run build`
   - `dist/` 存在確認後、`SamKirkland/FTP-Deploy-Action@v4.3.6` でFTPデプロイ
 
+### 1.5 STGデプロイ（develop確認用）
+
+- `push-deploy-stg.yml`
+  - `develop` への push（対象パス）または手動実行で起動
+  - 再利用ワークフロー `deploy.yml` を `ref: develop` で呼び出し
+  - ビルド時の `base_path` を `/stg/` に設定（CSS/JS を `/stg/assets/...` 参照にする）
+  - 本番と同じ FTP Secrets を使い、`FTP_REMOTE_DIR + stg/` に配置
+
 ### 2. Google Sheets 同期
 
 - `sync-content.yml`（手動実行）
@@ -54,6 +63,8 @@
 - `FTP_USERNAME`
 - `FTP_PASSWORD`
 - `FTP_REMOTE_DIR`
+
+- `develop` の STG 反映は同じ Secrets を利用し、配置先のみ `.../stg/` に切り替え
 
 ### Google Sheets 同期用
 
