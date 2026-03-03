@@ -114,6 +114,11 @@ collections:
     fields:
       - { label: "ID（英数字）", name: "id", widget: "string" }
       - { label: "表示名", name: "name", widget: "string" }
+      - label: "表示順"
+        name: "order"
+        widget: "number"
+        required: false
+        value_type: "int"
       - { label: "プロフィール", name: "bio", widget: "text", required: false }
       - { label: "X(Twitter)", name: "twitter", widget: "string", required: false }
       - label: "アイコン画像"
