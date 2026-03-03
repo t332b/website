@@ -8,14 +8,6 @@ interface Props {
 
 const { href = "", title } = Astro.props;
 const embed = href ? getEmbedInfoFromUrl(href) : null;
-const embedOpenLabel =
-  embed?.service === "cloudinaryVideo"
-    ? "動画を開く"
-    : embed?.service === "cloudinaryAudio"
-      ? "音声を開く"
-      : embed
-        ? `${embed.service}で開く`
-        : "";
 ---
 
 {embed ? (
@@ -62,7 +54,6 @@ const embedOpenLabel =
         />
       </div>
     )}
-    <a href={href} class="note-embed-link" target="_blank" rel="noopener noreferrer">{embedOpenLabel}</a>
   </div>
 ) : (
   <a href={href} title={title} target="_blank" rel="noopener noreferrer">
@@ -119,16 +110,4 @@ const embedOpenLabel =
     width: 100%;
   }
 
-  .note-embed-link {
-    display: inline-block;
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
-    color: var(--accent);
-    font-weight: 600;
-    cursor: pointer;
-  }
-
-  .note-embed-link:hover {
-    text-decoration: underline;
-  }
 </style>

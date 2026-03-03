@@ -9,12 +9,6 @@ export const musicItems: MusicItem[] = [
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1760692036/citrus_vkmnqa.jpg"
   },
   {
-    "filename": "distant-light-single_遠灯.mp3",
-    "releaseSlug": "distant-light-single",
-    "src": "/music/distant-light-single_遠灯.mp3",
-    "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761729726/IMG_0750_te5d3r.jpg"
-  },
-  {
     "filename": "fanfare_ファンファーレ.mp3",
     "releaseSlug": "lighthouse-ep",
     "src": "/music/fanfare_ファンファーレ.mp3",

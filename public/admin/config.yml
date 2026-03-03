@@ -64,12 +64,12 @@ collections:
         widget: "boolean"
         default: true
         required: false
-        hint: "OFF にすると記事は削除せず非公開になります"
+        hint: "OFF にすると記事は非公開になります"
       - label: "本文"
         name: "body"
         widget: "markdown"
         required: true
-        hint: "画像は「メディアを追加」で Cloudinary から選択。音声/動画は Cloudinary の配信URLを本文に貼ると埋め込み表示されます"
+        hint: "画像は「メディアを追加」で Cloudinary から選択。音声/動画（mp3/mp4等）は画像ボタンではなく、Cloudinaryでアップロード後に配信URLを本文へ貼り付けてください"
 
   # ライブ
   - name: "live"
