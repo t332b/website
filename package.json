@@ -14,13 +14,13 @@
     "test:sheets": "node scripts/test-sheets-access.mjs"
   },
   "dependencies": {
-    "@astrojs/sitemap": "^3.5.1",
-    "astro": "^5.13.3",
+    "@astrojs/sitemap": "^3.7.0",
+    "astro": "^5.18.0",
     "googleapis": "^144.0.0",
     "yaml": "^2.5.1"
   },
   "devDependencies": {
-    "@astrojs/mdx": "^4.3.4",
+    "@astrojs/mdx": "^4.3.13",
     "cloudinary": "^2.7.0",
     "decap-cms": "^3.6.2",
     "dotenv": "^17.2.3",

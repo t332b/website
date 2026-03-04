@@ -14,7 +14,8 @@ try {
 }
 
 try {
-  members = await getCollection('member');
+  members = (await getCollection('member'))
+    .sort((a, b) => (a.data.order ?? 999) - (b.data.order ?? 999));
 } catch (_e) {
   members = [];
 }

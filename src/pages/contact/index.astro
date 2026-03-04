@@ -4,8 +4,6 @@ import Base from "../../layouts/Base.astro";
 
 <Base title="PR0P0SE CONTACT">
   <section class="contact-page">
-    <h1 class="contact-title">C0NTACT</h1>
-
     <div class="mail-card">
       <div class="mail-row">
         <canvas
@@ -15,7 +13,8 @@ import Base from "../../layouts/Base.astro";
           height="64"
           role="img"
           aria-label="連絡先メールアドレス画像"
-        ></canvas>
+        >
+        </canvas>
 
         <button
           id="copy-mail-button"
@@ -28,9 +27,7 @@ import Base from "../../layouts/Base.astro";
         </button>
       </div>
 
-      <p class="notice-text">
-        個人運営のため、返信まで数日〜1週間ほどお時間をいただきます。ご了承ください。
-      </p>
+      <p class="notice-text">個人運営のため、返信まで数日〜1週間ほどお時間をいただきます。ご了承ください。</p>
     </div>
   </section>
 
@@ -55,7 +52,6 @@ import Base from "../../layouts/Base.astro";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
-
     }
 
     async function copyMailAddress(text: string, copyButton: HTMLButtonElement) {
@@ -95,21 +91,9 @@ import Base from "../../layouts/Base.astro";
 
   <style>
     .contact-page {
-      max-width: 720px;
+      max-width: 400px;
       margin: 0 auto;
       padding: 2rem 1rem 2.5rem;
-    }
-
-    .contact-title {
-      margin: 0 0 0.5rem;
-      font-size: clamp(1.4rem, 2.2vw, 1.9rem);
-      color: var(--fg, var(--wa-ink));
-    }
-
-    .contact-description {
-      margin: 0 0 1.1rem;
-      color: var(--muted, #7c6f69);
-      font-size: 0.95rem;
     }
 
     .mail-card {
@@ -119,7 +103,7 @@ import Base from "../../layouts/Base.astro";
       background: var(--card, #fff9f1);
       border: 2px solid var(--wa-butter);
       border-radius: 12px;
-      padding: 1.1rem 1rem;
+      padding: 1rem 1rem;
       box-shadow: var(--shadow);
     }
 
@@ -130,9 +114,9 @@ import Base from "../../layouts/Base.astro";
     }
 
     .mail-image {
-      width: min(100%, 500px);
+      width: min(100%, 250px);
       height: auto;
-      border-radius: 8px;
+      border-radius: 2px;
       image-rendering: auto;
     }
 
@@ -144,9 +128,10 @@ import Base from "../../layouts/Base.astro";
       background: transparent;
       color: var(--accent, #2d7a78);
       border-radius: 7px;
-      padding: 0.42rem 0.7rem;
-      min-width: 88px;
-      font-size: 0.86rem;
+      padding: 0.3rem 0.5rem;
+      line-height: 1;
+      min-width: 50px;
+      font-size: 0.7rem;
       font-weight: 600;
       white-space: nowrap;
       transition:
@@ -174,11 +159,11 @@ import Base from "../../layouts/Base.astro";
     .notice-text {
       margin: 0;
       color: var(--muted, #7c6f69);
-      font-size: 0.82rem;
+      font-size: 0.7rem;
       line-height: 1.7;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 380px) {
       .contact-page {
         padding: 1rem 0.75rem 1.5rem;
       }
@@ -194,7 +179,10 @@ import Base from "../../layouts/Base.astro";
 
       .copy-button {
         align-self: flex-end;
+        min-width: 20px;
+        font-size: 0.5rem;
       }
+
     }
   </style>
 </Base>

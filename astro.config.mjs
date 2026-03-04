@@ -5,22 +5,27 @@ import sitemap from '@astrojs/sitemap';
 import { defineConfig } from 'astro/config';
 import viteNotesMdxAutolink from './scripts/vite-notes-mdx-autolink.mjs';
 
-const rawBasePath = process.env.ASTRO_BASE_PATH || '/';
-const normalizedBasePath = rawBasePath === '/'
-	? '/'
-	: `/${rawBasePath.replace(/^\/+|\/+$/g, '')}/`;
+function normalizeBasePath(value) {
+	// 未指定 or "/" はルート
+	if (!value || value === '/') return '/';
 
-// https://astro.build/config
+	// "stg" / "/stg" / "/stg/" どれでも受けて "/stg/" に統一
+	const trimmed = String(value).replace(/^\/+|\/+$/g, '');
+	return `/${trimmed}/`;
+}
+
+const base = normalizeBasePath(process.env.ASTRO_BASE_PATH);
+
 export default defineConfig({
 	site: 'https://pr0p0se.com',
-	base: normalizedBasePath,
+	base,
 	output: 'static',
 	integrations: [mdx(), sitemap()],
 	vite: {
 		plugins: [viteNotesMdxAutolink()],
 	},
 	server: {
-		host: '0.0.0.0',  // 外部アクセスを許可
-		port: 4321
-	}
+		host: '0.0.0.0',
+		port: 4321,
+	},
 });
