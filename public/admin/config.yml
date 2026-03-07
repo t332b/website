@@ -69,7 +69,7 @@ collections:
         name: "body"
         widget: "markdown"
         required: true
-        hint: "画像は「メディアを追加」で Cloudinary から選択。音声/動画（mp3/mp4等）は画像ボタンではなく、Cloudinaryでアップロード後に配信URLを本文へ貼り付けてください"
+        hint: "画像は「メディアを追加」で Cloudinary から選択。音声/動画（mp3/mp4等）は画像ボタンではなく、Cloudinaryでアップロード後に配信URLを本文へ貼り付けてください。改行を続けて空白を作れない場合は、HTMLで <div class=\"content-spacer\"></div> を挿入してください。"
 
   # ライブ
   - name: "live"

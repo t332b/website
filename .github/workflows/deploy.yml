@@ -72,6 +72,27 @@ jobs:
           fi
           echo "Build verification successful"
 
+      - name: Notes embed – check musicLinks in built HTML
+        run: |
+          echo "--- Notes embed: __NOTE_MUSIC_LINKS__ in built note pages ---"
+          empty=0
+          filled=0
+          for f in dist/notes/*/index.html; do
+            [ -f "$f" ] || continue
+            if grep -q '__NOTE_MUSIC_LINKS__ = {}' "$f" 2>/dev/null; then
+              echo "[empty] $f – musicLinks は空です（タブはクライアント fetch に依存。CORS で失敗する可能性あり）"
+              empty=$((empty + 1))
+            elif grep -q '__NOTE_MUSIC_LINKS__' "$f" 2>/dev/null; then
+              echo "[filled] $f – musicLinks が埋め込まれています"
+              filled=$((filled + 1))
+            fi
+          done
+          if [ "$empty" -eq 0 ] && [ "$filled" -eq 0 ]; then
+            echo "（notes のビルド成果がありません）"
+          else
+            echo "--- 集計: empty=$empty, filled=$filled ---"
+          fi
+
       # FTP はサーバー上の .ftp-deploy-sync-state.json で差分だけアップロード（新記事だけ反映）
       - name: FTP Deploy to Lolipop
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
