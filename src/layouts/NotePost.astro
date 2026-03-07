@@ -36,6 +36,9 @@ const timeStr = date.toLocaleTimeString("ja-JP", {
   hour12: false,
 });
 const dateTimeDisplay = `${dateStr} ${timeStr}`;
+
+/** song.link 取得失敗時に通知する先（未設定なら送信しない） */
+const musicLinkReportUrl = (import.meta.env.PUBLIC_NOTE_MUSIC_LINK_REPORT_URL as string) ?? "";
 ---
 
 <Base title={title}>
@@ -100,7 +103,21 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
 <script is:inline set:html={`window.__NOTE_MUSIC_LINKS__ = ${JSON.stringify(musicLinks).replace(/</g, "\\u003c")};`} />
 
-<script define:vars={{ ODESSLI_API: "https://api.song.link/v1-alpha.1/links" }}>
+<script define:vars={{ ODESSLI_API: "https://api.song.link/v1-alpha.1/links", MUSIC_LINK_REPORT_URL: musicLinkReportUrl }}>
+  function reportMusicLinkFailure(musicUrl, reason) {
+    if (!MUSIC_LINK_REPORT_URL) return;
+    try {
+      const body = JSON.stringify({
+        type: "note_music_link_failed",
+        musicUrl,
+        reason,
+        page: typeof location !== "undefined" ? location.href : "",
+        at: new Date().toISOString(),
+      });
+      fetch(MUSIC_LINK_REPORT_URL, { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
+    } catch (e) {}
+  }
+
   function pageUrlToEmbedUrl(pageUrl, service) {
     if (!pageUrl || typeof pageUrl !== "string") return null;
     const u = pageUrl.trim();
@@ -161,16 +178,22 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
       } else {
         try {
           const res = await fetch(`${ODESSLI_API}?url=${encodeURIComponent(url)}`);
-          if (!res.ok) return;
-          const data = await res.json();
-          linksByPlatform = data?.linksByPlatform || {};
+          if (res.ok) {
+            const data = await res.json();
+            linksByPlatform = data?.linksByPlatform || {};
+          } else {
+            reportMusicLinkFailure(url, "http " + res.status);
+          }
         } catch (err) {
-          return;
+          reportMusicLinkFailure(url, err && err.message ? err.message : "network error");
         }
       }
         const framesWrap = container.querySelector(".note-embed-music-frames");
         const tablist = container.querySelector(".note-embed-music-tablist");
-        if (!framesWrap || !tablist) return;
+        if (!framesWrap || !tablist) {
+          setupTabsSwitch(container);
+          return;
+        }
 
         const order = [
           { key: "spotify", service: "spotify" },

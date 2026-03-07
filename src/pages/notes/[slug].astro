@@ -5,38 +5,8 @@ import NotePost from '../../layouts/NotePost.astro';
 import NoteEmbedLink from '../../components/NoteEmbedLink.astro';
 import NoteImage from '../../components/NoteImage.astro';
 
-const SONG_LINK_API = "https://api.song.link/v1-alpha.1/links";
-
-/** 本文から Spotify / Apple Music の URL を抽出（重複除く・順序保持） */
-function extractMusicUrls(body: string): string[] {
-  const re = /https?:\/\/(?:open\.)?spotify\.com\/[^\s\)\]"']+|https?:\/\/(?:music|geo\.music)\.apple\.com\/[^\s\)\]"']+/gi;
-  const seen = new Set<string>();
-  const urls: string[] = [];
-  for (const m of body.matchAll(re)) {
-    const u = m[0];
-    if (!seen.has(u)) {
-      seen.add(u);
-      urls.push(u);
-    }
-  }
-  return urls;
-}
-
-/** ビルド時に song.link API で他サービス URL を取得（CORS 回避） */
-async function fetchMusicLinksForUrls(urls: string[]): Promise<Record<string, { linksByPlatform?: Record<string, { url?: string }> }>> {
-  const out: Record<string, { linksByPlatform?: Record<string, { url?: string }> }> = {};
-  for (const url of urls) {
-    try {
-      const res = await fetch(`${SONG_LINK_API}?url=${encodeURIComponent(url)}`);
-      if (!res.ok) continue;
-      const data = (await res.json()) as { linksByPlatform?: Record<string, { url?: string }> };
-      out[url] = { linksByPlatform: data?.linksByPlatform ?? {} };
-    } catch {
-      // ignore
-    }
-  }
-  return out;
-}
+// song.link はビルド時ではなくクライアントで取得（本番ビルド環境で API が叩けない場合があるため）
+const musicLinks: Record<string, { linksByPlatform?: Record<string, { url?: string }> }> = {};
 
 // 本番は公開記事のみ、stg（base /stg/）では非公開も含めて全件ビルド
 export const getStaticPaths = (async () => {
@@ -56,10 +26,6 @@ interface Props {
 
 const { post } = Astro.props as Props;
 const { Content } = await post.render();
-
-const body = post.body ?? "";
-const musicUrls = extractMusicUrls(body);
-const musicLinks = musicUrls.length > 0 ? await fetchMusicLinksForUrls(musicUrls) : {};
 ---
 
 <NotePost 
