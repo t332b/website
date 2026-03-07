@@ -7,9 +7,11 @@ export interface Props {
   date: Date;
   author: string;
   tags?: string[];
+  /** ビルド時に取得した song.link の linksByPlatform（key: 音楽URL）。渡されていればクライアントの API 呼び出し不要 */
+  musicLinks?: Record<string, { linksByPlatform?: Record<string, { url?: string }> }>;
 }
 
-const { title, date, author, tags } = Astro.props;
+const { title, date, author, tags, musicLinks = {} } = Astro.props;
 
 // メンバー情報を取得
 const members = await getCollection("member");
@@ -95,6 +97,123 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     </div>
   </article>
 </Base>
+
+<script is:inline set:html={`window.__NOTE_MUSIC_LINKS__ = ${JSON.stringify(musicLinks).replace(/</g, "\\u003c")};`} />
+
+<script define:vars={{ ODESSLI_API: "https://api.song.link/v1-alpha.1/links" }}>
+  function pageUrlToEmbedUrl(pageUrl, service) {
+    if (!pageUrl || typeof pageUrl !== "string") return null;
+    const u = pageUrl.trim();
+    try {
+      if (service === "spotify" && /spotify\.com/i.test(u)) {
+        const m = u.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
+        if (m) return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`;
+      }
+      if ((service === "apple" || service === "appleMusic") && /music\.apple\.com|geo\.music\.apple\.com/i.test(u)) {
+        return u.replace(/^https?:\/\/(?:geo\.)?music\.apple\.com/i, "https://embed.music.apple.com");
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function getServiceLabel(service) {
+    return service === "appleMusic" || service === "apple" ? "Apple Music" : "Spotify";
+  }
+
+  function setupTabsSwitch(container) {
+    const frames = container.querySelectorAll(".note-embed-music-frame");
+    const tabs = container.querySelectorAll(".note-embed-music-tab");
+    function activate(service) {
+      frames.forEach((f) => {
+        const on = f.dataset.service === service;
+        f.classList.toggle("active", on);
+        f.setAttribute("aria-hidden", on ? "false" : "true");
+      });
+      tabs.forEach((t) => {
+        const on = t.dataset.service === service;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    }
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", (e) => {
+        e.preventDefault();
+        const s = e.currentTarget?.dataset?.service;
+        if (s) activate(s);
+      });
+    });
+  }
+
+  function run() {
+    const containers = document.querySelectorAll(".note-embed-music-tabs[data-music-url]");
+    containers.forEach(async (container) => {
+      const url = container.getAttribute("data-music-url");
+      if (!url) return;
+
+      const existingServices = new Set(
+        Array.from(container.querySelectorAll(".note-embed-music-frame")).map((f) => f.dataset?.service).filter(Boolean)
+      );
+
+      let linksByPlatform = {};
+      const preloaded = typeof window !== "undefined" && window.__NOTE_MUSIC_LINKS__ && window.__NOTE_MUSIC_LINKS__[url];
+      if (preloaded && preloaded.linksByPlatform) {
+        linksByPlatform = preloaded.linksByPlatform;
+      } else {
+        try {
+          const res = await fetch(`${ODESSLI_API}?url=${encodeURIComponent(url)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          linksByPlatform = data?.linksByPlatform || {};
+        } catch (err) {
+          return;
+        }
+      }
+        const framesWrap = container.querySelector(".note-embed-music-frames");
+        const tablist = container.querySelector(".note-embed-music-tablist");
+        if (!framesWrap || !tablist) return;
+
+        const order = [
+          { key: "spotify", service: "spotify" },
+          { key: "appleMusic", service: "apple" },
+        ];
+        for (const { key, service } of order) {
+          const plat = linksByPlatform[key];
+          const pageUrl = plat?.url;
+          if (!pageUrl || existingServices.has(service)) continue;
+          const embedUrl = pageUrlToEmbedUrl(pageUrl, key === "appleMusic" ? "apple" : key);
+          if (!embedUrl) continue;
+
+          const frame = document.createElement("div");
+          frame.className = "note-embed-music-frame";
+          frame.dataset.service = service;
+          frame.setAttribute("aria-hidden", "true");
+          const esc = (s) => s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          frame.innerHTML = `<iframe src="${esc(embedUrl)}" title="${esc(getServiceLabel(service))}" width="100%" height="152" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+          framesWrap.appendChild(frame);
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "note-embed-music-tab";
+          btn.role = "tab";
+          btn.setAttribute("aria-selected", "false");
+          btn.dataset.service = service;
+          btn.textContent = getServiceLabel(service);
+          tablist.appendChild(btn);
+
+          existingServices.add(service);
+        }
+
+        setupTabsSwitch(container);
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", run);
+  } else {
+    run();
+  }
+  document.addEventListener("astro:page-load", run);
+</script>
 
 <style>
   .note-post {
@@ -270,6 +389,73 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     margin: 1.5rem auto;
     border: none;
     border-radius: 12px;
+  }
+
+  /* notes 用: サブスク（Spotify / Apple Music）タブ型プレーヤー（margin は親 .note-embed で確保） */
+  .post-content :global(.note-embed-music-tabs) {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+
+  .post-content :global(.note-embed-music-tabs-inner) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 0.75rem 0.85rem;
+  }
+
+  .post-content :global(.note-embed-music-frames) {
+    position: relative;
+    width: 100%;
+  }
+
+  .post-content :global(.note-embed-music-frame) {
+    display: none;
+    width: 100%;
+  }
+
+  .post-content :global(.note-embed-music-frame.active) {
+    display: block;
+  }
+
+  .post-content :global(.note-embed-music-frame iframe) {
+    display: block;
+    border: none;
+    width: 100%;
+    height: 152px;
+  }
+
+  .post-content :global(.note-embed-music-tablist) {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .post-content :global(.note-embed-music-tab) {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .post-content :global(.note-embed-music-tab:hover) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .post-content :global(.note-embed-music-tab.active) {
+    background: rgba(255, 255, 255, 0.95);
+    color: #000;
+    border-color: rgba(255, 255, 255, 0.95);
   }
 
   .post-footer {

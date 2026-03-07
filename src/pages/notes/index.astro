@@ -2,12 +2,15 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
+const isStg = (import.meta.env.BASE_URL ?? '/').startsWith('/stg');
+const noteFilter = isStg ? () => true : ({ data }: { data: { is_public?: boolean } }) => data.is_public !== false;
+
 let collectionError: string | null = null;
 let posts: Awaited<ReturnType<typeof getCollection<"notes">>> = [];
 let members: Awaited<ReturnType<typeof getCollection<"member">>> = [];
 
 try {
-  posts = (await getCollection('notes', ({ data }) => data.is_public !== false))
+  posts = (await getCollection('notes', noteFilter))
     .sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
 } catch (_e) {
   collectionError = "表示エラーがあります（syntax error 等、コンテンツを確認してください）";
@@ -36,7 +39,7 @@ function getAvatarUrl(member: any) {
 ---
 
 <Base title="PR0P0SE Notes">
-  <div id="notes-page-root" class="notes-container">
+  <div id="notes-page-root" class="notes-container" data-base-url={import.meta.env.BASE_URL || '/'}>
     {collectionError && (
       <div class="content-error-banner" role="alert">
         {collectionError}
@@ -269,13 +272,16 @@ function getAvatarUrl(member: any) {
         });
       });
 
+      const baseUrl = (root?.dataset.baseUrl ?? '/').replace(/\/$/, '') || '';
+      const notesPath = baseUrl ? `${baseUrl}/notes` : '/notes';
+
       items.forEach(item => {
         const el = item as HTMLElement;
         el.addEventListener('click', (e) => {
           const target = e.target as HTMLElement | null;
           if (target?.classList?.contains('author-avatar') || target?.classList?.contains('author-clickable')) return;
           const slug = el.dataset.slug;
-          if (slug) navigate(`/notes/${slug}/`);
+          if (slug) navigate(`${notesPath}/${slug}/`);
         });
       });
 
@@ -365,8 +371,10 @@ function getAvatarUrl(member: any) {
   }
   document.addEventListener('astro:page-load', () => {
     initNotesPage();
-    // View Transitions で /notes/?author=xxx や /notes/?tag=xxx に遷移した場合も絞り込みを適用
-    const onNotesIndex = location.pathname === '/notes' || location.pathname === '/notes/';
+    // View Transitions で notes 一覧に遷移した場合も絞り込みを適用（本番 /notes、stg /stg/notes）
+    const baseUrl = (document.getElementById('notes-page-root')?.dataset.baseUrl ?? '/').replace(/\/$/, '') || '';
+    const notesIndexPath = baseUrl ? `${baseUrl}/notes` : '/notes';
+    const onNotesIndex = location.pathname === notesIndexPath || location.pathname === `${notesIndexPath}/`;
     if (!onNotesIndex) return;
     const params = new URLSearchParams(location.search);
     const authorParam = params.get('author');
