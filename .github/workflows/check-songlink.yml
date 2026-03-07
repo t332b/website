@@ -1,0 +1,61 @@
+name: Check song.link API (Notes 埋め込み)
+
+on:
+  schedule:
+    # 毎日 9:00 JST 頃
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping song.link API
+        id: ping
+        run: |
+          SAMPLE_URL="https://open.spotify.com/track/4u7NeNeQX7NxD0fXgcvh7b"
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" "https://api.song.link/v1-alpha.1/links?url=${SAMPLE_URL}")
+          echo "http_code=$HTTP" >> $GITHUB_OUTPUT
+          if [ "$HTTP" != "200" ]; then
+            echo "body_snippet=API returned HTTP $HTTP" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Create Issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'song.link API が応答しません（Notes 埋め込み）';
+            const runUrl = '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}';
+            const body = `本番でノート記事の音楽リンク（Spotify / Apple Music タブ）取得に song.link API を使用しています。
+            定期チェックで API が応答しないことを検知しました。
+
+            - **実行日時**: ${new Date().toISOString()}
+            - **ワークフロー**: ${runUrl}
+
+            ユーザーがノート記事を開いた際、他サービス用タブが表示されない可能性があります。
+            貼り付けた1リンクの埋め込みは表示されます。`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'songlink-check'
+            });
+            const existing = issues.find(i => i.title.includes('song.link API が応答しません'));
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body: '再発 at ' + new Date().toISOString() + '\n\n' + body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['songlink-check']
+              });
+            }

@@ -48,7 +48,14 @@
   - ビルド時の `base_path` を `/stg/` に設定（CSS/JS を `/stg/assets/...` 参照にする）
   - 本番と同じ FTP Secrets を使い、`FTP_REMOTE_DIR + stg/` に配置
 
-### 2. Google Sheets 同期
+### 2. song.link API チェック（Notes 埋め込み）
+
+- `check-songlink.yml`
+  - 毎日 cron または手動（workflow_dispatch）で song.link API に疎通確認
+  - 失敗時に GitHub Issue を自動作成（ラベル `songlink-check`）。既に同種の Open Issue があればそこにコメント追加
+  - 本番のノート記事では音楽リンク取得をクライアントで行っているため、API 落ちを GitHub 上で把握する用途
+
+### 3. Google Sheets 同期
 
 - `sync-content.yml`（手動実行）
   - `npm run sync:content` で Sheets から `works` と `tracks` を同期
@@ -65,6 +72,12 @@
 - `FTP_REMOTE_DIR`
 
 - `develop` の STG 反映は同じ Secrets を利用し、配置先のみ `.../stg/` に切り替え
+
+### オプション（Notes 埋め込みの失敗通知）
+
+- `PUBLIC_NOTE_MUSIC_LINK_REPORT_URL`  
+  ノート記事で song.link 取得に失敗したときに POST する Webhook URL。未設定なら送信しない。  
+  （例: サーバレス関数の URL で受け取り、GitHub API で Issue 作成する運用）
 
 ### Google Sheets 同期用
 
