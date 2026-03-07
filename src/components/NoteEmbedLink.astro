@@ -6,7 +6,12 @@ interface Props {
   title?: string;
 }
 
-const { href = "", title } = Astro.props;
+let { href = "", title } = Astro.props;
+// stg（base /stg/）では同一サイトの /notes/ リンクを base 付きにする
+const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "") || "";
+if (base && href.startsWith("/notes")) {
+  href = base + href;
+}
 const embed = href ? getEmbedInfoFromUrl(href) : null;
 ---
 
@@ -41,17 +46,58 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
         </audio>
       </div>
     )}
-    {(embed.service === "spotify" || embed.service === "bandcamp" || embed.service === "apple") && (
+    {embed.service === "bandcamp" && (
       <div class="note-embed-audio">
         <iframe
           src={embed.embedUrl}
           title={title || embed.service}
           width="100%"
-          height={embed.service === "spotify" ? "152" : embed.service === "bandcamp" ? "120" : "150"}
+          height="120"
           frameborder="0"
           allowfullscreen
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
         />
+      </div>
+    )}
+    {(embed.service === "spotify" || embed.service === "apple") && (
+      <div
+        class="note-embed-music-tabs"
+        data-music-url={href}
+        data-default-service={embed.service}
+      >
+        <div class="note-embed-music-tabs-inner">
+          <div class="note-embed-music-frames">
+            <div
+              class="note-embed-music-frame active"
+              data-service={embed.service}
+              aria-hidden="false"
+            >
+              <iframe
+                src={embed.embedUrl}
+                title={title || embed.service}
+                width="100%"
+                height={embed.service === "spotify" ? "152" : "150"}
+                frameborder="0"
+                allowfullscreen
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              />
+            </div>
+          </div>
+          <div class="note-embed-music-tablist" role="tablist" aria-label="再生サービス">
+            <button
+              type="button"
+              class="note-embed-music-tab active"
+              role="tab"
+              aria-selected="true"
+              data-service={embed.service}
+              aria-controls={`note-embed-frame-${embed.service}`}
+            >
+              <span class="note-embed-music-tab-label">
+                {embed.service === "spotify" ? "Spotify" : "Apple Music"}
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
     )}
   </div>
