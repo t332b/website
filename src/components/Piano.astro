@@ -178,7 +178,7 @@
         async function ensureLoopPointsLoaded() {
             if (engine.loopPointsLoaded) return;
             try {
-                const response = await fetch("/piano/loop-points.json", { cache: "no-store" });
+                const response = await fetch("/sounds/piano/loop-points.json", { cache: "no-store" });
                 if (!response.ok) {
                     engine.loopPoints = {};
                 } else {
@@ -221,7 +221,7 @@
                 const context = getAudioContext();
                 if (!context) throw new Error("AudioContext is unavailable");
 
-                const response = await fetch(`/piano/audio/${note}.mp3`);
+                const response = await fetch(`/sounds/piano/audio/${note}.mp3`);
                 if (!response.ok) throw new Error(`Audio file not found: ${note}`);
                 const arrayBuffer = await response.arrayBuffer();
                 const audioBuffer = await context.decodeAudioData(arrayBuffer.slice(0));

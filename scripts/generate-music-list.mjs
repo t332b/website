@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
-const publicMusicDir = path.join(projectRoot, 'public', 'music');
+const publicMusicDir = path.join(projectRoot, 'public', 'sounds', 'music');
 const tracksDir = path.join(projectRoot, 'src', 'content', 'tracks');
 const worksDir = path.join(projectRoot, 'src', 'content', 'works');
 const outDir = path.join(projectRoot, 'src', 'data');
@@ -125,7 +125,7 @@ function main() {
     const worksId = trackSlugToWorksId.get(trackSlug);
     const cover = worksId ? idToCover.get(worksId) : undefined;
     const releaseSlug = worksId ? (idToSlug.get(worksId) ?? trackSlug) : trackSlug;
-    return { filename, releaseSlug, src: `/music/${filename}`, cover };
+    return { filename, releaseSlug, src: `/sounds/music/${filename}`, cover };
   });
 
   ensureDirSync(outDir);

@@ -1,0 +1,747 @@
+---
+// Standalone tool page — not linked from navigation.
+// Accessible only by direct URL: /tools/rhythm-grid/
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rhythm Grid</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/x-icon" href={`${base}/images/favicon.ico`} />
+  </head>
+  <body data-base={base} data-origin={siteOrigin}>
+    <div class="toolbar">
+      <h1>Rhythm Grid</h1>
+      <div class="toolbar-actions">
+        <button class="btn" id="embedBtn" title="埋め込みコード">埋め込み</button>
+        <button class="btn" id="clearBtn" title="すべてクリア">クリア</button>
+        <button class="btn btn--primary" id="downloadBtn">画像DL</button>
+      </div>
+    </div>
+
+    <div class="title-row">
+      <input type="text" id="gridTitle" class="title-input" placeholder="タイトル（任意）" maxlength="80" />
+    </div>
+
+    <div class="playback-bar">
+      <button class="play-btn" id="playBtn" aria-label="再生">▶</button>
+      <div class="bpm-group">
+        <label class="bpm-label" for="bpmInput">BPM</label>
+        <input type="number" id="bpmInput" class="bpm-input" min="40" max="300" step="1" />
+      </div>
+      <button class="metro-btn" id="metroBtn" aria-label="メトロノーム" title="メトロノーム">
+        <svg class="metro-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 22h12l-2.5-16h-7L6 22z"/>
+          <line x1="12" y1="6" x2="16.5" y2="2"/>
+          <circle cx="17" cy="1.8" r="1" fill="currentColor" stroke="none"/>
+          <line x1="12" y1="22" x2="10" y2="12" class="metro-pendulum"/>
+        </svg>
+      </button>
+      <div class="bar-group">
+        <span class="bar-group-lbl">小節</span>
+        <button class="bar-adj" id="rmBarBtn" title="小節を減らす">−</button>
+        <span class="bar-count" id="barCount"></span>
+        <button class="bar-adj" id="addBarBtn" title="小節を増やす">＋</button>
+      </div>
+    </div>
+
+    <datalist id="drumList">
+      <option value="Kick" />
+      <option value="Snare" />
+      <option value="Hi-Hat" />
+      <option value="Open HH" />
+      <option value="Conga" />
+      <option value="Tom" />
+      <option value="Floor Tom" />
+      <option value="Clap" />
+      <option value="Rim" />
+      <option value="Cowbell" />
+      <option value="Shaker" />
+      <option value="Tambourine" />
+      <option value="Crash" />
+      <option value="Ride" />
+    </datalist>
+
+    <div class="grid-area" id="gridArea"></div>
+
+    <!-- Embed modal -->
+    <div class="embed-overlay" id="embedOverlay" hidden>
+      <div class="embed-backdrop" data-close-embed></div>
+      <div class="embed-dialog">
+        <h2 class="embed-title">埋め込みコード</h2>
+        <textarea class="embed-code" id="embedCode" readonly rows="4"></textarea>
+        <div class="embed-actions">
+          <button class="btn btn--primary" id="copyEmbedBtn">コピー</button>
+          <button class="btn" data-close-embed>閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <style is:global>
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      html{-webkit-text-size-adjust:100%}
+      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#f7f7f8;color:#333;min-height:100dvh;padding:1rem 1rem 3rem}
+
+      .toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.6rem}
+      h1{font-size:1.1rem;font-weight:700;letter-spacing:.02em}
+      .toolbar-actions{display:flex;gap:.4rem}
+      .btn{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;font-size:.78rem;cursor:pointer;transition:background .15s,border-color .15s;user-select:none}
+      .btn:hover{background:#eee;border-color:#aaa}
+      .btn--primary{background:#333;color:#fff;border-color:#333}
+      .btn--primary:hover{background:#555}
+
+      .title-row{margin-bottom:.6rem}
+      .title-input{width:100%;max-width:300px;border:none;border-bottom:1.5px solid #ddd;background:transparent;font-size:.85rem;padding:.25rem .1rem;color:#333;font-family:inherit}
+      .title-input:focus{outline:none;border-bottom-color:#888}
+      .title-input::placeholder{color:#bbb}
+
+      /* --- playback bar --- */
+      .playback-bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;flex-wrap:wrap}
+      .play-btn{width:36px;height:36px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0;line-height:1}
+      .play-btn:hover{background:#333;color:#fff}
+      .play-btn.playing{background:#e53935;border-color:#e53935;color:#fff}
+      .play-btn.playing:hover{background:#c62828}
+      .bpm-group{display:flex;align-items:center;gap:.3rem}
+      .bpm-label{font-size:.75rem;color:#888;font-weight:600}
+      .bpm-input{width:52px;border:1px solid #ddd;border-radius:5px;padding:.25rem .3rem;font-size:.8rem;text-align:center;font-family:inherit;color:#333}
+      .bpm-input:focus{outline:none;border-color:#888}
+      .metro-btn{width:34px;height:34px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s}
+      .metro-btn:hover{border-color:#999;color:#666}
+      .metro-btn.on{background:#333;border-color:#333;color:#fff}
+      .metro-btn.on:hover{background:#555}
+      .metro-pendulum{transition:transform .15s;transform-origin:12px 22px}
+
+      .bar-group{display:flex;align-items:center;gap:3px;margin-left:auto}
+      .bar-group-lbl{font-size:.75rem;color:#888;font-weight:600;margin-right:2px}
+      .bar-adj{width:26px;height:26px;border-radius:5px;border:1px solid #ddd;background:#fff;color:#666;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s;line-height:1}
+      .bar-adj:hover{background:#f0f0f0;border-color:#bbb}
+      .bar-count{font-size:.85rem;font-weight:600;min-width:18px;text-align:center;color:#333}
+
+      /* --- grid layout --- */
+      :root{--cell-h:26px;--lw:60px;--rm-w:20px;--bar-h:18px;--beat-h:16px}
+      .grid-area{max-width:760px}
+
+      /* chunk wrapper: side panel (labels) + bordered grid */
+      .chunk-wrap{display:flex;margin-bottom:10px}
+      .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
+      .side-spacer{height:calc(var(--bar-h) + var(--beat-h) + 4px)}
+      .side-row{height:var(--cell-h);display:flex;align-items:center;gap:2px}
+      .rm-spacer{width:var(--rm-w);flex-shrink:0}
+      .side-label{width:var(--lw);min-width:0;overflow:hidden}
+      .side-label input{width:100%;border:none;border-bottom:1px solid transparent;background:transparent;font-size:.65rem;padding:1px 2px;color:#333;font-family:inherit;min-width:0}
+      .side-label input:focus{outline:none;border-bottom-color:#aaa}
+      .side-label input::placeholder{color:#ccc}
+      .side-label-ro{font-size:.58rem;color:#888}
+      .side-label-ro span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+
+      .row-rm{width:var(--rm-w);height:var(--rm-w);border:none;background:none;color:#d0d0d0;font-size:.65rem;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;padding:0;flex-shrink:0}
+      .row-rm:hover{color:#c33;background:#fef0f0}
+
+      /* bordered grid chunk */
+      .chunk{border:2px solid #888;border-radius:6px;flex:1;min-width:0;overflow:hidden;background:#fff}
+      .chunk-hdr{background:#f9f9f9;border-bottom:1px solid #bbb}
+      .hdr-cells{display:grid;min-width:0}
+      .hdr-cells.bar-hdr{border-bottom:1px solid #ddd}
+      .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#666}
+      .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:600;color:#777}
+      .beat-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .beat-lbl.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+
+      .chunk-body{}
+      .chunk-cells{display:grid;min-width:0}
+
+      .cell{height:var(--cell-h);cursor:pointer;background:#fff;transition:background .08s}
+      .cell:hover{background:#f0f0f0}
+      .cell.active{background:#5c6bc0}
+      .cell.active:hover{background:#7986cb}
+      .cell.bar-sep{box-shadow:inset 2px 0 0 0 #999}
+      .cell.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+      .chunk-cells>.cell{border-right:1px solid #e8e8e8;border-bottom:1px solid #e8e8e8}
+      .chunk-cells>.cell:last-child{border-right:none}
+      .chunk-body>.chunk-cells:last-child .cell{border-bottom:none}
+
+      .cell.playhead{background:#fff3e0}
+      .cell.active.playhead{background:#ef6c00}
+
+      .add-row-btn{display:inline-flex;align-items:center;justify-content:center;border:1.5px dashed #d0d0d0;border-radius:5px;background:none;color:#bbb;cursor:pointer;user-select:none;transition:border-color .15s,color .15s;height:26px;padding:0 20px;margin-top:5px;font-size:.78rem}
+      .add-row-btn:hover{border-color:#999;color:#666;background:#fafafa}
+
+      /* --- embed modal --- */
+      .embed-overlay{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:1rem}
+      .embed-overlay[hidden]{display:none}
+      .embed-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);cursor:pointer}
+      .embed-dialog{position:relative;background:#fff;border-radius:10px;padding:1.25rem;max-width:520px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+      .embed-title{font-size:.95rem;font-weight:600;margin-bottom:.75rem}
+      .embed-code{width:100%;border:1px solid #ddd;border-radius:6px;padding:.6rem;font-family:monospace;font-size:.75rem;resize:vertical;color:#333;background:#f9f9f9}
+      .embed-actions{display:flex;gap:.5rem;margin-top:.75rem;justify-content:flex-end}
+
+      @media(max-width:600px){
+        body{padding:.5rem .5rem 2rem}
+        :root{--cell-h:22px;--lw:46px;--rm-w:16px;--bar-h:16px;--beat-h:14px}
+        .side-label input{font-size:.58rem}
+        .playback-bar{gap:.5rem}
+        .toolbar{gap:.4rem}
+        h1{font-size:1rem}
+        .btn{padding:.3rem .55rem;font-size:.72rem}
+        .bar-lbl{font-size:.52rem}
+        .beat-lbl{font-size:.48rem}
+      }
+    </style>
+
+    <script>
+      /* ===== Constants ===== */
+      const STORAGE_KEY = "rhythmGrid_v1";
+      const CELLS_PER_BAR = 16;
+      const SOUND_FILES = ["kick", "snare", "hihat", "conga"] as const;
+      const DEFAULT_SOUND = "conga";
+      const BASE = document.body.dataset.base || "";
+      const ORIGIN = document.body.dataset.origin || "https://pr0p0se.com";
+
+      /* ===== Types & State ===== */
+      interface Row { label: string; cells: boolean[] }
+      interface State { title: string; numBars: number; bpm: number; rows: Row[] }
+
+      function defaultState(): State {
+        return {
+          title: "", numBars: 2, bpm: 120,
+          rows: [
+            { label: "Kick", cells: Array(2 * CELLS_PER_BAR).fill(false) },
+            { label: "Snare", cells: Array(2 * CELLS_PER_BAR).fill(false) },
+            { label: "Hi-Hat", cells: Array(2 * CELLS_PER_BAR).fill(false) },
+          ],
+        };
+      }
+
+      function loadState(): State {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return defaultState();
+          const s = JSON.parse(raw) as State;
+          if (!Array.isArray(s.rows) || s.numBars < 1) return defaultState();
+          if (!s.bpm || s.bpm < 40 || s.bpm > 300) s.bpm = 120;
+          const total = s.numBars * CELLS_PER_BAR;
+          s.rows.forEach((r) => {
+            while (r.cells.length < total) r.cells.push(false);
+            if (r.cells.length > total) r.cells.length = total;
+          });
+          return s;
+        } catch { return defaultState(); }
+      }
+
+      function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+      let state = loadState();
+
+      try {
+        const hash = window.location.hash.slice(1);
+        if (hash) {
+          const d = JSON.parse(fromBase64Url(hash)) as {t?:string;b?:number;n?:number;r?:{l:string;c:string}[]};
+          if (d.r && d.n) {
+            state = {
+              title: d.t || "",
+              bpm: (d.b && d.b >= 40 && d.b <= 300) ? d.b : 120,
+              numBars: d.n,
+              rows: d.r.map(r => ({ label: r.l, cells: hexToCells(r.c) })),
+            };
+            saveState();
+            history.replaceState(null, "", window.location.pathname);
+          }
+        }
+      } catch { /* ignore */ }
+
+      /* ===== Layout ===== */
+      function calcBarsPerLine(): number {
+        return window.innerWidth < 370 ? 1 : 2;
+      }
+      let barsPerLine = calcBarsPerLine();
+      window.addEventListener("resize", () => {
+        const n = calcBarsPerLine();
+        if (n !== barsPerLine) { barsPerLine = n; render(); }
+      });
+
+      /* ===== Audio Engine ===== */
+      let audioCtx: AudioContext | null = null;
+      const soundBuffers = new Map<string, AudioBuffer>();
+      let isPlaying = false;
+      let metronomeOn = false;
+      let currentStep = 0;
+      let nextNoteTime = 0;
+      let playStartTime = 0;
+      let schedulerTimer: number | null = null;
+      let playheadRAF: number | null = null;
+      const SCHEDULE_AHEAD = 0.1;
+      const TIMER_INTERVAL = 25;
+
+      function trimSilence(buffer: AudioBuffer): AudioBuffer {
+        const ch0 = buffer.getChannelData(0);
+        let start = 0;
+        for (let i = 0; i < ch0.length; i++) {
+          if (Math.abs(ch0[i]) > 0.005) { start = i; break; }
+        }
+        if (start === 0) return buffer;
+        const len = buffer.length - start;
+        const trimmed = audioCtx!.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
+        for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+          trimmed.getChannelData(ch).set(buffer.getChannelData(ch).subarray(start));
+        }
+        return trimmed;
+      }
+
+      async function ensureAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === "suspended") await audioCtx.resume();
+        if (soundBuffers.size === 0) {
+          await Promise.all(SOUND_FILES.map(async (name) => {
+            const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
+            const buf = await res.arrayBuffer();
+            const decoded = await audioCtx!.decodeAudioData(buf);
+            soundBuffers.set(name, trimSilence(decoded));
+          }));
+        }
+      }
+
+      function getSoundName(label: string): string {
+        const norm = label.trim().toLowerCase().replace(/[-_\s]/g, "");
+        if (!norm) return DEFAULT_SOUND;
+        for (const name of SOUND_FILES) {
+          if (norm === name || norm.includes(name)) return name;
+        }
+        if (norm === "hh" || norm === "hat" || norm === "openhh") return "hihat";
+        if (norm === "bd" || norm.includes("bass")) return "kick";
+        if (norm === "sd") return "snare";
+        return DEFAULT_SOUND;
+      }
+
+      function playBuffer(name: string, time: number) {
+        const buf = soundBuffers.get(name);
+        if (!buf || !audioCtx) return;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        src.connect(audioCtx.destination);
+        src.start(time);
+      }
+
+      function playMetroClick(time: number, downbeat: boolean) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = downbeat ? 1000 : 800;
+        gain.gain.setValueAtTime(0.3, time);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+        osc.start(time);
+        osc.stop(time + 0.06);
+      }
+
+      function scheduleNote(step: number, time: number) {
+        for (const row of state.rows) {
+          if (row.cells[step]) playBuffer(getSoundName(row.label), time);
+        }
+        if (metronomeOn && step % 4 === 0) {
+          playMetroClick(time, step % CELLS_PER_BAR === 0);
+        }
+      }
+
+      function advanceStep() {
+        nextNoteTime += 60 / state.bpm / 4;
+        currentStep = (currentStep + 1) % (state.numBars * CELLS_PER_BAR);
+      }
+
+      function scheduler() {
+        if (!audioCtx || !isPlaying) return;
+        while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
+          scheduleNote(currentStep, nextNoteTime);
+          advanceStep();
+        }
+        schedulerTimer = window.setTimeout(scheduler, TIMER_INTERVAL);
+      }
+
+      function updatePlayhead() {
+        if (!isPlaying || !audioCtx) return;
+        const secPer16th = 60 / state.bpm / 4;
+        const elapsed = audioCtx.currentTime - playStartTime;
+        const totalSteps = state.numBars * CELLS_PER_BAR;
+        const step = Math.floor(elapsed / secPer16th) % totalSteps;
+        highlightStep(step);
+        playheadRAF = requestAnimationFrame(updatePlayhead);
+      }
+
+      function highlightStep(step: number) {
+        gridArea.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
+        gridArea.querySelectorAll(`.cell[data-c="${step}"]`).forEach(el => el.classList.add("playhead"));
+      }
+
+      async function startPlay() {
+        await ensureAudio();
+        isPlaying = true;
+        currentStep = 0;
+        nextNoteTime = audioCtx!.currentTime + 0.05;
+        playStartTime = nextNoteTime;
+        playBtn.textContent = "⏹";
+        playBtn.setAttribute("aria-label", "停止");
+        playBtn.classList.add("playing");
+        scheduler();
+        updatePlayhead();
+      }
+
+      function stopPlay() {
+        isPlaying = false;
+        if (schedulerTimer !== null) { clearTimeout(schedulerTimer); schedulerTimer = null; }
+        if (playheadRAF !== null) { cancelAnimationFrame(playheadRAF); playheadRAF = null; }
+        gridArea.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
+        playBtn.textContent = "▶";
+        playBtn.setAttribute("aria-label", "再生");
+        playBtn.classList.remove("playing");
+      }
+
+      /* ===== DOM refs ===== */
+      const gridArea = document.getElementById("gridArea")!;
+      const gridTitle = document.getElementById("gridTitle") as HTMLInputElement;
+      const downloadBtn = document.getElementById("downloadBtn")!;
+      const clearBtn = document.getElementById("clearBtn")!;
+      const playBtn = document.getElementById("playBtn")!;
+      const bpmInput = document.getElementById("bpmInput") as HTMLInputElement;
+      const metroBtn = document.getElementById("metroBtn")!;
+      const addBarBtn = document.getElementById("addBarBtn")!;
+      const rmBarBtn = document.getElementById("rmBarBtn")!;
+      const barCountEl = document.getElementById("barCount")!;
+      const embedBtn = document.getElementById("embedBtn")!;
+      const embedOverlay = document.getElementById("embedOverlay")!;
+      const embedCode = document.getElementById("embedCode") as HTMLTextAreaElement;
+      const copyEmbedBtn = document.getElementById("copyEmbedBtn")!;
+
+      gridTitle.value = state.title;
+      bpmInput.value = String(state.bpm);
+
+      gridTitle.addEventListener("input", () => { state.title = gridTitle.value; saveState(); });
+      bpmInput.addEventListener("change", () => {
+        const v = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
+        bpmInput.value = String(v);
+        state.bpm = v;
+        saveState();
+      });
+      metroBtn.addEventListener("click", () => { metronomeOn = !metronomeOn; metroBtn.classList.toggle("on", metronomeOn); });
+      playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
+      addBarBtn.addEventListener("click", addBar);
+      rmBarBtn.addEventListener("click", removeBar);
+
+      /* ===== Render ===== */
+      function render() {
+        const numChunks = Math.ceil(state.numBars / barsPerLine);
+        const showRm = state.rows.length > 1;
+        let html = "";
+
+        for (let chunk = 0; chunk < numChunks; chunk++) {
+          const startBar = chunk * barsPerLine;
+          const endBar = Math.min(startBar + barsPerLine, state.numBars);
+          const barsInChunk = endBar - startBar;
+          const cellsInChunk = barsInChunk * CELLS_PER_BAR;
+          const startCell = startBar * CELLS_PER_BAR;
+          const cols = `repeat(${cellsInChunk},1fr)`;
+
+          html += `<div class="chunk-wrap">`;
+
+          /* --- Side panel: delete buttons + labels --- */
+          html += `<div class="chunk-side">`;
+          html += `<div class="side-spacer"></div>`;
+          for (let r = 0; r < state.rows.length; r++) {
+            const row = state.rows[r];
+            html += `<div class="side-row">`;
+            if (showRm) {
+              if (chunk === 0) {
+                html += `<button class="row-rm" data-remove-row="${r}" title="行を削除">×</button>`;
+              } else {
+                html += `<div class="rm-spacer"></div>`;
+              }
+            }
+            if (chunk === 0) {
+              html += `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名" list="drumList" /></div>`;
+            } else {
+              html += `<div class="side-label side-label-ro"><span title="${esc(row.label)}">${esc(row.label)}</span></div>`;
+            }
+            html += `</div>`;
+          }
+          html += `</div>`; // chunk-side
+
+          /* --- Bordered grid (header + cells only) --- */
+          html += `<div class="chunk">`;
+
+          // Header
+          html += `<div class="chunk-hdr">`;
+          html += `<div class="hdr-cells bar-hdr" style="grid-template-columns:${cols}">`;
+          for (let b = startBar; b < endBar; b++) {
+            const sep = b > startBar ? " bar-sep" : "";
+            html += `<div class="bar-lbl${sep}" style="grid-column:span ${CELLS_PER_BAR}">${b + 1}小節</div>`;
+          }
+          html += `</div>`;
+          html += `<div class="hdr-cells beat-hdr" style="grid-template-columns:${cols}">`;
+          for (let b = startBar; b < endBar; b++) {
+            for (let beat = 0; beat < 4; beat++) {
+              const isBar = beat === 0 && b > startBar;
+              const isBeat = beat > 0;
+              let cls = "beat-lbl";
+              if (isBar) cls += " bar-sep";
+              else if (isBeat) cls += " beat-sep";
+              html += `<div class="${cls}" style="grid-column:span 4">${beat + 1}拍</div>`;
+            }
+          }
+          html += `</div>`;
+          html += `</div>`; // chunk-hdr
+
+          // Body
+          html += `<div class="chunk-body">`;
+          for (let r = 0; r < state.rows.length; r++) {
+            const row = state.rows[r];
+            html += `<div class="chunk-cells" style="grid-template-columns:${cols}">`;
+            for (let c = 0; c < cellsInChunk; c++) {
+              const globalC = startCell + c;
+              const inBar = c % CELLS_PER_BAR;
+              const isBarBound = inBar === 0 && c > 0;
+              const isBeatBound = inBar % 4 === 0 && !isBarBound && c > 0;
+              let cls = "cell";
+              if (isBarBound) cls += " bar-sep";
+              else if (isBeatBound) cls += " beat-sep";
+              if (row.cells[globalC]) cls += " active";
+              html += `<div class="${cls}" data-r="${r}" data-c="${globalC}"></div>`;
+            }
+            html += `</div>`;
+          }
+          html += `</div>`; // chunk-body
+
+          html += `</div>`; // chunk
+          html += `</div>`; // chunk-wrap
+        }
+
+        html += `<button class="add-row-btn" id="addRowBtn" title="行を追加">＋</button>`;
+        barCountEl.textContent = String(state.numBars);
+        gridArea.innerHTML = html;
+
+        // Label input listeners
+        gridArea.querySelectorAll<HTMLInputElement>(".side-label input").forEach((inp) => {
+          inp.addEventListener("input", () => {
+            state.rows[Number(inp.dataset.row)].label = inp.value;
+            saveState();
+          });
+        });
+        document.getElementById("addRowBtn")?.addEventListener("click", addRow);
+      }
+
+      function esc(s: string) {
+        return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      /* ===== Grid actions ===== */
+      function addBar() { state.numBars++; state.rows.forEach(r => r.cells.push(...Array(CELLS_PER_BAR).fill(false))); saveState(); render(); }
+      function removeBar() { if (state.numBars <= 1) return; state.numBars--; state.rows.forEach(r => r.cells.splice(-CELLS_PER_BAR, CELLS_PER_BAR)); saveState(); render(); }
+      function addRow() {
+        state.rows.push({ label: "", cells: Array(state.numBars * CELLS_PER_BAR).fill(false) });
+        saveState(); render();
+        const inputs = gridArea.querySelectorAll<HTMLInputElement>(".side-label input");
+        inputs[inputs.length - 1]?.focus();
+      }
+      function removeRow(idx: number) { if (state.rows.length <= 1) return; state.rows.splice(idx, 1); saveState(); render(); }
+
+      /* ===== Cell painting ===== */
+      let painting = false;
+      let paintMode = true;
+
+      gridArea.addEventListener("pointerdown", (e: PointerEvent) => {
+        const cell = (e.target as HTMLElement).closest(".cell") as HTMLElement | null;
+        if (!cell) return;
+        e.preventDefault();
+        const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+        paintMode = !state.rows[r].cells[c];
+        state.rows[r].cells[c] = paintMode;
+        cell.classList.toggle("active", paintMode);
+        painting = true;
+        saveState();
+      });
+      gridArea.addEventListener("pointerover", (e: PointerEvent) => {
+        if (!painting) return;
+        const cell = (e.target as HTMLElement).closest(".cell") as HTMLElement | null;
+        if (!cell) return;
+        const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+        state.rows[r].cells[c] = paintMode;
+        cell.classList.toggle("active", paintMode);
+        saveState();
+      });
+      window.addEventListener("pointerup", () => { painting = false; });
+      gridArea.addEventListener("click", (e: Event) => {
+        const btn = (e.target as HTMLElement).closest("[data-remove-row]") as HTMLElement | null;
+        if (btn) removeRow(Number(btn.dataset.removeRow));
+      });
+      gridArea.addEventListener("selectstart", (e) => { if (painting) e.preventDefault(); });
+
+      /* ===== Clear ===== */
+      clearBtn.addEventListener("click", () => { state.rows.forEach(r => r.cells.fill(false)); saveState(); render(); });
+
+      /* ===== Embed code ===== */
+      function cellsToHex(cells: boolean[]): string {
+        let hex = "";
+        for (let i = 0; i < cells.length; i += 4) {
+          let nibble = 0;
+          for (let j = 0; j < 4 && i + j < cells.length; j++) if (cells[i + j]) nibble |= (8 >> j);
+          hex += nibble.toString(16);
+        }
+        return hex;
+      }
+
+      function toBase64Url(str: string): string {
+        const bytes = new TextEncoder().encode(str);
+        let binary = ""; bytes.forEach(b => binary += String.fromCharCode(b));
+        return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      }
+
+      function generateEmbedCode(): string {
+        const data = {
+          t: state.title, b: state.bpm, n: state.numBars,
+          r: state.rows.map(r => ({ l: r.label, c: cellsToHex(r.cells) })),
+        };
+        const encoded = toBase64Url(JSON.stringify(data));
+        const h = 82 + state.rows.length * 28;
+        return `<iframe src="${ORIGIN}${BASE}/tools/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
+      }
+
+      embedBtn.addEventListener("click", () => {
+        embedCode.value = generateEmbedCode();
+        embedOverlay.hidden = false;
+      });
+      copyEmbedBtn.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(embedCode.value);
+        copyEmbedBtn.textContent = "コピーしました！";
+        setTimeout(() => { copyEmbedBtn.textContent = "コピー"; }, 1500);
+      });
+      embedOverlay.addEventListener("click", (e) => {
+        if ((e.target as Element).closest("[data-close-embed]")) embedOverlay.hidden = true;
+      });
+
+      /* ===== Download PNG ===== */
+      function downloadImage() {
+        const scale = 2, cellSz = 24, labelW = 72, padX = 12, padY = 10;
+        const barHdrH = 16, beatHdrH = 16, hdrH = barHdrH + beatHdrH;
+        const chunkGap = 8;
+        const titleH = state.title ? 24 : 0;
+        const numChunks = Math.ceil(state.numBars / barsPerLine);
+        const maxBars = Math.min(state.numBars, barsPerLine);
+        const maxGridW = maxBars * CELLS_PER_BAR * cellSz;
+        const canvasW = padX * 2 + labelW + maxGridW;
+        const chunkBodyH = state.rows.length * cellSz;
+        const chunkH = hdrH + chunkBodyH;
+        const canvasH = padY * 2 + titleH + numChunks * chunkH + Math.max(0, numChunks - 1) * chunkGap;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = canvasW * scale;
+        canvas.height = canvasH * scale;
+        const ctx = canvas.getContext("2d")!;
+        ctx.scale(scale, scale);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvasW, canvasH);
+
+        if (state.title) {
+          ctx.fillStyle = "#333"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "left";
+          ctx.fillText(state.title, padX, padY + 14);
+        }
+
+        for (let chunk = 0; chunk < numChunks; chunk++) {
+          const startBar = chunk * barsPerLine;
+          const endBar = Math.min(startBar + barsPerLine, state.numBars);
+          const barsInChunk = endBar - startBar;
+          const cellsInChunk = barsInChunk * CELLS_PER_BAR;
+          const startCell = startBar * CELLS_PER_BAR;
+          const localGridW = cellsInChunk * cellSz;
+          const cy = padY + titleH + chunk * (chunkH + chunkGap);
+          const gx = padX + labelW;
+          const gy = cy + hdrH;
+
+          // Bar labels
+          ctx.fillStyle = "#666"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
+          for (let b = startBar; b < endBar; b++) {
+            const lb = b - startBar;
+            ctx.fillText(`${b + 1}小節`, gx + lb * CELLS_PER_BAR * cellSz + (CELLS_PER_BAR * cellSz) / 2, cy + barHdrH - 4);
+          }
+
+          // Beat labels
+          ctx.fillStyle = "#777"; ctx.font = "bold 9px sans-serif";
+          for (let b = startBar; b < endBar; b++) {
+            const lb = b - startBar;
+            for (let beat = 0; beat < 4; beat++)
+              ctx.fillText(String(beat + 1), gx + (lb * CELLS_PER_BAR + beat * 4) * cellSz + cellSz * 2, cy + hdrH - 4);
+          }
+
+          // Filled cells
+          for (let r = 0; r < state.rows.length; r++)
+            for (let c = 0; c < cellsInChunk; c++)
+              if (state.rows[r].cells[startCell + c]) {
+                ctx.fillStyle = "#5c6bc0";
+                ctx.fillRect(gx + c * cellSz + 1, gy + r * cellSz + 1, cellSz - 2, cellSz - 2);
+              }
+
+          // Grid lines
+          ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 0.5;
+          for (let r = 0; r <= state.rows.length; r++) {
+            const y = gy + r * cellSz;
+            ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + localGridW, y); ctx.stroke();
+          }
+          for (let c = 0; c <= cellsInChunk; c++) {
+            const x = gx + c * cellSz;
+            ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x, gy + chunkBodyH); ctx.stroke();
+          }
+
+          // Beat separators
+          ctx.strokeStyle = "#ccc"; ctx.lineWidth = 1;
+          for (let b = 0; b < barsInChunk; b++)
+            for (let beat = 1; beat < 4; beat++) {
+              const x = gx + (b * CELLS_PER_BAR + beat * 4) * cellSz;
+              ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x, gy + chunkBodyH); ctx.stroke();
+            }
+
+          // Bar separators & outer frame
+          ctx.strokeStyle = "#888"; ctx.lineWidth = 1.5;
+          for (let b = 0; b <= barsInChunk; b++) {
+            const x = gx + b * CELLS_PER_BAR * cellSz;
+            ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, gy + chunkBodyH); ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx + localGridW, cy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(gx, gy + chunkBodyH); ctx.lineTo(gx + localGridW, gy + chunkBodyH); ctx.stroke();
+
+          // Row labels
+          ctx.fillStyle = "#333"; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
+          for (let r = 0; r < state.rows.length; r++)
+            ctx.fillText(state.rows[r].label, padX + 2, gy + r * cellSz + cellSz / 2 + 3);
+        }
+
+        const a = document.createElement("a");
+        a.download = (state.title || "rhythm-grid").replace(/[^\w\s\u3000-\u9FFF-]/g, "") + ".png";
+        a.href = canvas.toDataURL("image/png"); a.click();
+      }
+      downloadBtn.addEventListener("click", downloadImage);
+
+      /* ===== Encoding helpers ===== */
+      function hexToCells(hex: string): boolean[] {
+        const cells: boolean[] = [];
+        for (const ch of hex) {
+          const n = parseInt(ch, 16);
+          cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1));
+        }
+        return cells;
+      }
+
+      function fromBase64Url(b64: string): string {
+        let s = b64.replace(/-/g, "+").replace(/_/g, "/");
+        while (s.length % 4) s += "=";
+        const binary = atob(s);
+        const bytes = new Uint8Array([...binary].map(ch => ch.charCodeAt(0)));
+        return new TextDecoder().decode(bytes);
+      }
+
+      /* ===== Init ===== */
+      render();
+    </script>
+  </body>
+</html>

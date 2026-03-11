@@ -202,7 +202,7 @@ import Layout from "../layouts/Layout.astro";
 
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    const res = await fetch("/music/808.ogg");
+    const res = await fetch("/sounds/music/808.ogg");
     const arrayBuffer = await res.arrayBuffer();
     const buffer = await audioCtx.decodeAudioData(arrayBuffer);
 
