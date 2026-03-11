@@ -5,37 +5,37 @@ export const musicItems: MusicItem[] = [
   {
     "filename": "citrus-single_シトラス.mp3",
     "releaseSlug": "citrus-single",
-    "src": "/music/citrus-single_シトラス.mp3",
+    "src": "/sounds/music/citrus-single_シトラス.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1760692036/citrus_vkmnqa.jpg"
   },
   {
     "filename": "fanfare_ファンファーレ.mp3",
     "releaseSlug": "lighthouse-ep",
-    "src": "/music/fanfare_ファンファーレ.mp3",
+    "src": "/sounds/music/fanfare_ファンファーレ.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1769833921/Scan_61sfl1_rqpcyy.jpg"
   },
   {
     "filename": "kobe-girl_Kobe Girl.mp3",
     "releaseSlug": "lighthouse-ep",
-    "src": "/music/kobe-girl_Kobe Girl.mp3",
+    "src": "/sounds/music/kobe-girl_Kobe Girl.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1769833921/Scan_61sfl1_rqpcyy.jpg"
   },
   {
     "filename": "rain_雨模様.mp3",
     "releaseSlug": "ST",
-    "src": "/music/rain_雨模様.mp3",
+    "src": "/sounds/music/rain_雨模様.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   },
   {
     "filename": "siawase_しあわせになろうよ.mp3",
     "releaseSlug": "siawase",
-    "src": "/music/siawase_しあわせになろうよ.mp3",
+    "src": "/sounds/music/siawase_しあわせになろうよ.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1770439381/siawase_isupe4.png"
   },
   {
     "filename": "take-a-ride_ テイク・ア・ライド.mp3",
     "releaseSlug": "ST",
-    "src": "/music/take-a-ride_ テイク・ア・ライド.mp3",
+    "src": "/sounds/music/take-a-ride_ テイク・ア・ライド.mp3",
     "cover": "https://res.cloudinary.com/djzxpyzu3/image/upload/v1761106907/maru113_sbnxup.jpg"
   }
 ];

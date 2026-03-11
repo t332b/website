@@ -1,0 +1,253 @@
+---
+// Embeddable read-only rhythm player.
+// Pattern data is loaded from the URL hash.
+// URL: /tools/rhythm-player/#<base64url-encoded-json>
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rhythm Player</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body data-base={base}>
+    <div class="rp" id="rp">
+      <div class="rp-bar">
+        <button class="rp-play" id="playBtn" aria-label="再生">▶</button>
+        <span class="rp-title" id="rpTitle"></span>
+        <div class="rp-right">
+          <label class="rp-bpm">
+            BPM <input type="number" id="bpmInput" min="40" max="300" step="1" value="120" />
+          </label>
+          <a class="rp-edit" id="editLink" target="_blank" title="エディタで開く">✎</a>
+        </div>
+      </div>
+      <div class="rp-grid-scroll">
+        <div class="rp-grid" id="rpGrid"></div>
+      </div>
+    </div>
+
+    <style is:global>
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      html,body{height:100%;overflow:hidden}
+      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#fff;color:#333}
+
+      .rp{display:flex;flex-direction:column;height:100%;padding:8px 10px}
+      .rp-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
+      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s,color .15s}
+      .rp-play:hover{background:#333;color:#fff}
+      .rp-play.playing{background:#e53935;border-color:#e53935;color:#fff}
+      .rp-title{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+      .rp-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
+      .rp-bpm{font-size:.7rem;color:#888;display:flex;align-items:center;gap:3px;font-weight:600}
+      .rp-bpm input{width:48px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:.75rem;text-align:center;color:#333}
+      .rp-bpm input:focus{outline:none;border-color:#888}
+      .rp-edit{font-size:.85rem;color:#aaa;text-decoration:none;line-height:1}
+      .rp-edit:hover{color:#333}
+
+      .rp-grid-scroll{overflow-x:auto;flex:1}
+      .rp-grid{display:inline-flex;flex-direction:column;min-width:fit-content}
+
+      .rp-beat-labels{display:flex;padding-left:var(--lw);margin-bottom:1px;user-select:none}
+      .rp-beat-num{text-align:center;font-size:.55rem;color:#bbb;font-weight:500}
+      .rp-row{display:flex;align-items:center}
+      .rp-label{width:var(--lw);min-width:var(--lw);font-size:.68rem;color:#555;padding:0 6px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .rp-cells{display:flex;flex-wrap:nowrap}
+
+      .rp-cell{width:var(--cs);height:var(--cs);flex-shrink:0;border-top:1px solid #eee;border-right:1px solid #eee;border-bottom:none;border-left:none;background:#fff;position:relative}
+      .rp-row:last-of-type .rp-cell{border-bottom:1px solid #eee}
+      .rp-cell.active{background:#333}
+      .rp-cell.bar-s{border-left:2px solid #999}
+      .rp-cell.beat-s{border-left:1px solid #ddd}
+      .rp-cell.last{border-right:2px solid #999}
+      .rp-cell.ph{background:#fff3e0}
+      .rp-cell.active.ph{background:#f57c00}
+
+      :root{--cs:20px;--lw:70px}
+      @media(max-width:400px){:root{--cs:18px;--lw:56px}}
+    </style>
+
+    <script>
+      const CELLS_PER_BAR = 16;
+      const SOUND_FILES = ["kick","snare","hihat","conga"] as const;
+      const DEFAULT_SOUND = "conga";
+      const BASE = document.body.dataset.base || "";
+
+      interface Row { label: string; cells: boolean[] }
+      interface Pattern { title: string; bpm: number; numBars: number; rows: Row[] }
+
+      function hexToCells(hex: string): boolean[] {
+        const cells: boolean[] = [];
+        for (const ch of hex) { const n = parseInt(ch, 16); cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1)); }
+        return cells;
+      }
+      function fromBase64Url(b64: string): string {
+        let s = b64.replace(/-/g, "+").replace(/_/g, "/");
+        while (s.length % 4) s += "=";
+        const binary = atob(s);
+        return new TextDecoder().decode(new Uint8Array([...binary].map(ch => ch.charCodeAt(0))));
+      }
+
+      function loadPattern(): Pattern | null {
+        try {
+          const hash = window.location.hash.slice(1);
+          if (!hash) return null;
+          const d = JSON.parse(fromBase64Url(hash));
+          if (!d.r || !d.n) return null;
+          return {
+            title: d.t || "", bpm: (d.b >= 40 && d.b <= 300) ? d.b : 120,
+            numBars: d.n,
+            rows: d.r.map((r: { l: string; c: string }) => ({ label: r.l, cells: hexToCells(r.c) })),
+          };
+        } catch { return null; }
+      }
+
+      const pattern = loadPattern();
+      if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
+
+      if (pattern) {
+        const rpTitle = document.getElementById("rpTitle")!;
+        const rpGrid = document.getElementById("rpGrid")!;
+        const playBtn = document.getElementById("playBtn")!;
+        const bpmInput = document.getElementById("bpmInput") as HTMLInputElement;
+        const editLink = document.getElementById("editLink") as HTMLAnchorElement;
+
+        let bpm = pattern.bpm;
+        rpTitle.textContent = pattern.title;
+        bpmInput.value = String(bpm);
+        editLink.href = `${BASE}/tools/rhythm-grid/#${window.location.hash.slice(1)}`;
+
+        bpmInput.addEventListener("change", () => {
+          bpm = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
+          bpmInput.value = String(bpm);
+        });
+
+        /* Render grid */
+        const totalCells = pattern.numBars * CELLS_PER_BAR;
+        const cs = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cs")) || 20;
+        let html = "";
+        html += `<div class="rp-beat-labels">`;
+        for (let b = 0; b < pattern.numBars; b++)
+          for (let beat = 0; beat < 4; beat++)
+            html += `<span class="rp-beat-num" style="width:${cs * 4}px">${beat + 1}</span>`;
+        html += `</div>`;
+
+        for (const row of pattern.rows) {
+          html += `<div class="rp-row">`;
+          html += `<div class="rp-label" title="${row.label}">${row.label}</div>`;
+          html += `<div class="rp-cells">`;
+          for (let c = 0; c < totalCells; c++) {
+            const barS = c % CELLS_PER_BAR === 0;
+            const beatS = c % 4 === 0 && !barS;
+            let cls = "rp-cell";
+            if (barS) cls += " bar-s"; else if (beatS) cls += " beat-s";
+            if (c === totalCells - 1) cls += " last";
+            if (row.cells[c]) cls += " active";
+            html += `<div class="${cls}" data-c="${c}"></div>`;
+          }
+          html += `</div></div>`;
+        }
+        rpGrid.innerHTML = html;
+
+        /* Audio */
+        let audioCtx: AudioContext | null = null;
+        const soundBuffers = new Map<string, AudioBuffer>();
+        let isPlaying = false;
+        let currentStep = 0;
+        let nextNoteTime = 0;
+        let playStartTime = 0;
+        let schedulerTimer: number | null = null;
+        let phRAF: number | null = null;
+
+        function trimSilence(buffer: AudioBuffer): AudioBuffer {
+          const ch0 = buffer.getChannelData(0);
+          let start = 0;
+          for (let i = 0; i < ch0.length; i++) {
+            if (Math.abs(ch0[i]) > 0.005) { start = i; break; }
+          }
+          if (start === 0) return buffer;
+          const len = buffer.length - start;
+          const trimmed = audioCtx!.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
+          for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+            trimmed.getChannelData(ch).set(buffer.getChannelData(ch).subarray(start));
+          }
+          return trimmed;
+        }
+
+        async function ensureAudio() {
+          if (!audioCtx) audioCtx = new AudioContext();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+          if (soundBuffers.size === 0) {
+            await Promise.all(SOUND_FILES.map(async (name) => {
+              const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
+              const buf = await res.arrayBuffer();
+              const decoded = await audioCtx!.decodeAudioData(buf);
+              soundBuffers.set(name, trimSilence(decoded));
+            }));
+          }
+        }
+
+        function getSoundName(label: string): string {
+          const norm = label.trim().toLowerCase().replace(/[-_\s]/g, "");
+          if (!norm) return DEFAULT_SOUND;
+          for (const name of SOUND_FILES) if (norm === name || norm.includes(name)) return name;
+          if (norm === "hh" || norm === "hat") return "hihat";
+          if (norm === "bd" || norm.includes("bass")) return "kick";
+          if (norm === "sd") return "snare";
+          return DEFAULT_SOUND;
+        }
+
+        function playBuffer(name: string, time: number) {
+          const buf = soundBuffers.get(name);
+          if (!buf || !audioCtx) return;
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf; src.connect(audioCtx.destination); src.start(time);
+        }
+
+        function scheduleNote(step: number, time: number) {
+          for (const row of pattern!.rows) if (row.cells[step]) playBuffer(getSoundName(row.label), time);
+        }
+
+        function advanceStep() {
+          nextNoteTime += 60 / bpm / 4;
+          currentStep = (currentStep + 1) % totalCells;
+        }
+
+        function scheduler() {
+          if (!audioCtx || !isPlaying) return;
+          while (nextNoteTime < audioCtx.currentTime + 0.1) { scheduleNote(currentStep, nextNoteTime); advanceStep(); }
+          schedulerTimer = window.setTimeout(scheduler, 25);
+        }
+
+        function updatePH() {
+          if (!isPlaying || !audioCtx) return;
+          const step = Math.floor((audioCtx.currentTime - playStartTime) / (60 / bpm / 4)) % totalCells;
+          rpGrid.querySelectorAll(".rp-cell.ph").forEach(el => el.classList.remove("ph"));
+          rpGrid.querySelectorAll(`.rp-cell[data-c="${step}"]`).forEach(el => el.classList.add("ph"));
+          phRAF = requestAnimationFrame(updatePH);
+        }
+
+        async function startPlay() {
+          await ensureAudio();
+          isPlaying = true; currentStep = 0;
+          nextNoteTime = audioCtx!.currentTime + 0.05;
+          playStartTime = nextNoteTime;
+          playBtn.textContent = "⏹"; playBtn.classList.add("playing");
+          scheduler(); updatePH();
+        }
+
+        function stopPlay() {
+          isPlaying = false;
+          if (schedulerTimer !== null) clearTimeout(schedulerTimer);
+          if (phRAF !== null) cancelAnimationFrame(phRAF);
+          rpGrid.querySelectorAll(".rp-cell.ph").forEach(el => el.classList.remove("ph"));
+          playBtn.textContent = "▶"; playBtn.classList.remove("playing");
+        }
+
+        playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
+      }
+    </script>
+  </body>
+</html>
