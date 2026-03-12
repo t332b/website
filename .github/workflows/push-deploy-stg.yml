@@ -2,7 +2,7 @@ name: Actions Build & FTP deploy STG (Lolipop)
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "main" ]
     paths:
       - "src/**"
       - "public/**"
