@@ -1,4 +1,4 @@
-name: Actions Build & FTP deploy (main & tetetest, Lolipop)
+name: Actions Build & FTP deploy (main & test, Lolipop)
 
 on:
   push:
