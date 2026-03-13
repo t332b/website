@@ -7,8 +7,12 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup git
         run: |
@@ -17,7 +21,7 @@ jobs:
 
       - name: Merge main into develop
         run: |
-          git fetch origin
+          git fetch origin develop
           git checkout develop
           git merge origin/main --no-edit
           git push origin develop
