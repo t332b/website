@@ -24,9 +24,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           <a class="rp-edit" id="editLink" target="_blank" title="エディタで開く">✎</a>
         </div>
       </div>
-      <div class="rp-grid-scroll">
-        <div class="rp-grid" id="rpGrid"></div>
-      </div>
+      <div class="rp-grid-area" id="rpGrid"></div>
     </div>
 
     <style is:global>
@@ -38,14 +36,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         color:#333;
       }
 
-      .rp{
-        display:flex;
-        flex-direction:column;
-        height:100%;
-        padding:8px 10px;
-        max-width:760px;
-        margin:0 auto;
-      }
+      .rp{display:flex;flex-direction:column;height:100%;padding:8px 10px;max-width:760px;margin:0 auto}
       .rp-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
       .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s,color .15s}
       .rp-play:hover{background:#333;color:#fff}
@@ -58,46 +49,55 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       .rp-edit{font-size:.85rem;color:#aaa;text-decoration:none;line-height:1}
       .rp-edit:hover{color:#333}
 
-      .rp-grid-scroll{overflow-x:auto;flex:1}
-      .rp-grid{display:inline-flex;flex-direction:column;min-width:fit-content}
+      .rp-grid-area{flex:1;overflow-x:auto}
 
-      .rp-beat-labels{display:flex;padding-left:var(--lw);margin-bottom:1px;user-select:none}
-      .rp-beat-num{text-align:center;font-size:.55rem;color:#bbb;font-weight:500}
-      .rp-row{display:flex;align-items:center}
-      .rp-label{width:var(--lw);min-width:var(--lw);font-size:.68rem;color:#555;padding:0 6px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-      .rp-cells{display:flex;flex-wrap:nowrap}
+      :root{--cell-h:22px;--lw:52px;--bar-h:16px;--beat-h:14px}
 
-      .rp-cell{
-        width:var(--cs);
-        height:var(--cs);
-        flex-shrink:0;
-        border-top:1px solid #e8e8e8;
-        border-right:1px solid #e8e8e8;
-        border-bottom:none;
-        border-left:none;
-        background:#fff;
-        position:relative;
+      .chunk-wrap{display:flex;margin-bottom:6px}
+      .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
+      .side-spacer{height:calc(var(--bar-h) + var(--beat-h) + 4px)}
+      .side-row{height:var(--cell-h);display:flex;align-items:center}
+      .side-label{width:var(--lw);min-width:0;overflow:hidden;font-size:.58rem;color:#555}
+      .side-label span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+
+      .chunk{border:2px solid #888;border-radius:6px;flex:1;min-width:0;overflow:hidden;background:#fff}
+      .chunk-hdr{background:#f9f9f9;border-bottom:1px solid #bbb}
+      .hdr-cells{display:grid;min-width:0}
+      .hdr-cells.bar-hdr{border-bottom:1px solid #ddd}
+      .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:700;color:#666}
+      .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#777}
+      .beat-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .beat-lbl.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+
+      .chunk-body{}
+      .chunk-cells{display:grid;min-width:0}
+      .cell{height:var(--cell-h);background:#fff}
+      .cell.active{background:#5c6bc0}
+      .cell.bar-sep{box-shadow:inset 2px 0 0 0 #999}
+      .cell.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+      .chunk-cells>.cell{border-right:1px solid #ddd;border-bottom:1px solid #ddd}
+      .chunk-cells>.cell:last-child{border-right:none}
+      .chunk-body>.chunk-cells:last-child .cell{border-bottom:none}
+      .cell.playhead{background:#fff3e0}
+      .cell.active.playhead{background:#ef6c00}
+
+      @media(max-width:400px){
+        :root{--cell-h:20px;--lw:42px;--bar-h:14px;--beat-h:12px}
+        .bar-lbl{font-size:.48rem}
+        .beat-lbl{font-size:.44rem}
+        .side-label{font-size:.52rem}
       }
-      .rp-row:last-of-type .rp-cell{border-bottom:1px solid #e8e8e8}
-      .rp-cell.active{background:#5c6bc0}
-      .rp-cell.bar-s{border-left:2px solid #999}
-      .rp-cell.beat-s{border-left:1px solid #ddd}
-      .rp-cell.last{border-right:2px solid #999}
-      .rp-cell.ph{background:#fff3e0}
-      .rp-cell.active.ph{background:#ef6c00}
-
-      :root{--cs:20px;--lw:70px}
-      @media(max-width:400px){:root{--cs:18px;--lw:56px}}
     </style>
 
     <script>
-      const CELLS_PER_BAR = 16;
+      const SUBS_PER_BEAT = 4;
       const SOUND_FILES = ["kick","snare","hihat","conga"] as const;
       const DEFAULT_SOUND = "conga";
       const BASE = document.body.dataset.base || "";
 
       interface Row { label: string; cells: boolean[] }
-      interface Pattern { title: string; bpm: number; numBars: number; rows: Row[] }
+      interface Pattern { title: string; bpm: number; numBars: number; beatsPerBar: number; rows: Row[] }
 
       function hexToCells(hex: string): boolean[] {
         const cells: boolean[] = [];
@@ -110,6 +110,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const binary = atob(s);
         return new TextDecoder().decode(new Uint8Array([...binary].map(ch => ch.charCodeAt(0))));
       }
+      function esc(s: string) {
+        return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
 
       function loadPattern(): Pattern | null {
         try {
@@ -119,21 +122,26 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           if (!d.r || !d.n) return null;
           return {
             title: d.t || "", bpm: (d.b >= 40 && d.b <= 300) ? d.b : 120,
+            beatsPerBar: (d.bp && d.bp >= 1 && d.bp <= 12) ? d.bp : 4,
             numBars: d.n,
             rows: d.r.map((r: { l: string; c: string }) => ({ label: r.l, cells: hexToCells(r.c) })),
           };
         } catch { return null; }
       }
 
+      function calcBarsPerLine(): number {
+        return window.innerWidth < 370 ? 1 : 2;
+      }
+
       const pattern = loadPattern();
       if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
 
       if (pattern) {
-        const rpTitle = document.getElementById("rpTitle")!;
         const rpGrid = document.getElementById("rpGrid")!;
         const playBtn = document.getElementById("playBtn")!;
         const bpmInput = document.getElementById("bpmInput") as HTMLInputElement;
         const editLink = document.getElementById("editLink") as HTMLAnchorElement;
+        const rpTitle = document.getElementById("rpTitle")!;
 
         let bpm = pattern.bpm;
         rpTitle.textContent = pattern.title;
@@ -145,34 +153,83 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           bpmInput.value = String(bpm);
         });
 
-        /* Render grid */
-        const totalCells = pattern.numBars * CELLS_PER_BAR;
-        const cs = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--cs")) || 20;
-        let html = "";
-        html += `<div class="rp-beat-labels">`;
-        for (let b = 0; b < pattern.numBars; b++)
-          for (let beat = 0; beat < 4; beat++)
-            html += `<span class="rp-beat-num" style="width:${cs * 4}px">${beat + 1}</span>`;
-        html += `</div>`;
+        let barsPerLine = calcBarsPerLine();
+        window.addEventListener("resize", () => {
+          const n = calcBarsPerLine();
+          if (n !== barsPerLine) { barsPerLine = n; renderGrid(); }
+        });
 
-        for (const row of pattern.rows) {
-          html += `<div class="rp-row">`;
-          html += `<div class="rp-label" title="${row.label}">${row.label}</div>`;
-          html += `<div class="rp-cells">`;
-          for (let c = 0; c < totalCells; c++) {
-            const barS = c % CELLS_PER_BAR === 0;
-            const beatS = c % 4 === 0 && !barS;
-            let cls = "rp-cell";
-            if (barS) cls += " bar-s"; else if (beatS) cls += " beat-s";
-            if (c === totalCells - 1) cls += " last";
-            if (row.cells[c]) cls += " active";
-            html += `<div class="${cls}" data-c="${c}"></div>`;
+        const cpb = pattern.beatsPerBar * SUBS_PER_BEAT;
+
+        function renderGrid() {
+          const numChunks = Math.ceil(pattern!.numBars / barsPerLine);
+          let html = "";
+
+          for (let chunk = 0; chunk < numChunks; chunk++) {
+            const startBar = chunk * barsPerLine;
+            const endBar = Math.min(startBar + barsPerLine, pattern!.numBars);
+            const barsInChunk = endBar - startBar;
+            const cellsInChunk = barsInChunk * cpb;
+            const startCell = startBar * cpb;
+            const cols = `repeat(${cellsInChunk},1fr)`;
+
+            html += `<div class="chunk-wrap">`;
+
+            html += `<div class="chunk-side">`;
+            html += `<div class="side-spacer"></div>`;
+            for (const row of pattern!.rows) {
+              html += `<div class="side-row"><div class="side-label"><span title="${esc(row.label)}">${esc(row.label)}</span></div></div>`;
+            }
+            html += `</div>`;
+
+            html += `<div class="chunk">`;
+            html += `<div class="chunk-hdr">`;
+            html += `<div class="hdr-cells bar-hdr" style="grid-template-columns:${cols}">`;
+            for (let b = startBar; b < endBar; b++) {
+              const sep = b > startBar ? " bar-sep" : "";
+              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cpb}">${b + 1}小節</div>`;
+            }
+            html += `</div>`;
+            html += `<div class="hdr-cells beat-hdr" style="grid-template-columns:${cols}">`;
+            for (let b = startBar; b < endBar; b++) {
+              for (let beat = 0; beat < pattern!.beatsPerBar; beat++) {
+                const isBar = beat === 0 && b > startBar;
+                const isBeat = beat > 0;
+                let cls = "beat-lbl";
+                if (isBar) cls += " bar-sep";
+                else if (isBeat) cls += " beat-sep";
+                html += `<div class="${cls}" style="grid-column:span ${SUBS_PER_BEAT}">${beat + 1}拍</div>`;
+              }
+            }
+            html += `</div></div>`;
+
+            html += `<div class="chunk-body">`;
+            for (let r = 0; r < pattern!.rows.length; r++) {
+              const row = pattern!.rows[r];
+              html += `<div class="chunk-cells" style="grid-template-columns:${cols}">`;
+              for (let c = 0; c < cellsInChunk; c++) {
+                const globalC = startCell + c;
+                const inBar = c % cpb;
+                const isBarBound = inBar === 0 && c > 0;
+                const isBeatBound = inBar % SUBS_PER_BEAT === 0 && !isBarBound && c > 0;
+                let cls = "cell";
+                if (isBarBound) cls += " bar-sep";
+                else if (isBeatBound) cls += " beat-sep";
+                if (row.cells[globalC]) cls += " active";
+                html += `<div class="${cls}" data-r="${r}" data-c="${globalC}"></div>`;
+              }
+              html += `</div>`;
+            }
+            html += `</div></div></div>`;
           }
-          html += `</div></div>`;
+
+          rpGrid.innerHTML = html;
         }
-        rpGrid.innerHTML = html;
+
+        renderGrid();
 
         /* Audio */
+        const totalCells = pattern.numBars * cpb;
         let audioCtx: AudioContext | null = null;
         const soundBuffers = new Map<string, AudioBuffer>();
         let isPlaying = false;
@@ -232,7 +289,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
 
         function advanceStep() {
-          nextNoteTime += 60 / bpm / 4;
+          nextNoteTime += 60 / bpm / SUBS_PER_BEAT;
           currentStep = (currentStep + 1) % totalCells;
         }
 
@@ -244,9 +301,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
         function updatePH() {
           if (!isPlaying || !audioCtx) return;
-          const step = Math.floor((audioCtx.currentTime - playStartTime) / (60 / bpm / 4)) % totalCells;
-          rpGrid.querySelectorAll(".rp-cell.ph").forEach(el => el.classList.remove("ph"));
-          rpGrid.querySelectorAll(`.rp-cell[data-c="${step}"]`).forEach(el => el.classList.add("ph"));
+          const step = Math.floor((audioCtx.currentTime - playStartTime) / (60 / bpm / SUBS_PER_BEAT)) % totalCells;
+          rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
+          rpGrid.querySelectorAll(`.cell[data-c="${step}"]`).forEach(el => el.classList.add("playhead"));
           phRAF = requestAnimationFrame(updatePH);
         }
 
@@ -263,7 +320,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           isPlaying = false;
           if (schedulerTimer !== null) clearTimeout(schedulerTimer);
           if (phRAF !== null) cancelAnimationFrame(phRAF);
-          rpGrid.querySelectorAll(".rp-cell.ph").forEach(el => el.classList.remove("ph"));
+          rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
           playBtn.textContent = "▶"; playBtn.classList.remove("playing");
         }
 
