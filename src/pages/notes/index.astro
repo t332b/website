@@ -2,7 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import { getCollection } from 'astro:content';
 
-const isStg = (import.meta.env.BASE_URL ?? '/').startsWith('/stg');
+const isStg = (import.meta.env.BASE_URL ?? '/').startsWith('/tetetest');
 const noteFilter = isStg ? () => true : ({ data }: { data: { is_public?: boolean } }) => data.is_public !== false;
 
 let collectionError: string | null = null;
@@ -371,7 +371,7 @@ function getAvatarUrl(member: any) {
   }
   document.addEventListener('astro:page-load', () => {
     initNotesPage();
-    // View Transitions で notes 一覧に遷移した場合も絞り込みを適用（本番 /notes、stg /stg/notes）
+    // View Transitions で notes 一覧に遷移した場合も絞り込みを適用（本番 /notes、tetetest /tetetest/notes）
     const baseUrl = (document.getElementById('notes-page-root')?.dataset.baseUrl ?? '/').replace(/\/$/, '') || '';
     const notesIndexPath = baseUrl ? `${baseUrl}/notes` : '/notes';
     const onNotesIndex = location.pathname === notesIndexPath || location.pathname === `${notesIndexPath}/`;

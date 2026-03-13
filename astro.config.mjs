@@ -9,7 +9,7 @@ function normalizeBasePath(value) {
 	// 未指定 or "/" はルート
 	if (!value || value === '/') return '/';
 
-	// "stg" / "/stg" / "/stg/" どれでも受けて "/stg/" に統一
+	// "tetetest" / "/tetetest" / "/tetetest/" などを含め、"/xxx/" 形式に正規化
 	const trimmed = String(value).replace(/^\/+|\/+$/g, '');
 	return `/${trimmed}/`;
 }
