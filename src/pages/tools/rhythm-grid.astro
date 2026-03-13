@@ -49,24 +49,12 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       </div>
     </div>
 
-    <datalist id="drumList">
-      <option value="Kick" />
-      <option value="Snare" />
-      <option value="Hi-Hat" />
-      <option value="Open HH" />
-      <option value="Conga" />
-      <option value="Tom" />
-      <option value="Floor Tom" />
-      <option value="Clap" />
-      <option value="Rim" />
-      <option value="Cowbell" />
-      <option value="Shaker" />
-      <option value="Tambourine" />
-      <option value="Crash" />
-      <option value="Ride" />
-    </datalist>
+    <datalist id="drumList"></datalist>
 
     <div class="grid-area" id="gridArea"></div>
+    <p class="grid-help">
+      楽器名は、入力欄をフォーカスすると mp3 音源から取得した候補が表示されます。候補にない名前もそのまま入力できます。
+    </p>
 
     <!-- Embed modal -->
     <div class="embed-overlay" id="embedOverlay" hidden>
@@ -103,8 +91,8 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       .playback-bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;flex-wrap:wrap}
       .play-btn{width:36px;height:36px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0;line-height:1}
       .play-btn:hover{background:#333;color:#fff}
-      .play-btn.playing{background:#e53935;border-color:#e53935;color:#fff}
-      .play-btn.playing:hover{background:#c62828}
+      .play-btn.playing{background:#fe6e6c;border-color:#fe6e6c;color:#fff}
+      .play-btn.playing:hover{background:#e34a4a}
       .bpm-group{display:flex;align-items:center;gap:.3rem}
       .bpm-label{font-size:.75rem;color:#888;font-weight:600}
       .bpm-input{width:52px;border:1px solid #ddd;border-radius:5px;padding:.25rem .3rem;font-size:.8rem;text-align:center;font-family:inherit;color:#333}
@@ -124,6 +112,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       /* --- grid layout --- */
       :root{--cell-h:26px;--lw:60px;--rm-w:20px;--bar-h:18px;--beat-h:16px}
       .grid-area{max-width:760px}
+      .grid-help{margin-top:4px;margin-bottom:10px;font-size:.7rem;color:#999}
 
       /* chunk wrapper: side panel (labels) + bordered grid */
       .chunk-wrap{display:flex;margin-bottom:10px}
@@ -138,7 +127,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       .side-label-ro{font-size:.58rem;color:#888}
       .side-label-ro span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
 
-      .row-rm{width:var(--rm-w);height:var(--rm-w);border:none;background:none;color:#d0d0d0;font-size:.65rem;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;padding:0;flex-shrink:0}
+      .row-rm{width:var(--rm-w);height:var(--rm-w);border:none;background:none;color:#fe6e6c;font-size:.65rem;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;padding:0;flex-shrink:0}
       .row-rm:hover{color:#c33;background:#fef0f0}
 
       /* bordered grid chunk */
@@ -415,9 +404,17 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       const embedOverlay = document.getElementById("embedOverlay")!;
       const embedCode = document.getElementById("embedCode") as HTMLTextAreaElement;
       const copyEmbedBtn = document.getElementById("copyEmbedBtn")!;
+      const drumList = document.getElementById("drumList") as HTMLDataListElement | null;
 
       gridTitle.value = state.title;
       bpmInput.value = String(state.bpm);
+
+      // 楽器候補（mp3 ファイル名）から datalist を生成（ファイル名そのまま表示）
+      if (drumList) {
+        drumList.innerHTML = SOUND_FILES
+          .map((name) => `<option value="${name}"></option>`)
+          .join("");
+      }
 
       gridTitle.addEventListener("input", () => { state.title = gridTitle.value; saveState(); });
       bpmInput.addEventListener("change", () => {
@@ -461,7 +458,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
               }
             }
             if (chunk === 0) {
-              html += `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名" list="drumList" /></div>`;
+              html += `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名（候補＋自由入力OK）" list="drumList" /></div>`;
             } else {
               html += `<div class="side-label side-label-ro"><span title="${esc(row.label)}">${esc(row.label)}</span></div>`;
             }
@@ -488,7 +485,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
               let cls = "beat-lbl";
               if (isBar) cls += " bar-sep";
               else if (isBeat) cls += " beat-sep";
-              html += `<div class="${cls}" style="grid-column:span 4">${beat + 1}拍</div>`;
+              html += `<div class="${cls}" style="grid-column:span 4">${beat + 1}拍目</div>`;
             }
           }
           html += `</div>`;
@@ -524,6 +521,20 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
 
         // Label input listeners
         gridArea.querySelectorAll<HTMLInputElement>(".side-label input").forEach((inp) => {
+          let prevValue = "";
+          inp.addEventListener("focus", () => {
+            // すでに値が入っているときにも、候補一覧を出しやすくするため一時的にクリア
+            if (!inp.value) return;
+            prevValue = inp.value;
+            inp.value = "";
+          });
+          inp.addEventListener("blur", () => {
+            // 何も入力されなかった場合は元の値を戻す
+            if (!inp.value && prevValue) {
+              inp.value = prevValue;
+            }
+            prevValue = "";
+          });
           inp.addEventListener("input", () => {
             state.rows[Number(inp.dataset.row)].label = inp.value;
             saveState();
@@ -663,7 +674,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
           ctx.fillStyle = "#666"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
           for (let b = startBar; b < endBar; b++) {
             const lb = b - startBar;
-            ctx.fillText(`${b + 1}小節`, gx + lb * CELLS_PER_BAR * cellSz + (CELLS_PER_BAR * cellSz) / 2, cy + barHdrH - 4);
+            ctx.fillText(`${b + 1}小節目`, gx + lb * CELLS_PER_BAR * cellSz + (CELLS_PER_BAR * cellSz) / 2, cy + barHdrH - 4);
           }
 
           // Beat labels
@@ -710,10 +721,14 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
           ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx + localGridW, cy); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(gx, gy + chunkBodyH); ctx.lineTo(gx + localGridW, gy + chunkBodyH); ctx.stroke();
 
-          // Row labels
-          ctx.fillStyle = "#333"; ctx.font = "10px sans-serif"; ctx.textAlign = "left";
-          for (let r = 0; r < state.rows.length; r++)
-            ctx.fillText(state.rows[r].label, padX + 2, gy + r * cellSz + cellSz / 2 + 3);
+          // Row labels（各行のセルの縦中央に揃える）
+          ctx.fillStyle = "#333";
+          ctx.font = "10px sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
+          for (let r = 0; r < state.rows.length; r++) {
+            ctx.fillText(state.rows[r].label, padX + 2, gy + r * cellSz + cellSz / 2);
+          }
         }
 
         const a = document.createElement("a");

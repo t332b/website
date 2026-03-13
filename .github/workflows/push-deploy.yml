@@ -1,8 +1,8 @@
-name: Actions Build & FTP deploy (Lolipop)
+name: Actions Build & FTP deploy (main & tetetest, Lolipop)
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
     paths:
       - "src/**"
       - "public/**"
@@ -13,7 +13,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  call-deploy:
+  deploy-main:
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/deploy.yml
     with:
       ref: "main"
@@ -22,3 +23,15 @@ jobs:
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
       FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+
+  deploy-tetetest:
+    if: github.ref == 'refs/heads/develop'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: "develop"
+      base_path: "/tetetest/"
+    secrets:
+      FTP_HOST: ${{ secrets.FTP_HOST }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_REMOTE_DIR: ${{ endsWith(secrets.FTP_REMOTE_DIR, '/') && format('{0}tetetest/', secrets.FTP_REMOTE_DIR) || format('{0}/tetetest/', secrets.FTP_REMOTE_DIR) }}

@@ -7,7 +7,7 @@ interface Props {
 }
 
 let { href = "", title } = Astro.props;
-// stg（base /stg/）では同一サイトの /notes/ リンクを base 付きにする
+// tetetest（base /tetetest/）では同一サイトの /notes/ リンクを base 付きにする
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "") || "";
 if (base && href.startsWith("/notes")) {
   href = base + href;
