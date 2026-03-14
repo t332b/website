@@ -16,7 +16,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   <body data-base={base}>
     <div class="rp" id="rp">
       <div class="rp-bar">
-        <button class="rp-play" id="playBtn" aria-label="再生">▶</button>
+        <button class="rp-play" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
         <span class="rp-title" id="rpTitle"></span>
         <div class="rp-right">
           <label class="rp-bpm">
@@ -39,7 +39,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
       .rp{display:flex;flex-direction:column;height:100%;padding:8px 10px;max-width:760px;margin:0 auto}
       .rp-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
-      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s,color .15s}
+      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
+      .rp-play svg{width:14px;height:14px}
       .rp-play:hover{background:#333;color:#fff}
       .rp-play.playing{background:#e53935;border-color:#e53935;color:#fff}
       .rp-title{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -266,7 +267,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             for (let bi = 0; bi < chunkCycles.length; bi++) {
               const cyc = chunkCycles[bi];
               const sep = bi > 0 ? " bar-sep" : "";
-              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">サイクル${cyc + 1}</div>`;
+              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">cycle ${cyc + 1}</div>`;
             }
             html += `</div>`;
 
@@ -291,7 +292,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
                   const prev = grpInfos[gi2 - 1];
                   cls += ginfo.cycIdx !== prev.cycIdx ? " bar-sep" : " group-sep";
                 }
-                html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">グループ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</div>`;
+                html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">group ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</div>`;
               }
               html += `</div>`;
             }
@@ -453,7 +454,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           isPlaying = true; currentStep = 0;
           nextNoteTime = audioCtx!.currentTime + 0.05;
           playStartTime = nextNoteTime;
-          playBtn.textContent = "⏹"; playBtn.classList.add("playing");
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>'; playBtn.classList.add("playing");
           scheduler(); updatePH();
         }
 
@@ -462,7 +463,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           if (schedulerTimer !== null) clearTimeout(schedulerTimer);
           if (phRAF !== null) cancelAnimationFrame(phRAF);
           rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-          playBtn.textContent = "▶"; playBtn.classList.remove("playing");
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; playBtn.classList.remove("playing");
         }
 
         playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });

@@ -29,7 +29,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
     </div>
 
     <div class="playback-bar">
-      <button class="play-btn" id="playBtn" aria-label="再生">▶</button>
+      <button class="play-btn" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
       <div class="bpm-group">
         <label class="bpm-label" for="bpmInput">BPM</label>
         <input type="number" id="bpmInput" class="bpm-input" min="40" max="300" step="1" />
@@ -102,7 +102,8 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
 
       /* --- playback bar --- */
       .playback-bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;flex-wrap:wrap}
-      .play-btn{width:36px;height:36px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0;line-height:1}
+      .play-btn{width:36px;height:36px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0}
+      .play-btn svg{width:16px;height:16px}
       .play-btn:hover{background:#333;color:#fff}
       .play-btn.playing{background:#fe6e6c;border-color:#fe6e6c;color:#fff}
       .play-btn.playing:hover{background:#e34a4a}
@@ -527,7 +528,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         isPlaying = true; currentStep = 0;
         nextNoteTime = audioCtx!.currentTime + 0.05;
         playStartTime = nextNoteTime;
-        playBtn.textContent = "⏹"; playBtn.setAttribute("aria-label", "停止"); playBtn.classList.add("playing");
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>'; playBtn.setAttribute("aria-label", "停止"); playBtn.classList.add("playing");
         scheduler(); updatePlayhead();
       }
 
@@ -536,7 +537,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         if (schedulerTimer !== null) { clearTimeout(schedulerTimer); schedulerTimer = null; }
         if (playheadRAF !== null) { cancelAnimationFrame(playheadRAF); playheadRAF = null; }
         gridArea.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-        playBtn.textContent = "▶"; playBtn.setAttribute("aria-label", "再生"); playBtn.classList.remove("playing");
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; playBtn.setAttribute("aria-label", "再生"); playBtn.classList.remove("playing");
       }
 
       /* ===== DOM refs ===== */
@@ -1138,7 +1139,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
           ctx.fillStyle = "#666"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
           for (let c = csCyc; c < ceCyc; c++) {
             const lc = c - csCyc;
-            ctx.fillText(`サイクル${c + 1}`, gx + lc * beatsPerCyc * beatW + (beatsPerCyc * beatW) / 2, cy + barHdrH - 4);
+            ctx.fillText(`cycle ${c + 1}`, gx + lc * beatsPerCyc * beatW + (beatsPerCyc * beatW) / 2, cy + barHdrH - 4);
           }
 
           ctx.fillStyle = "#888"; ctx.font = "bold 7px sans-serif";
@@ -1149,7 +1150,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
               const gBeats = bg[g];
               const x = gx + (lc * beatsPerCyc + gStart) * beatW;
               const w = gBeats * beatW;
-              ctx.fillText(`グループ${g + 1}（${gBeats}拍）`, x + w / 2, cy + barHdrH + groupHdrH - 4);
+              ctx.fillText(`group ${g + 1}（${gBeats}拍）`, x + w / 2, cy + barHdrH + groupHdrH - 4);
             }
           }
 
