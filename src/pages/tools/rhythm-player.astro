@@ -16,7 +16,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
   <body data-base={base}>
     <div class="rp" id="rp">
       <div class="rp-bar">
-        <button class="rp-play" id="playBtn" aria-label="再生">▶</button>
+        <button class="rp-play" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
         <span class="rp-title" id="rpTitle"></span>
         <div class="rp-right">
           <label class="rp-bpm">
@@ -39,7 +39,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
       .rp{display:flex;flex-direction:column;height:100%;padding:8px 10px;max-width:760px;margin:0 auto}
       .rp-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
-      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;transition:background .15s,color .15s}
+      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
+      .rp-play svg{width:14px;height:14px}
       .rp-play:hover{background:#333;color:#fff}
       .rp-play.playing{background:#e53935;border-color:#e53935;color:#fff}
       .rp-title{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
@@ -69,7 +70,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
       .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:700;color:#666}
       .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl{height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888}
+      .group-lbl{min-height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888;padding:1px 2px;flex-wrap:wrap}
       .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
       .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
       .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#777}
@@ -180,7 +181,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         } catch { return null; }
       }
 
-      function calcCyclesPerLine(): number { return window.innerWidth < 370 ? 1 : 2; }
+      function calcCyclesPerLine(bg?: number[], spb?: number): number {
+        if (window.innerWidth < 370) return 1;
+        if (bg && spb) {
+          const cellsPerCyc = bpc(bg) * spb;
+          if (cellsPerCyc > 16) return 1;
+        }
+        return 2;
+      }
 
       const pattern = loadPattern();
       if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
@@ -202,14 +210,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           bpmInput.value = String(bpm);
         });
 
-        let cyclesPerLine = calcCyclesPerLine();
-        window.addEventListener("resize", () => {
-          const n = calcCyclesPerLine();
-          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
-        });
-
         const tp = pattern.tuplets;
         const bg = pattern.beatGroups;
+        let cyclesPerLine = calcCyclesPerLine(bg, pattern.subsPerBeat);
+        window.addEventListener("resize", () => {
+          const n = calcCyclesPerLine(bg, pattern.subsPerBeat);
+          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
+        });
         const beatsPerCyc = bpc(bg);
         const spb = pattern.subsPerBeat;
         const bStarts = groupBeatStarts(tp);
@@ -266,7 +273,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             for (let bi = 0; bi < chunkCycles.length; bi++) {
               const cyc = chunkCycles[bi];
               const sep = bi > 0 ? " bar-sep" : "";
-              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">サイクル${cyc + 1}</div>`;
+              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">cycle ${cyc + 1}</div>`;
             }
             html += `</div>`;
 
@@ -291,7 +298,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
                   const prev = grpInfos[gi2 - 1];
                   cls += ginfo.cycIdx !== prev.cycIdx ? " bar-sep" : " group-sep";
                 }
-                html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">グループ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</div>`;
+                html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">group ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</div>`;
               }
               html += `</div>`;
             }
@@ -453,7 +460,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           isPlaying = true; currentStep = 0;
           nextNoteTime = audioCtx!.currentTime + 0.05;
           playStartTime = nextNoteTime;
-          playBtn.textContent = "⏹"; playBtn.classList.add("playing");
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>'; playBtn.classList.add("playing");
           scheduler(); updatePH();
         }
 
@@ -462,7 +469,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           if (schedulerTimer !== null) clearTimeout(schedulerTimer);
           if (phRAF !== null) cancelAnimationFrame(phRAF);
           rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-          playBtn.textContent = "▶"; playBtn.classList.remove("playing");
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; playBtn.classList.remove("playing");
         }
 
         playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
