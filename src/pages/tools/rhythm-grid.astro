@@ -806,7 +806,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
           for (let bi = 0; bi < chunkCycles.length; bi++) {
             const cyc = chunkCycles[bi];
             const sep = bi > 0 ? " bar-sep" : "";
-            html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">サイクル${cyc + 1}</div>`;
+            html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">cycle ${cyc + 1}</div>`;
           }
           html += `</div>`;
 
@@ -820,7 +820,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
             }
             const isFirstCycle = ginfo.cycIdx === ch.startCycle;
             const isLastInCycle = gi2 === grpInfos.length - 1 || grpInfos[gi2 + 1].cycIdx !== ginfo.cycIdx;
-            let content = `<span class="grp-beats">グループ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</span>`;
+            let content = `<span class="grp-beats">group ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</span>`;
             if (multiGroup && isFirstCycle) {
               content += `<button class="grp-adj" data-grp-action="dec" data-grp-idx="${ginfo.grpIdx}">−</button>`;
               content += `<button class="grp-adj" data-grp-action="inc" data-grp-idx="${ginfo.grpIdx}">＋</button>`;
@@ -1074,7 +1074,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         if (!isAllDefault(state.tuplets, state.subsPerBeat)) data.tp = state.tuplets;
         const encoded = toBase64Url(JSON.stringify(data));
         const numChunks = Math.ceil(state.numCycles / 2);
-        const h = 50 + numChunks * (36 + state.rows.length * 22 + 10);
+        const h = 50 + numChunks * (50 + state.rows.length * 22 + 10);
         return `<iframe src="${ORIGIN}${BASE}/tools/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
       }
 

@@ -215,7 +215,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const bStarts = groupBeatStarts(tp);
         const cStarts = groupCellStarts(tp);
         const multiGroup = bg.length > 1;
-        const spacerCls = multiGroup ? "side-spacer-3" : "side-spacer-2";
+        const spacerCls = "side-spacer-3";
 
         function renderGrid() {
           const chunks: { startGi: number; endGi: number; startCycle: number }[] = [];
@@ -270,7 +270,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             }
             html += `</div>`;
 
-            if (multiGroup) {
+            {
               type GI = { cycIdx: number; grpIdx: number; colCount: number; beats: number };
               const grpInfos: GI[] = [];
               let prevGK = "";
@@ -313,7 +313,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
               if (!(s === 1 && d === spb)) cls += " tuplet-lbl";
               let label: string;
               if (s === 1) {
-                label = d === spb ? `${bInG + 1}拍` : `${bInG + 1}拍(${d}連)`;
+                label = d === spb ? `${bInG + 1}拍目` : `${bInG + 1}拍(${d}連)`;
               } else {
                 const endBInCyc = (gbs + s - 1) % beatsPerCyc;
                 const endBInG = beatInGroup(endBInCyc, bg);
