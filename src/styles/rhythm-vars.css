@@ -1,0 +1,10 @@
+:root {
+  --rg-active: #68d762;
+  --rg-active-hover: #a0e29d;
+  --rg-playhead: #fff3e0;
+  --rg-active-playhead: #ef6c00;
+  --rg-border: #888;
+  --rg-cell-border: #ddd;
+  --rg-beat-sep: #ddd;
+  --rg-bar-sep: #999;
+}
