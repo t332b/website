@@ -43,6 +43,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         </svg>
       </button>
       <div class="sig-group" id="sigGroup">
+        <span class="sig-lbl">1拍を</span>
         <input type="number" class="sig-input" id="subdivInput" min="1" max="12" step="1" value="4" />
         <span class="sig-lbl">分割</span>
         <span class="sig-times" id="sigTimes">×</span>
@@ -117,7 +118,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       .metro-btn.on:hover{background:#555}
       .metro-pendulum{transition:transform .15s;transform-origin:12px 22px}
 
-      .sig-group{display:flex;align-items:center;gap:3px;}
+      .sig-group{display:flex;align-items:center;gap:3px;margin-left: 5px;}
       .sig-input{width:36px;border:1px solid #ddd;border-radius:5px;padding:.2rem .15rem;font-size:.78rem;text-align:center;font-family:inherit;color:#333;font-weight:600}
       .sig-input:focus{outline:none;border-color:#888}
       .sig-lbl{font-size:.68rem;font-weight:600;color:#888}
@@ -136,7 +137,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       /* chunk wrapper: side panel (labels) + bordered grid */
       .chunk-wrap{display:flex;margin-bottom:10px}
       .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
-      .side-spacer{height:calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px)}
+      .side-spacer{min-height:calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px)}
       .side-row{height:var(--cell-h);display:flex;align-items:center;gap:2px}
       .rm-spacer{width:var(--rm-w);flex-shrink:0}
       .side-label{width:var(--lw);min-width:0;overflow:hidden}
@@ -157,7 +158,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
       .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#666}
       .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl{height:var(--group-h);display:flex;align-items:center;justify-content:center;gap:2px;font-size:.56rem;font-weight:600;color:#666;padding:0 2px;white-space:nowrap;overflow:hidden;position:relative}
+      .group-lbl{min-height:var(--group-h);display:flex;align-items:center;justify-content:center;gap:2px;font-size:.56rem;font-weight:600;color:#666;padding:1px 2px;overflow:hidden;position:relative;flex-wrap:wrap}
       .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
       .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
       .grp-beats{font-size:.56rem;font-weight:700;color:#555}
@@ -387,7 +388,12 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       } catch { /* ignore */ }
 
       /* ===== Layout ===== */
-      function calcCyclesPerLine(): number { return window.innerWidth < 370 ? 1 : 2; }
+      function calcCyclesPerLine(): number {
+        if (window.innerWidth < 370) return 1;
+        const cellsPerCyc = totalCellCount(defaultTuplets(bpc(state.beatGroups), state.subsPerBeat));
+        if (cellsPerCyc > 16) return 1;
+        return 2;
+      }
       let cyclesPerLine = calcCyclesPerLine();
       window.addEventListener("resize", () => {
         const n = calcCyclesPerLine();
@@ -1074,8 +1080,10 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         if (state.subsPerBeat !== DEFAULT_DIVS) data.sd = state.subsPerBeat;
         if (!isAllDefault(state.tuplets, state.subsPerBeat)) data.tp = state.tuplets;
         const encoded = toBase64Url(JSON.stringify(data));
-        const numChunks = Math.ceil(state.numCycles / 2);
-        const h = 50 + numChunks * (50 + state.rows.length * 22 + 10);
+        const cellsPerCyc = bpc(bg) * state.subsPerBeat;
+        const cpl = cellsPerCyc > 16 ? 1 : 2;
+        const numChunks = Math.ceil(state.numCycles / cpl);
+        const h = 48 + numChunks * (54 + state.rows.length * 22 + 10);
         return `<iframe src="${ORIGIN}${BASE}/tools/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
       }
 

@@ -70,7 +70,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
       .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:700;color:#666}
       .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl{height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888}
+      .group-lbl{min-height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888;padding:1px 2px;flex-wrap:wrap}
       .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
       .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
       .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#777}
@@ -181,7 +181,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         } catch { return null; }
       }
 
-      function calcCyclesPerLine(): number { return window.innerWidth < 370 ? 1 : 2; }
+      function calcCyclesPerLine(bg?: number[], spb?: number): number {
+        if (window.innerWidth < 370) return 1;
+        if (bg && spb) {
+          const cellsPerCyc = bpc(bg) * spb;
+          if (cellsPerCyc > 16) return 1;
+        }
+        return 2;
+      }
 
       const pattern = loadPattern();
       if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
@@ -203,14 +210,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           bpmInput.value = String(bpm);
         });
 
-        let cyclesPerLine = calcCyclesPerLine();
-        window.addEventListener("resize", () => {
-          const n = calcCyclesPerLine();
-          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
-        });
-
         const tp = pattern.tuplets;
         const bg = pattern.beatGroups;
+        let cyclesPerLine = calcCyclesPerLine(bg, pattern.subsPerBeat);
+        window.addEventListener("resize", () => {
+          const n = calcCyclesPerLine(bg, pattern.subsPerBeat);
+          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
+        });
         const beatsPerCyc = bpc(bg);
         const spb = pattern.subsPerBeat;
         const bStarts = groupBeatStarts(tp);
