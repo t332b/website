@@ -2,6 +2,7 @@
 // Embeddable read-only rhythm player.
 // Pattern data is loaded from the URL hash.
 // URL: /tools/rhythm-player/#<base64url-encoded-json>
+import "../../styles/rhythm-vars.css";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 ---
 
@@ -51,11 +52,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
       .rp-grid-area{flex:1;overflow-x:auto}
 
-      :root{--cell-h:22px;--lw:52px;--bar-h:16px;--beat-h:14px}
+      :root{--cell-h:22px;--lw:52px;--bar-h:16px;--group-h:14px;--beat-h:14px}
 
       .chunk-wrap{display:flex;margin-bottom:6px}
       .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
-      .side-spacer{height:calc(var(--bar-h) + var(--beat-h) + 4px)}
+      .side-spacer-2{height:calc(var(--bar-h) + var(--beat-h) + 4px)}
+      .side-spacer-3{height:calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px)}
       .side-row{height:var(--cell-h);display:flex;align-items:center}
       .side-label{width:var(--lw);min-width:0;overflow:hidden;font-size:.58rem;color:#555}
       .side-label span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
@@ -64,40 +66,84 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       .chunk-hdr{background:#f9f9f9;border-bottom:1px solid #bbb}
       .hdr-cells{display:grid;min-width:0}
       .hdr-cells.bar-hdr{border-bottom:1px solid #ddd}
+      .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
       .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:700;color:#666}
       .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .group-lbl{height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888}
+      .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
       .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#777}
       .beat-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
+      .beat-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
       .beat-lbl.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+      .beat-lbl.tuplet-lbl{background:#f0eaff}
 
       .chunk-body{}
       .chunk-cells{display:grid;min-width:0}
       .cell{height:var(--cell-h);background:#fff}
-      .cell.active{background:#5c6bc0}
-      .cell.bar-sep{box-shadow:inset 2px 0 0 0 #999}
-      .cell.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
-      .chunk-cells>.cell{border-right:1px solid #ddd;border-bottom:1px solid #ddd}
+      .cell.active{background:var(--rg-active)}
+      .cell.bar-sep{box-shadow:inset 2px 0 0 0 var(--rg-bar-sep)}
+      .cell.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
+      .cell.beat-sep{box-shadow:inset 1px 0 0 0 var(--rg-beat-sep)}
+      .chunk-cells>.cell{border-right:1px solid var(--rg-cell-border);border-bottom:1px solid var(--rg-cell-border)}
       .chunk-cells>.cell:last-child{border-right:none}
       .chunk-body>.chunk-cells:last-child .cell{border-bottom:none}
-      .cell.playhead{background:#fff3e0}
-      .cell.active.playhead{background:#ef6c00}
+      .cell.playhead{background:var(--rg-playhead)}
+      .cell.active.playhead{background:var(--rg-active-playhead)}
 
       @media(max-width:400px){
-        :root{--cell-h:20px;--lw:42px;--bar-h:14px;--beat-h:12px}
+        :root{--cell-h:20px;--lw:42px;--bar-h:14px;--group-h:12px;--beat-h:12px}
         .bar-lbl{font-size:.48rem}
+        .group-lbl{font-size:.44rem}
         .beat-lbl{font-size:.44rem}
         .side-label{font-size:.52rem}
       }
     </style>
 
     <script>
-      const SUBS_PER_BEAT = 4;
+      const DEFAULT_DIVS = 4;
       const SOUND_FILES = ["kick","snare","hihat","conga"] as const;
       const DEFAULT_SOUND = "conga";
       const BASE = document.body.dataset.base || "";
 
+      type TupletGroup = [number, number];
       interface Row { label: string; cells: boolean[] }
-      interface Pattern { title: string; bpm: number; numBars: number; beatsPerBar: number; rows: Row[] }
+      interface Pattern { title: string; bpm: number; numCycles: number; beatGroups: number[]; subsPerBeat: number; tuplets: TupletGroup[]; rows: Row[] }
+
+      function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+      function lcm(a: number, b: number): number { return (a / gcd(a, b)) * b; }
+      function bpc(groups: number[]): number { return groups.reduce((a, b) => a + b, 0); }
+      function cycleGroupStarts(groups: number[]): number[] {
+        const r = [0];
+        for (let i = 0; i < groups.length - 1; i++) r.push(r[r.length - 1] + groups[i]);
+        return r;
+      }
+      function beatToGroupIdx(beatInCycle: number, groups: number[]): number {
+        let acc = 0;
+        for (let i = 0; i < groups.length; i++) { acc += groups[i]; if (beatInCycle < acc) return i; }
+        return groups.length - 1;
+      }
+      function beatInGroup(beatInCycle: number, groups: number[]): number {
+        let acc = 0;
+        for (let i = 0; i < groups.length; i++) {
+          if (beatInCycle < acc + groups[i]) return beatInCycle - acc;
+          acc += groups[i];
+        }
+        return 0;
+      }
+      function totalCellCount(tp: TupletGroup[]): number { return tp.reduce((s, [, d]) => s + d, 0); }
+      function groupBeatStarts(tp: TupletGroup[]): number[] { const r: number[] = []; let b = 0; for (const [s] of tp) { r.push(b); b += s; } return r; }
+      function groupCellStarts(tp: TupletGroup[]): number[] { const r: number[] = []; let p = 0; for (const [, d] of tp) { r.push(p); p += d; } return r; }
+      function computeFrWidths(groups: TupletGroup[]): number[] {
+        let B = 1;
+        for (const [s, d] of groups) B = lcm(B, d / gcd(d, s));
+        const w: number[] = [];
+        for (const [s, d] of groups) { const fr = s * B / d; for (let i = 0; i < d; i++) w.push(fr); }
+        return w;
+      }
+      function defaultTuplets(totalBeats: number, divs: number): TupletGroup[] {
+        return Array.from({ length: totalBeats }, (): TupletGroup => [1, divs]);
+      }
 
       function hexToCells(hex: string): boolean[] {
         const cells: boolean[] = [];
@@ -119,19 +165,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           const hash = window.location.hash.slice(1);
           if (!hash) return null;
           const d = JSON.parse(fromBase64Url(hash));
-          if (!d.r || !d.n) return null;
+          if (!d.r || !(d.n || d.nc)) return null;
+          const bg: number[] = d.bg || [(d.bp && d.bp >= 1 && d.bp <= 32) ? d.bp : 4];
+          const nc = d.nc || d.n;
+          const spb = (d.sd && d.sd >= 1 && d.sd <= 12) ? d.sd : DEFAULT_DIVS;
+          const tp: TupletGroup[] = d.tp
+            ? d.tp.map((t: any): TupletGroup => [t[0], t[1]])
+            : defaultTuplets(nc * bpc(bg), spb);
           return {
             title: d.t || "", bpm: (d.b >= 40 && d.b <= 300) ? d.b : 120,
-            beatsPerBar: (d.bp && d.bp >= 1 && d.bp <= 12) ? d.bp : 4,
-            numBars: d.n,
+            beatGroups: bg, subsPerBeat: spb, numCycles: nc, tuplets: tp,
             rows: d.r.map((r: { l: string; c: string }) => ({ label: r.l, cells: hexToCells(r.c) })),
           };
         } catch { return null; }
       }
 
-      function calcBarsPerLine(): number {
-        return window.innerWidth < 370 ? 1 : 2;
-      }
+      function calcCyclesPerLine(): number { return window.innerWidth < 370 ? 1 : 2; }
 
       const pattern = loadPattern();
       if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
@@ -153,53 +202,128 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           bpmInput.value = String(bpm);
         });
 
-        let barsPerLine = calcBarsPerLine();
+        let cyclesPerLine = calcCyclesPerLine();
         window.addEventListener("resize", () => {
-          const n = calcBarsPerLine();
-          if (n !== barsPerLine) { barsPerLine = n; renderGrid(); }
+          const n = calcCyclesPerLine();
+          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
         });
 
-        const cpb = pattern.beatsPerBar * SUBS_PER_BEAT;
+        const tp = pattern.tuplets;
+        const bg = pattern.beatGroups;
+        const beatsPerCyc = bpc(bg);
+        const spb = pattern.subsPerBeat;
+        const bStarts = groupBeatStarts(tp);
+        const cStarts = groupCellStarts(tp);
+        const multiGroup = bg.length > 1;
+        const spacerCls = multiGroup ? "side-spacer-3" : "side-spacer-2";
 
         function renderGrid() {
-          const numChunks = Math.ceil(pattern!.numBars / barsPerLine);
+          const chunks: { startGi: number; endGi: number; startCycle: number }[] = [];
+          let gi0 = 0, csc = 0;
+          while (gi0 < tp.length) {
+            const cec = Math.min(csc + cyclesPerLine, pattern!.numCycles);
+            const ceBeat = cec * beatsPerCyc;
+            let eg = gi0;
+            while (eg < tp.length && bStarts[eg] < ceBeat) eg++;
+            chunks.push({ startGi: gi0, endGi: eg, startCycle: csc });
+            gi0 = eg; csc = cec;
+          }
+
           let html = "";
+          for (const ch of chunks) {
+            const chGroups = tp.slice(ch.startGi, ch.endGi);
+            const chCellStart = cStarts[ch.startGi];
+            const frW = computeFrWidths(chGroups);
+            const cols = frW.map(f => `${f}fr`).join(" ");
 
-          for (let chunk = 0; chunk < numChunks; chunk++) {
-            const startBar = chunk * barsPerLine;
-            const endBar = Math.min(startBar + barsPerLine, pattern!.numBars);
-            const barsInChunk = endBar - startBar;
-            const cellsInChunk = barsInChunk * cpb;
-            const startCell = startBar * cpb;
-            const cols = `repeat(${cellsInChunk},1fr)`;
+            const cellCycles: number[] = [];
+            const cellBGIdx: number[] = [];
+            for (let lgi = 0; lgi < chGroups.length; lgi++) {
+              const [s, d] = chGroups[lgi];
+              const gbs = bStarts[ch.startGi + lgi];
+              for (let c = 0; c < d; c++) {
+                const bp = gbs + (c + 0.5) / d * s;
+                cellCycles.push(Math.floor(bp / beatsPerCyc));
+                cellBGIdx.push(beatToGroupIdx(Math.floor(bp % beatsPerCyc), bg));
+              }
+            }
 
-            html += `<div class="chunk-wrap">`;
+            const chunkCycles: number[] = [];
+            const cycleColCounts = new Map<number, number>();
+            for (const cyc of cellCycles) {
+              if (!cycleColCounts.has(cyc)) { chunkCycles.push(cyc); cycleColCounts.set(cyc, 0); }
+              cycleColCounts.set(cyc, cycleColCounts.get(cyc)! + 1);
+            }
 
-            html += `<div class="chunk-side">`;
-            html += `<div class="side-spacer"></div>`;
+            html += `<div class="chunk-wrap"><div class="chunk-side"><div class="${spacerCls}"></div>`;
             for (const row of pattern!.rows) {
               html += `<div class="side-row"><div class="side-label"><span title="${esc(row.label)}">${esc(row.label)}</span></div></div>`;
             }
             html += `</div>`;
 
-            html += `<div class="chunk">`;
-            html += `<div class="chunk-hdr">`;
+            html += `<div class="chunk"><div class="chunk-hdr">`;
             html += `<div class="hdr-cells bar-hdr" style="grid-template-columns:${cols}">`;
-            for (let b = startBar; b < endBar; b++) {
-              const sep = b > startBar ? " bar-sep" : "";
-              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cpb}">${b + 1}小節</div>`;
+            for (let bi = 0; bi < chunkCycles.length; bi++) {
+              const cyc = chunkCycles[bi];
+              const sep = bi > 0 ? " bar-sep" : "";
+              html += `<div class="bar-lbl${sep}" style="grid-column:span ${cycleColCounts.get(cyc)}">サイクル${cyc + 1}</div>`;
             }
             html += `</div>`;
-            html += `<div class="hdr-cells beat-hdr" style="grid-template-columns:${cols}">`;
-            for (let b = startBar; b < endBar; b++) {
-              for (let beat = 0; beat < pattern!.beatsPerBar; beat++) {
-                const isBar = beat === 0 && b > startBar;
-                const isBeat = beat > 0;
-                let cls = "beat-lbl";
-                if (isBar) cls += " bar-sep";
-                else if (isBeat) cls += " beat-sep";
-                html += `<div class="${cls}" style="grid-column:span ${SUBS_PER_BEAT}">${beat + 1}拍</div>`;
+
+            if (multiGroup) {
+              type GI = { cycIdx: number; grpIdx: number; colCount: number; beats: number };
+              const grpInfos: GI[] = [];
+              let prevGK = "";
+              for (let i = 0; i < cellCycles.length; i++) {
+                const key = `${cellCycles[i]}_${cellBGIdx[i]}`;
+                if (key !== prevGK) {
+                  grpInfos.push({ cycIdx: cellCycles[i], grpIdx: cellBGIdx[i], colCount: 1, beats: bg[cellBGIdx[i]] });
+                  prevGK = key;
+                } else {
+                  grpInfos[grpInfos.length - 1].colCount++;
+                }
               }
+              html += `<div class="hdr-cells group-hdr" style="grid-template-columns:${cols}">`;
+              for (let gi2 = 0; gi2 < grpInfos.length; gi2++) {
+                const ginfo = grpInfos[gi2];
+                let cls = "group-lbl";
+                if (gi2 > 0) {
+                  const prev = grpInfos[gi2 - 1];
+                  cls += ginfo.cycIdx !== prev.cycIdx ? " bar-sep" : " group-sep";
+                }
+                html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">グループ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</div>`;
+              }
+              html += `</div>`;
+            }
+
+            html += `<div class="hdr-cells beat-hdr" style="grid-template-columns:${cols}">`;
+            for (let lgi = 0; lgi < chGroups.length; lgi++) {
+              const [s, d] = chGroups[lgi];
+              const gbs = bStarts[ch.startGi + lgi];
+              const bInCyc = gbs % beatsPerCyc;
+              const bInG = beatInGroup(bInCyc, bg);
+              let cls = "beat-lbl";
+              if (lgi > 0) {
+                const prevGbs = bStarts[ch.startGi + lgi - 1];
+                const prevBInCyc = prevGbs % beatsPerCyc;
+                if (Math.floor(gbs / beatsPerCyc) !== Math.floor(prevGbs / beatsPerCyc)) cls += " bar-sep";
+                else if (beatToGroupIdx(bInCyc, bg) !== beatToGroupIdx(prevBInCyc, bg)) cls += " group-sep";
+                else cls += " beat-sep";
+              }
+              if (!(s === 1 && d === spb)) cls += " tuplet-lbl";
+              let label: string;
+              if (s === 1) {
+                label = d === spb ? `${bInG + 1}拍` : `${bInG + 1}拍(${d}連)`;
+              } else {
+                const endBInCyc = (gbs + s - 1) % beatsPerCyc;
+                const endBInG = beatInGroup(endBInCyc, bg);
+                if (beatToGroupIdx(bInCyc, bg) !== beatToGroupIdx(endBInCyc, bg)) {
+                  label = `${bInG + 1}拍〜(${d}連)`;
+                } else {
+                  label = `${bInG + 1}-${endBInG + 1}拍(${d}連)`;
+                }
+              }
+              html += `<div class="${cls}" style="grid-column:span ${d}">${label}</div>`;
             }
             html += `</div></div>`;
 
@@ -207,16 +331,21 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             for (let r = 0; r < pattern!.rows.length; r++) {
               const row = pattern!.rows[r];
               html += `<div class="chunk-cells" style="grid-template-columns:${cols}">`;
-              for (let c = 0; c < cellsInChunk; c++) {
-                const globalC = startCell + c;
-                const inBar = c % cpb;
-                const isBarBound = inBar === 0 && c > 0;
-                const isBeatBound = inBar % SUBS_PER_BEAT === 0 && !isBarBound && c > 0;
-                let cls = "cell";
-                if (isBarBound) cls += " bar-sep";
-                else if (isBeatBound) cls += " beat-sep";
-                if (row.cells[globalC]) cls += " active";
-                html += `<div class="${cls}" data-r="${r}" data-c="${globalC}"></div>`;
+              let localIdx = 0;
+              for (let lgi = 0; lgi < chGroups.length; lgi++) {
+                const [, d] = chGroups[lgi];
+                for (let c = 0; c < d; c++) {
+                  const gc = chCellStart + localIdx;
+                  let cls = "cell";
+                  if (localIdx > 0) {
+                    if (cellCycles[localIdx] !== cellCycles[localIdx - 1]) cls += " bar-sep";
+                    else if (cellBGIdx[localIdx] !== cellBGIdx[localIdx - 1]) cls += " group-sep";
+                    else if (c === 0) cls += " beat-sep";
+                  }
+                  if (row.cells[gc]) cls += " active";
+                  html += `<div class="${cls}" data-r="${r}" data-c="${gc}"></div>`;
+                  localIdx++;
+                }
               }
               html += `</div>`;
             }
@@ -229,7 +358,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         renderGrid();
 
         /* Audio */
-        const totalCells = pattern.numBars * cpb;
+        const tCells = totalCellCount(tp);
         let audioCtx: AudioContext | null = null;
         const soundBuffers = new Map<string, AudioBuffer>();
         let isPlaying = false;
@@ -238,19 +367,27 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         let playStartTime = 0;
         let schedulerTimer: number | null = null;
         let phRAF: number | null = null;
+        let stepDurs: number[] = [];
+        let cumT: number[] = [];
+
+        function rebuildTiming() {
+          const spbTime = 60 / bpm;
+          stepDurs = []; cumT = [0];
+          for (const [span, divs] of tp) {
+            const v = spbTime * span / divs;
+            for (let i = 0; i < divs; i++) { stepDurs.push(v); cumT.push(cumT[cumT.length - 1] + v); }
+          }
+        }
 
         function trimSilence(buffer: AudioBuffer): AudioBuffer {
           const ch0 = buffer.getChannelData(0);
           let start = 0;
-          for (let i = 0; i < ch0.length; i++) {
-            if (Math.abs(ch0[i]) > 0.005) { start = i; break; }
-          }
+          for (let i = 0; i < ch0.length; i++) { if (Math.abs(ch0[i]) > 0.005) { start = i; break; } }
           if (start === 0) return buffer;
           const len = buffer.length - start;
           const trimmed = audioCtx!.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
-          for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+          for (let ch = 0; ch < buffer.numberOfChannels; ch++)
             trimmed.getChannelData(ch).set(buffer.getChannelData(ch).subarray(start));
-          }
           return trimmed;
         }
 
@@ -289,8 +426,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
 
         function advanceStep() {
-          nextNoteTime += 60 / bpm / SUBS_PER_BEAT;
-          currentStep = (currentStep + 1) % totalCells;
+          nextNoteTime += stepDurs[currentStep];
+          currentStep = (currentStep + 1) % tCells;
         }
 
         function scheduler() {
@@ -301,14 +438,18 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
         function updatePH() {
           if (!isPlaying || !audioCtx) return;
-          const step = Math.floor((audioCtx.currentTime - playStartTime) / (60 / bpm / SUBS_PER_BEAT)) % totalCells;
+          const loopDur = cumT[tCells];
+          const elapsed = ((audioCtx.currentTime - playStartTime) % loopDur + loopDur) % loopDur;
+          let lo = 0, hi = tCells - 1;
+          while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (cumT[mid] <= elapsed) lo = mid; else hi = mid - 1; }
           rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-          rpGrid.querySelectorAll(`.cell[data-c="${step}"]`).forEach(el => el.classList.add("playhead"));
+          rpGrid.querySelectorAll(`.cell[data-c="${lo}"]`).forEach(el => el.classList.add("playhead"));
           phRAF = requestAnimationFrame(updatePH);
         }
 
         async function startPlay() {
           await ensureAudio();
+          rebuildTiming();
           isPlaying = true; currentStep = 0;
           nextNoteTime = audioCtx!.currentTime + 0.05;
           playStartTime = nextNoteTime;
@@ -325,6 +466,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
 
         playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
+
+        document.addEventListener("visibilitychange", () => { if (document.hidden && isPlaying) stopPlay(); });
+        window.addEventListener("pagehide", () => { if (isPlaying) stopPlay(); audioCtx?.close(); });
       }
     </script>
   </body>

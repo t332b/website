@@ -259,6 +259,14 @@ import Layout from "../layouts/Layout.astro";
       }
     }
 
+    function cleanup() {
+      if (!isPlaying) return;
+      stopLoop();
+      trigger.classList.remove("playing");
+      codeEl?.classList.remove("rave");
+      isPlaying = false;
+    }
+
     trigger.addEventListener("click", async () => {
       if (audioCtx.state === "suspended") await audioCtx.resume();
 
@@ -268,11 +276,20 @@ import Layout from "../layouts/Layout.astro";
         codeEl?.classList.add("rave");
         isPlaying = true;
       } else {
-        stopLoop();
-        trigger.classList.remove("playing");
-        codeEl?.classList.remove("rave");
-        isPlaying = false;
+        cleanup();
       }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) cleanup();
+    });
+    window.addEventListener("pagehide", () => {
+      cleanup();
+      audioCtx.close();
+    });
+    document.addEventListener("astro:before-swap", () => {
+      cleanup();
+      audioCtx.close();
     });
   });
 </script>
