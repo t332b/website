@@ -483,15 +483,6 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
         }
       });
     </script>
-    <script>
-      window.addEventListener("message", (e) => {
-        if (e.data?.type === "rp-resize" && typeof e.data.height === "number") {
-          document.querySelectorAll("iframe").forEach((f) => {
-            if (f.contentWindow === e.source) f.style.height = e.data.height + "px";
-          });
-        }
-      });
-    </script>
   </body>
 </html>
 
