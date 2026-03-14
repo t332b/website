@@ -1083,7 +1083,9 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         const cellsPerCyc = bpc(bg) * state.subsPerBeat;
         const cpl = cellsPerCyc > 16 ? 1 : 2;
         const numChunks = Math.ceil(state.numCycles / cpl);
-        const h = 48 + numChunks * (54 + state.rows.length * 22 + 10);
+        const multiGrp = bg.length > 1;
+        const hdrH = multiGrp ? 62 : 54;
+        const h = 52 + numChunks * (hdrH + state.rows.length * 22 + 12);
         return `<iframe src="${ORIGIN}${BASE}/tools/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
       }
 
