@@ -1086,7 +1086,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         const multiGrp = bg.length > 1;
         const hdrH = multiGrp ? 62 : 54;
         const h = 52 + numChunks * (hdrH + state.rows.length * 22 + 12);
-        const iframeTag = `<iframe src="${ORIGIN}${BASE}/tools/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
+        const iframeTag = `<iframe src="${ORIGIN}${BASE}/lab/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
         const resizeScript = `<script>if(!window._rpR){window._rpR=1;window.addEventListener("message",e=>{if(e.data?.type==="rp-resize")document.querySelectorAll("iframe").forEach(f=>{if(f.contentWindow===e.source)f.style.height=e.data.height+"px"})})}<\/script>`;
         return iframeTag + "\n" + resizeScript;
       }
