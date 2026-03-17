@@ -1,0 +1,71 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const labs = [
+  { href: `${base}lab/rhythm-grid/`, title: "Rhythm Grid" },
+  // { href: `${base}lab/cheap-cave/`, title: "Cheap Cave" },
+  { href: `${base}lab/midi-key-monitor/`, title: "MIDI Key Monitor" },
+];
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lab</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/x-icon" href={`${base}/images/favicon.ico`} />
+    <style>
+      :root { color-scheme: dark; }
+      * , *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; min-height: 100vh; }
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #020617;
+        color: #e5e7eb;
+        padding: 32px 20px 40px;
+        display: flex;
+        justify-content: center;
+      }
+      .wrap { width: 100%; max-width: 720px; }
+      .title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0 0 16px;
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .item-link {
+        display: inline-block;
+        padding: 6px 0;
+        color: inherit;
+        text-decoration: none;
+      }
+      .item-link:hover {
+        text-decoration: underline;
+      }
+      @media (max-width: 640px) {
+        body { padding: 24px 14px 32px; }
+        .title { font-size: 1.2rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 class="title">Lab</h1>
+      <ul class="list">
+        {labs.map((lab) => (
+          <li>
+            <a class="item-link" href={lab.href}>{lab.title}</a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </body>
+</html>
+
