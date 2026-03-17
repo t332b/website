@@ -1,0 +1,747 @@
+---
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MIDI Key Monitor</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/x-icon" href={`${base}/images/favicon.ico`} />
+    <style is:global>
+      :root {
+        --bg: #ffffff;
+        --ink: #111827;
+        --muted: #6b7280;
+        --card: #fbfbfc;
+        --border: rgba(15, 23, 42, 0.12);
+        --shadow: 0 18px 50px rgba(2, 6, 23, 0.08);
+
+        /* State colors (3 independent signals) */
+        --scale-fill: #e0f2fe; /* cyan-100 */
+        --scale-ink: #075985;  /* cyan-800 */
+        --chord-ring: #a78bfa; /* violet-400 */
+        --pressed-glow: #fb7185; /* rose-400 */
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      body {
+        padding: 18px 14px 56px;
+        background:
+          radial-gradient(1200px 700px at 10% -10%, rgba(167, 139, 250, 0.18), transparent 55%),
+          radial-gradient(900px 600px at 100% 0%, rgba(14, 165, 233, 0.14), transparent 56%),
+          radial-gradient(900px 600px at 50% 120%, rgba(251, 113, 133, 0.12), transparent 55%),
+          var(--bg);
+      }
+
+      .topbar {
+        max-width: 1100px;
+        margin: 0 auto 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .topbar h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: 0.02em; }
+      .topbar-actions { display: flex; align-items: center; gap: 10px; }
+      .btn {
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.82);
+        color: var(--ink);
+        border-radius: 12px;
+        padding: 8px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        backdrop-filter: blur(10px);
+      }
+      .btn:hover { background: rgba(255,255,255,.96); }
+      .toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.82);
+        border-radius: 12px;
+        padding: 8px 10px;
+        font-size: 13px;
+        cursor: pointer;
+        user-select: none;
+        backdrop-filter: blur(10px);
+      }
+      .toggle input { margin: 0; }
+
+      .grid {
+        max-width: 1100px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 12px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px;
+        box-shadow: var(--shadow);
+      }
+      .card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      label { font-size: 12px; color: var(--muted); }
+      select {
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.88);
+        border-radius: 12px;
+        padding: 6px 8px;
+        font-size: 13px;
+        color: var(--ink);
+      }
+      .degrees { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 10px; }
+      .deg-btn {
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.9);
+        border-radius: 999px;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .deg-btn.is-active {
+        border-color: rgba(167, 139, 250, 0.9);
+        background: rgba(167, 139, 250, 0.16);
+        color: #4c1d95;
+        box-shadow: 0 10px 25px rgba(167, 139, 250, 0.22);
+      }
+
+      .piano-wrap { overflow-x: auto; padding-bottom: 6px; }
+      .piano {
+        position: relative;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.82);
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 14px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.5), 0 14px 40px rgba(2, 6, 23, 0.10);
+        backdrop-filter: blur(10px);
+      }
+      .key {
+        position: absolute;
+        top: 0;
+        border: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .key-dot {
+        position: absolute;
+        left: 50%;
+        bottom: 10px;
+        transform: translateX(-50%);
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        background: #f59e0b; /* yellow */
+        box-shadow: 0 6px 16px rgba(245, 158, 11, 0.18);
+        opacity: 0;
+      }
+      .black-key .key-dot {
+        bottom: 8px;
+        width: 10px;
+        height: 10px;
+        box-shadow: 0 6px 16px rgba(245, 158, 11, 0.14);
+      }
+      .key.in-scale .key-dot { opacity: 1; }
+      .key.is-tonic .key-dot {
+        background: #ef4444; /* red */
+        box-shadow: 0 8px 18px rgba(239, 68, 68, 0.20);
+      }
+      .white-key {
+        background: #fff;
+        border: 2px solid rgba(15, 23, 42, 0.5);
+        border-radius: 0 0 6px 6px;
+        z-index: 1;
+        box-shadow: inset 0 -10px 18px rgba(15, 23, 42, 0.06);
+      }
+      .black-key {
+        background: linear-gradient(180deg, #0b1220 0%, #101b31 100%);
+        border-radius: 0 0 5px 5px;
+        z-index: 2;
+        box-shadow: inset 0 -10px 18px rgba(255, 255, 255, 0.06), 0 8px 18px rgba(2, 6, 23, 0.22);
+      }
+
+      /* ---- 3-state visuals (scale/chord/pressed are independent) ---- */
+      /* Scale: dot only (no key fill) */
+      .key.in-scale.white-key { background: #fff; }
+      .key.in-scale.black-key { background: linear-gradient(180deg, #0b1220 0%, #101b31 100%); }
+
+      /* Chord: ring + subtle diagonal stripe overlay (still readable with scale fill) */
+      .key.in-chord { box-shadow: inset 0 0 0 2px rgba(167, 139, 250, 0.95); }
+      .key.in-chord::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(
+            135deg,
+            rgba(167, 139, 250, 0.0) 0px,
+            rgba(167, 139, 250, 0.0) 6px,
+            rgba(167, 139, 250, 0.18) 6px,
+            rgba(167, 139, 250, 0.18) 10px
+          );
+        mix-blend-mode: multiply;
+      }
+
+      /* Pressed: glow + offset (works on top of scale+chord) */
+      .key.is-pressed {
+        transform: translateY(1px);
+        box-shadow:
+          /* red border ring (pressed should read instantly) */
+          inset 0 0 0 2px rgba(251, 113, 133, 0.95),
+          /* keep chord ring subtly under the red when both apply */
+          0 0 0 1px rgba(167, 139, 250, 0.35),
+          /* balanced glow (not top-heavy) */
+          0 10px 26px rgba(251, 113, 133, 0.22),
+          0 0 22px rgba(251, 113, 133, 0.18);
+      }
+      .key.is-pressed::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.30), rgba(251, 113, 133, 0.0) 72%);
+      }
+
+      .summary {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .summary-title { font-size: 12px; color: var(--muted); white-space: nowrap; }
+      .summary-piano {
+        position: relative;
+        height: 56px;
+        flex: 1 1 auto;
+        background: rgba(255,255,255,.85);
+        border: 1px solid rgba(15, 23, 42, 0.18);
+        border-radius: 12px;
+        overflow: hidden;
+        min-width: 240px;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.5);
+      }
+      .skey { position: absolute; top: 0; border: 1px solid rgba(15, 23, 42, 0.5); }
+      .swhite { background: #fff; height: 56px; z-index: 1; }
+      .sblack { background: #111827; height: 34px; z-index: 2; border-top: none; }
+
+      /* Summary: scale fill disabled (dot is on main keyboard only) */
+      .skey.in-scale.swhite { background: #fff; }
+      .skey.in-scale.sblack { background: #111827; }
+      .skey.in-chord { box-shadow: inset 0 0 0 2px rgba(167, 139, 250, 0.95); }
+      .skey.is-pressed { box-shadow: inset 0 0 0 2px rgba(167, 139, 250, 0.95), 0 0 0 2px rgba(251, 113, 133, 0.20); }
+    </style>
+  </head>
+  <body>
+    <div class="topbar">
+      <h1>Lab / MIDI Key Monitor</h1>
+      <div class="topbar-actions">
+        <button class="btn" id="addKeyboardBtn" type="button">Add keyboard</button>
+        <label class="toggle" for="soundToggle">
+          <input id="soundToggle" type="checkbox" checked />
+          Sound
+        </label>
+      </div>
+    </div>
+
+    <div class="grid" id="keyboardGrid"></div>
+
+    <script>
+      // @ts-nocheck
+      const NOTE_NAMES_FLAT = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+      const NAME_TO_PC = Object.fromEntries(NOTE_NAMES_FLAT.map((n,i)=>[n,i]));
+      const SCALE_TYPES = {
+        major: { label: "Major", intervals: [0,2,4,5,7,9,11] },
+        minor: { label: "Minor", intervals: [0,2,3,5,7,8,10] },
+      };
+      const NOTE_NAMES_SHARP = ["C","Cs","D","Ds","E","F","Fs","G","Gs","A","As","B"];
+      function midiToNote(midi) {
+        const octave = Math.floor(midi / 12) - 1;
+        const pitch = NOTE_NAMES_SHARP[midi % 12];
+        return pitch + String(octave);
+      }
+      function midiToPc(midi) { return ((midi % 12) + 12) % 12; }
+      function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+
+      function buildScalePcs(rootPc, scaleType) {
+        const intervals = SCALE_TYPES[scaleType].intervals;
+        const set = new Set(intervals.map((i)=> (rootPc + i) % 12));
+        return { intervals, set };
+      }
+      function chordFromDegree(rootPc, scaleType, degreeIdx, add7) {
+        const scale = SCALE_TYPES[scaleType].intervals.map((i)=> (rootPc + i) % 12);
+        const r = scale[degreeIdx % 7];
+        const t = scale[(degreeIdx + 2) % 7];
+        const f = scale[(degreeIdx + 4) % 7];
+        const s = add7 ? scale[(degreeIdx + 6) % 7] : null;
+        const rel = (x) => (x - r + 12) % 12;
+        const third = rel(t);
+        const fifth = rel(f);
+        const seventh = s == null ? null : rel(s);
+
+        let triadQuality = "maj";
+        if (third === 4 && fifth === 7) triadQuality = "maj";
+        else if (third === 3 && fifth === 7) triadQuality = "min";
+        else if (third === 3 && fifth === 6) triadQuality = "dim";
+        else triadQuality = "other";
+
+        let ext = "";
+        if (!add7) {
+          if (triadQuality === "min") ext = "m";
+          else if (triadQuality === "dim") ext = "dim";
+          else ext = "";
+        } else {
+          if (triadQuality === "maj") {
+            if (seventh === 10) ext = "7";
+            else if (seventh === 11) ext = "Δ7";
+            else ext = "7";
+          } else if (triadQuality === "min") {
+            if (seventh === 10) ext = "m7";
+            else if (seventh === 11) ext = "mΔ7";
+            else ext = "m7";
+          } else if (triadQuality === "dim") {
+            // diminished seventh family:
+            // 0,3,6,9  -> dim7 (full diminished)
+            // 0,3,6,10 -> φ  (half diminished)
+            if (seventh === 9) ext = "dim7";
+            else if (seventh === 10) ext = "φ";
+            else ext = "dim7";
+          } else {
+            ext = "7";
+          }
+        }
+
+        const pcs = new Set([r, t, f]);
+        if (s != null) pcs.add(s);
+        return { pcs, rootPc: r, triadQuality, seventh, ext };
+      }
+
+      // Audio engine (based on existing piano sounds)
+      const audio = { enabled: true, ctx: null, master: null, buffers: new Map(), loading: new Map(), active: new Map(), loopPoints: null, loopLoaded: false };
+      function getAudioContext() {
+        if (audio.ctx) return audio.ctx;
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return null;
+        audio.ctx = new Ctor({ latencyHint: "interactive" });
+        audio.master = audio.ctx.createGain();
+        audio.master.gain.value = 0.9;
+        audio.master.connect(audio.ctx.destination);
+        return audio.ctx;
+      }
+      async function ensureLoopPoints() {
+        if (audio.loopLoaded) return;
+        try {
+          const res = await fetch("/sounds/piano/loop-points.json", { cache: "no-store" });
+          audio.loopPoints = res.ok ? await res.json() : {};
+        } catch { audio.loopPoints = {}; }
+        audio.loopLoaded = true;
+      }
+      function resolveLoop(note, duration) {
+        const defaults = (audio.loopPoints && audio.loopPoints._default) || {};
+        const cfg = (audio.loopPoints && audio.loopPoints[note]) || {};
+        const loopStart = clamp(cfg.loopStart ?? defaults.loopStart ?? 0.08, 0, Math.max(0, duration - 0.03));
+        const reqEnd = cfg.loopEnd ?? defaults.loopEnd ?? (duration - (cfg.loopEndOffset ?? defaults.loopEndOffset ?? 0.02));
+        const loopEnd = clamp(reqEnd, loopStart + 0.01, duration);
+        const release = clamp(cfg.release ?? defaults.release ?? 0.05, 0.005, 0.3);
+        const gain = clamp(cfg.gain ?? defaults.gain ?? 1, 0, 1);
+        return { loopStart, loopEnd, release, gain };
+      }
+      async function loadBuffer(note) {
+        const cached = audio.buffers.get(note);
+        if (cached) return cached;
+        const inflight = audio.loading.get(note);
+        if (inflight) return inflight;
+        const p = (async () => {
+          const ctx = getAudioContext();
+          if (!ctx) throw new Error("AudioContext unavailable");
+          const res = await fetch("/sounds/piano/audio/" + note + ".mp3");
+          if (!res.ok) throw new Error("missing audio " + note);
+          const ab = await res.arrayBuffer();
+          const buf = await ctx.decodeAudioData(ab.slice(0));
+          audio.buffers.set(note, buf);
+          return buf;
+        })();
+        audio.loading.set(note, p);
+        try { return await p; } finally { audio.loading.delete(note); }
+      }
+      function stopVoice(note) {
+        const v = audio.active.get(note);
+        if (!v) return;
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const cur = v.gain.gain.value;
+        v.gain.gain.cancelScheduledValues(now);
+        v.gain.gain.setValueAtTime(cur, now);
+        v.gain.gain.linearRampToValueAtTime(0, now + v.release);
+        try { v.src.stop(now + v.release + 0.02); } catch {}
+        audio.active.delete(note);
+      }
+      async function noteOn(note) {
+        if (!audio.enabled) return;
+        await ensureLoopPoints();
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        if (ctx.state === "suspended") await ctx.resume();
+        const buf = await loadBuffer(note);
+        stopVoice(note);
+        const loop = resolveLoop(note, buf.duration);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.loop = true;
+        src.loopStart = loop.loopStart;
+        src.loopEnd = loop.loopEnd;
+        const gain = ctx.createGain();
+        const now = ctx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(loop.gain, now + 0.004);
+        src.connect(gain);
+        gain.connect(audio.master || ctx.destination);
+        src.start(now, 0);
+        src.onended = () => { if (audio.active.get(note)?.src === src) audio.active.delete(note); };
+        audio.active.set(note, { src, gain, release: loop.release });
+      }
+      function noteOff(note) { if (!audio.enabled) return; stopVoice(note); }
+
+      const activeMidi = new Set();
+      let keyboardSeq = 0;
+      const keyboards = [];
+
+      function isPcPressed(pc) { for (const midi of activeMidi) if (midiToPc(midi) === pc) return true; return false; }
+
+      function createKeyboardState() {
+        return { id: "kb_" + (++keyboardSeq), rootName: "C", scaleType: "major", selectedDegree: null, add7: false, keyCount: 24, startMidi: 48 };
+      }
+      function buildRootSelect(selected) {
+        const sel = document.createElement("select");
+        for (const n of NOTE_NAMES_FLAT) { const o = document.createElement("option"); o.value=n; o.textContent=n; if (n===selected) o.selected=true; sel.appendChild(o); }
+        return sel;
+      }
+      function buildScaleTypeSelect(selected) {
+        const sel = document.createElement("select");
+        for (const [k,v] of Object.entries(SCALE_TYPES)) { const o=document.createElement("option"); o.value=k; o.textContent=v.label; if (k===selected) o.selected=true; sel.appendChild(o); }
+        return sel;
+      }
+      function buildKeyCountSelect(selected) {
+        const sel = document.createElement("select");
+        const opts = [12, 24, 36, 49, 61, 76, 88];
+        for (const n of opts) { const o=document.createElement("option"); o.value=String(n); o.textContent=String(n); if (n===selected) o.selected=true; sel.appendChild(o); }
+        return sel;
+      }
+
+      function renderDegreeButtons(state, host) {
+        host.innerHTML = "";
+        const rootPc = NAME_TO_PC[state.rootName];
+        for (let d=0; d<7; d++) {
+          const chord = chordFromDegree(rootPc, state.scaleType, d, state.add7);
+          let label = ["I","II","III","IV","V","VI","VII"][d] + chord.ext;
+          const btn = document.createElement("button");
+          btn.type="button";
+          btn.className = "deg-btn" + (state.selectedDegree===d ? " is-active" : "");
+          btn.textContent = label;
+          btn.addEventListener("click", () => { state.selectedDegree = (state.selectedDegree===d) ? null : d; updateKeyboardVisuals(state); });
+          host.appendChild(btn);
+        }
+      }
+
+      function renderSummary(summaryEl, state) {
+        summaryEl.innerHTML = "";
+        const rootPc = NAME_TO_PC[state.rootName];
+        const scale = buildScalePcs(rootPc, state.scaleType);
+        const chordPcs = state.selectedDegree===null ? new Set() : chordFromDegree(rootPc, state.scaleType, state.selectedDegree, state.add7).pcs;
+
+        const w = 34;
+        const whiteKeys = ["C","D","E","F","G","A","B"];
+        const blackAt = { "Db": 1, "Eb": 2, "Gb": 4, "Ab": 5, "Bb": 6 };
+        summaryEl.style.width = String(w*7) + "px";
+
+        for (let i=0;i<whiteKeys.length;i++) {
+          const name = whiteKeys[i];
+          const pc = NAME_TO_PC[name];
+          const el = document.createElement("div");
+          el.className = "skey swhite";
+          el.dataset.pc = String(pc);
+          el.style.left = String(i*w) + "px";
+          el.style.width = String(w) + "px";
+          if (scale.set.has(pc)) el.classList.add("in-scale");
+          if (chordPcs.has(pc)) el.classList.add("in-chord");
+          if (isPcPressed(pc)) el.classList.add("is-pressed");
+          summaryEl.appendChild(el);
+        }
+        for (const [name, idx] of Object.entries(blackAt)) {
+          const pc = NAME_TO_PC[name];
+          const el = document.createElement("div");
+          el.className = "skey sblack";
+          el.dataset.pc = String(pc);
+          el.style.width = String(w*0.6) + "px";
+          el.style.left = String(idx*w - (w*0.6)/2) + "px";
+          if (scale.set.has(pc)) el.classList.add("in-scale");
+          if (chordPcs.has(pc)) el.classList.add("in-chord");
+          if (isPcPressed(pc)) el.classList.add("is-pressed");
+          summaryEl.appendChild(el);
+        }
+      }
+
+      function renderKeyboardKeys(pianoEl, state) {
+        pianoEl.innerHTML = "";
+        const notes = Array.from({ length: state.keyCount }, (_,i)=> state.startMidi + i);
+        const whiteCount = notes.filter(m => !NOTE_NAMES_SHARP[m%12].includes("s")).length;
+        const targetWidth = Math.min(980, Math.max(360, (pianoEl.parentElement?.getBoundingClientRect().width || 420) - 24));
+        const whiteW = clamp(targetWidth / whiteCount, 18, 44);
+        const blackW = whiteW * 0.6;
+        const blackHalf = blackW / 2;
+        const gapAdjust = whiteW / 20;
+        const whiteH = clamp(whiteW * 4.7, 78, 150);
+        const blackH = whiteH * 0.58;
+        // Use integer layout with cumulative positions to avoid 1px seams from rounding.
+        const totalWhitePx = Math.round(whiteCount * whiteW);
+        const baseWhitePx = Math.floor(totalWhitePx / whiteCount);
+        const remainder = totalWhitePx - baseWhitePx * whiteCount; // distribute +1px to first N keys
+        const whiteWidths = Array.from({ length: whiteCount }, (_, idx) => baseWhitePx + (idx < remainder ? 1 : 0));
+
+        pianoEl.style.width = String(totalWhitePx) + "px";
+        pianoEl.style.height = String(Math.round(whiteH)) + "px";
+
+        let whiteIndex = 0;
+        let whiteLeftPx = 0;
+        for (const midi of notes) {
+          const noteName = NOTE_NAMES_SHARP[midi%12];
+          const isBlack = noteName.includes("s");
+          const btn = document.createElement("button");
+          btn.type="button";
+          btn.className = "key " + (isBlack ? "black-key" : "white-key");
+          btn.dataset.midi = String(midi);
+          btn.dataset.pc = String(midiToPc(midi));
+          const dot = document.createElement("span");
+          dot.className = "key-dot";
+          btn.appendChild(dot);
+          btn.style.height = String(Math.round(isBlack ? blackH : whiteH)) + "px";
+          btn.style.width = String(Math.round(isBlack ? blackW : whiteW)) + "px";
+          if (isBlack) {
+            // Place black key relative to the left edge of the next white slot.
+            let left = whiteLeftPx - blackHalf;
+            if (noteName==="Cs" || noteName==="Fs") left -= gapAdjust;
+            if (noteName==="Ds" || noteName==="As") left += gapAdjust;
+            btn.style.left = String(Math.round(left)) + "px";
+          } else {
+            const wpx = whiteWidths[whiteIndex] ?? baseWhitePx;
+            btn.style.width = String(wpx) + "px";
+            btn.style.left = String(whiteLeftPx) + "px";
+            whiteLeftPx += wpx;
+            whiteIndex++;
+          }
+
+          btn.addEventListener("pointerdown", (e) => {
+            if (e.pointerType==="mouse" && e.button!==0) return;
+            e.preventDefault();
+            btn.setPointerCapture(e.pointerId);
+            const m = Number(btn.dataset.midi);
+            activeMidi.add(m);
+            updateAllKeyboardsPressed();
+            if (audio.enabled) void noteOn(midiToNote(m));
+          });
+          const release = (e) => {
+            e.preventDefault();
+            const m = Number(btn.dataset.midi);
+            activeMidi.delete(m);
+            updateAllKeyboardsPressed();
+            if (audio.enabled) noteOff(midiToNote(m));
+            try { btn.releasePointerCapture(e.pointerId); } catch {}
+          };
+          btn.addEventListener("pointerup", release);
+          btn.addEventListener("pointercancel", release);
+          btn.addEventListener("lostpointercapture", release);
+          pianoEl.appendChild(btn);
+        }
+      }
+
+      function updateKeyboardVisuals(state) {
+        const rootPc = NAME_TO_PC[state.rootName];
+        const scale = buildScalePcs(rootPc, state.scaleType);
+        const chordPcs = state.selectedDegree===null ? new Set() : chordFromDegree(rootPc, state.scaleType, state.selectedDegree, state.add7).pcs;
+
+        renderDegreeButtons(state, state._degEl);
+        state._pianoEl.querySelectorAll(".key").forEach((el) => {
+          const pc = Number(el.dataset.pc);
+          el.classList.toggle("in-scale", scale.set.has(pc));
+          el.classList.toggle("in-chord", chordPcs.has(pc));
+          el.classList.toggle("is-tonic", pc === rootPc);
+        });
+        renderSummary(state._summaryEl, state);
+        updateAllKeyboardsPressed();
+      }
+
+      function updateAllKeyboardsPressed() {
+        for (const kb of keyboards) {
+          kb._pianoEl?.querySelectorAll(".key").forEach((el) => {
+            const m = Number(el.dataset.midi);
+            el.classList.toggle("is-pressed", activeMidi.has(m));
+          });
+          kb._summaryEl?.querySelectorAll(".skey").forEach((el) => {
+            const pc = Number(el.dataset.pc);
+            el.classList.toggle("is-pressed", isPcPressed(pc));
+          });
+        }
+      }
+
+      function mountKeyboard(state) {
+        const grid = document.getElementById("keyboardGrid");
+        const card = document.createElement("div");
+        card.className = "card";
+
+        const head = document.createElement("div");
+        head.className = "card-head";
+
+        const controls = document.createElement("div");
+        controls.className = "controls";
+
+        const rootSel = buildRootSelect(state.rootName);
+        const scaleSel = buildScaleTypeSelect(state.scaleType);
+        const countSel = buildKeyCountSelect(state.keyCount);
+        const add7Toggle = document.createElement("label");
+        add7Toggle.className = "toggle";
+        add7Toggle.style.padding = "6px 10px";
+        add7Toggle.style.borderRadius = "999px";
+        add7Toggle.style.gap = "8px";
+        add7Toggle.style.alignSelf = "flex-end";
+        const add7Input = document.createElement("input");
+        add7Input.type = "checkbox";
+        add7Input.checked = Boolean(state.add7);
+        const add7Text = document.createElement("span");
+        add7Text.textContent = "Add 7th";
+        add7Toggle.appendChild(add7Input);
+        add7Toggle.appendChild(add7Text);
+
+        const mkWrap = (labelText, sel) => {
+          const wrap = document.createElement("div");
+          wrap.style.display = "flex";
+          wrap.style.flexDirection = "column";
+          wrap.style.gap = "4px";
+          const lbl = document.createElement("label");
+          lbl.textContent = labelText;
+          wrap.appendChild(lbl);
+          wrap.appendChild(sel);
+          return wrap;
+        };
+        controls.appendChild(mkWrap("Tonic", rootSel));
+        controls.appendChild(mkWrap("Scale", scaleSel));
+        const keysWrap = mkWrap("Keys", countSel);
+        keysWrap.style.flexDirection = "row";
+        keysWrap.style.alignItems = "flex-end";
+        keysWrap.style.gap = "10px";
+        keysWrap.firstChild.style.marginBottom = "26px"; // align label with the row layout
+        controls.appendChild(keysWrap);
+        controls.appendChild(add7Toggle);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn";
+        removeBtn.textContent = "Remove";
+
+        head.appendChild(controls);
+        head.appendChild(removeBtn);
+
+        const degrees = document.createElement("div");
+        degrees.className = "degrees";
+
+        const pianoWrap = document.createElement("div");
+        pianoWrap.className = "piano-wrap";
+        const piano = document.createElement("div");
+        piano.className = "piano";
+        pianoWrap.appendChild(piano);
+
+        const summary = document.createElement("div");
+        summary.className = "summary";
+        const summaryTitle = document.createElement("div");
+        summaryTitle.className = "summary-title";
+        summaryTitle.textContent = "Key Summary";
+        const summaryPiano = document.createElement("div");
+        summaryPiano.className = "summary-piano";
+        summary.appendChild(summaryTitle);
+        summary.appendChild(summaryPiano);
+
+        card.appendChild(head);
+        card.appendChild(degrees);
+        card.appendChild(pianoWrap);
+        card.appendChild(summary);
+        grid.appendChild(card);
+
+        state._degEl = degrees;
+        state._pianoEl = piano;
+        state._summaryEl = summaryPiano;
+
+        renderKeyboardKeys(piano, state);
+        updateKeyboardVisuals(state);
+
+        rootSel.addEventListener("change", () => { state.rootName = rootSel.value; updateKeyboardVisuals(state); });
+        scaleSel.addEventListener("change", () => { state.scaleType = scaleSel.value; state.selectedDegree = null; updateKeyboardVisuals(state); });
+        countSel.addEventListener("change", () => { state.keyCount = Number(countSel.value); renderKeyboardKeys(piano, state); updateKeyboardVisuals(state); });
+        add7Input.addEventListener("change", () => { state.add7 = Boolean(add7Input.checked); updateKeyboardVisuals(state); });
+
+        removeBtn.addEventListener("click", () => {
+          const idx = keyboards.findIndex((k)=>k.id===state.id);
+          if (idx >= 0) keyboards.splice(idx, 1);
+          card.remove();
+        });
+      }
+
+      async function initMIDI() {
+        if (!navigator.requestMIDIAccess) return;
+        try {
+          const access = await navigator.requestMIDIAccess();
+          const bind = () => access.inputs.forEach((input) => { input.onmidimessage = onMIDIMessage; });
+          bind();
+          access.onstatechange = bind;
+        } catch (e) {
+          console.log("Failed to access MIDI devices.", e);
+        }
+      }
+      function onMIDIMessage(message) {
+        const data = message.data || [];
+        const status = data[0] ?? 0;
+        const note = data[1] ?? 0;
+        const velocity = data[2] ?? 0;
+        const isNoteOn = (status & 0xf0) === 0x90;
+        const isNoteOff = (status & 0xf0) === 0x80 || (isNoteOn && velocity === 0);
+        if (isNoteOn) { activeMidi.add(note); updateAllKeyboardsPressed(); if (audio.enabled) void noteOn(midiToNote(note)); }
+        else if (isNoteOff) { activeMidi.delete(note); updateAllKeyboardsPressed(); if (audio.enabled) noteOff(midiToNote(note)); }
+      }
+
+      document.getElementById("addKeyboardBtn").addEventListener("click", () => {
+        const st = createKeyboardState();
+        keyboards.push(st);
+        mountKeyboard(st);
+      });
+      const soundToggle = document.getElementById("soundToggle");
+      soundToggle.addEventListener("change", () => {
+        audio.enabled = Boolean(soundToggle.checked);
+        if (!audio.enabled) for (const note of Array.from(audio.active.keys())) stopVoice(note);
+      });
+
+      const initial = createKeyboardState();
+      keyboards.push(initial);
+      mountKeyboard(initial);
+      initMIDI();
+      window.addEventListener("resize", () => {
+        for (const kb of keyboards) { renderKeyboardKeys(kb._pianoEl, kb); updateKeyboardVisuals(kb); }
+      });
+    </script>
+  </body>
+</html>
+
