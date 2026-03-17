@@ -1,0 +1,781 @@
+---
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#5db2ff" />
+    <title>Cheap Cave</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <style>
+      html, body { height: 100%; margin: 0; background: #0b0e12; overflow: hidden; touch-action: none; }
+      #wrap { position: fixed; inset: 0; display: grid; place-items: center; }
+      canvas {
+        width: min(96vw, 1100px);
+        height: auto;
+        max-height: min(86vh, 700px);
+        aspect-ratio: 16 / 9;
+        border-radius: 16px;
+        box-shadow: 0 18px 60px rgba(0,0,0,.55);
+        background: #0b0e12;
+        image-rendering: pixelated;
+        touch-action: none;
+      }
+      .hud {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: min(96vw, 1100px);
+        padding: 4px 12px;
+        background: #000;
+        color: #fff;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        user-select: none;
+        border-radius: 8px;
+      }
+      .hud-logo {
+        flex: 1 1 auto;
+        display: flex;
+        align-items: center;
+        pointer-events: none;
+      }
+      .hud-logo img {
+        display: block;
+        max-height: 54px;
+        width: auto;
+        object-fit: contain;
+      }
+      .hud-controls {
+        flex: 0 0 auto;
+        margin-left: 16px;
+        font-size: 10px;
+        opacity: 0.9;
+        white-space: nowrap;
+      }
+      .hud kbd { font: inherit; padding: 2px 6px; border-radius: 8px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.12); }
+      .touch-ui { position: fixed; inset: 0; pointer-events: none; display: none; }
+      .touch-ui .pad,
+      .touch-ui .action { pointer-events: auto; }
+      .touch-ui .pad {
+        position: fixed; left: 12px; bottom: 14px;
+        display: grid; grid-template-columns: repeat(3, clamp(42px, 10vw, 56px));
+        grid-template-rows: repeat(3, clamp(42px, 10vw, 56px));
+        gap: 6px;
+      }
+      .touch-ui .action {
+        position: fixed; right: 12px; bottom: 18px;
+        display: grid; gap: 10px;
+      }
+      .touch-ui button {
+        width: 100%; height: 100%;
+        border: 1px solid rgba(255,255,255,.18);
+        background: rgba(0,0,0,.35);
+        color: rgba(255,255,255,.9);
+        border-radius: 14px;
+        font: 12px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        backdrop-filter: blur(6px);
+        touch-action: none;
+        user-select: none;
+      }
+      .touch-ui .action button {
+        width: clamp(70px, 18vw, 120px);
+        height: clamp(46px, 12vw, 64px);
+        font-weight: 600;
+      }
+      .touch-ui button:active { background: rgba(255,255,255,.12); }
+      @media (pointer: coarse) {
+        .touch-ui { display: block; }
+        .hud { display: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="wrap"><canvas id="c" width="960" height="540"></canvas></div>
+    <div class="hud">
+      <div class="hud-logo">
+        <img src="/images/logo/cheap_cave_logo.png" alt="CHEAP CAVE" />
+      </div>
+      <div class="hud-controls">移動: <kbd>↑↓←→</kbd>　掘る: <kbd>Space</kbd>　リセット: <kbd>R</kbd></div>
+    </div>
+    <div class="touch-ui" aria-hidden="true">
+      <div class="pad">
+        <div></div>
+        <button data-key="ArrowUp">▲</button>
+        <div></div>
+        <button data-key="ArrowLeft">◀</button>
+        <div></div>
+        <button data-key="ArrowRight">▶</button>
+        <div></div>
+        <button data-key="ArrowDown">▼</button>
+        <div></div>
+      </div>
+      <div class="action">
+        <button data-key="Space">掘る</button>
+      </div>
+    </div>
+
+    <script>
+    ;(() => {
+      const canvas = document.getElementById('c');
+      const ctx = canvas.getContext('2d');
+
+      const TILE = 24;
+      const WORLD_W = 220;
+      const WORLD_H = 140;
+      const SURFACE_Y = 14;
+
+      const VIEW_W = canvas.width;
+      const VIEW_H = canvas.height;
+
+      const T = { AIR: 0, DIRT: 1, STONE: 2, ORE: 3, ROOT: 4 };
+
+      const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+      const lerp = (a, b, t) => a + (b - a) * t;
+
+      function mulberry32(seed) {
+        return function() {
+          let t = seed += 0x6D2B79F5;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      let rand = mulberry32(123456);
+      let world, hardness;
+
+      function genWorld() {
+        rand = mulberry32(123456);
+        world = new Uint8Array(WORLD_W * WORLD_H);
+        hardness = new Uint8Array(WORLD_W * WORLD_H);
+        const idx = (x, y) => y * WORLD_W + x;
+
+        let h = SURFACE_Y;
+        const surface = new Array(WORLD_W).fill(SURFACE_Y);
+        for (let x = 0; x < WORLD_W; x++) {
+          if (x % 8 === 0) {
+            h += (rand() < 0.5 ? -1 : 1);
+            h = clamp(h, SURFACE_Y - 2, SURFACE_Y + 2);
+          }
+          surface[x] = h;
+        }
+
+        for (let y = 0; y < WORLD_H; y++) {
+          for (let x = 0; x < WORLD_W; x++) {
+            const i = idx(x, y);
+            if (y < surface[x]) {
+              world[i] = T.AIR;
+              hardness[i] = 0;
+              continue;
+            }
+
+            const depth = y - surface[x];
+            let tile = T.DIRT;
+            if (depth > 22) tile = T.STONE;
+            if (depth > 50) tile = (rand() < 0.7 ? T.STONE : T.DIRT);
+
+            if (depth <= 10 && rand() < 0.02) tile = T.ROOT;
+
+            if (depth >= 1 && depth <= 18 && rand() < 0.018) tile = T.ORE;
+            if (depth > 22 && rand() < 0.006) tile = T.ORE;
+            if (depth > 55 && rand() < 0.012) tile = T.ORE;
+
+            world[i] = tile;
+            hardness[i] = (tile === T.DIRT ? 1 : tile === T.ROOT ? 1 : tile === T.STONE ? 2 : tile === T.ORE ? 2 : 0);
+          }
+        }
+
+        const startX = Math.floor(WORLD_W * 0.25);
+        const startY = SURFACE_Y + 6;
+        carveRoom(startX, startY, 5, 4);
+        carveTunnel(startX, startY, startX + 18, startY + 6);
+        return { startX, startY };
+
+        function setAir(x, y) {
+          if (x < 0 || y < 0 || x >= WORLD_W || y >= WORLD_H) return;
+          const i = idx(x, y);
+          world[i] = T.AIR;
+          hardness[i] = 0;
+        }
+        function carveRoom(cx, cy, rx, ry) {
+          for (let y = cy - ry; y <= cy + ry; y++) {
+            for (let x = cx - rx; x <= cx + rx; x++) {
+              if ((x - cx) * (x - cx) / (rx * rx) + (y - cy) * (y - cy) / (ry * ry) <= 1.0) {
+                setAir(x, y);
+              }
+            }
+          }
+        }
+        function carveTunnel(x0, y0, x1, y1) {
+          const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+          for (let s = 0; s <= steps; s++) {
+            const t = s / steps;
+            const x = Math.round(lerp(x0, x1, t));
+            const y = Math.round(lerp(y0, y1, t));
+            for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) setAir(x + ox, y + oy);
+          }
+        }
+      }
+
+      const player = {
+        x: 0, y: 0,
+        px: 0, py: 0,
+        dir: { x: 1, y: 0 },
+        digCooldown: 0,
+        digPower: 1,
+        inv: { ore: 0 },
+        swing: 0,
+        facing: 1,
+      };
+
+      function reset() {
+        const { startX, startY } = genWorld();
+        player.x = startX;
+        player.y = startY;
+        player.px = startX;
+        player.py = startY;
+        player.dir = { x: 1, y: 0 };
+        player.facing = 1;
+        player.digCooldown = 0;
+        player.inv.ore = 0;
+        player.swing = 0;
+        digDamage.clear();
+        cam.x = player.x * TILE;
+        cam.y = player.y * TILE;
+      }
+
+      const digDamage = new Map();
+
+      const keys = new Set();
+      const keyWhitelist = new Set(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyW','KeyA','KeyS','KeyD','KeyR']);
+      const setKey = (code, on) => {
+        if (!keyWhitelist.has(code)) return;
+        if (on) keys.add(code); else keys.delete(code);
+      };
+      window.addEventListener('keydown', (e) => {
+        if (keyWhitelist.has(e.code)) e.preventDefault();
+        setKey(e.code, true);
+        if (e.code === 'KeyR') reset();
+      }, { passive: false });
+      window.addEventListener('keyup', (e) => setKey(e.code, false));
+
+      const touchButtons = document.querySelectorAll('.touch-ui [data-key]');
+      touchButtons.forEach((btn) => {
+        const code = btn.dataset.key;
+        const press = (e) => { e.preventDefault(); setKey(code, true); };
+        const release = (e) => { e.preventDefault(); setKey(code, false); };
+        btn.addEventListener('pointerdown', press);
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointercancel', release);
+        btn.addEventListener('pointerleave', release);
+        btn.addEventListener('touchstart', press, { passive: false });
+        btn.addEventListener('touchend', release, { passive: false });
+        btn.addEventListener('touchcancel', release, { passive: false });
+      });
+
+      const cam = { x: 0, y: 0 };
+
+      const idx = (x, y) => y * WORLD_W + x;
+      const inBounds = (x, y) => x >= 0 && y >= 0 && x < WORLD_W && y < WORLD_H;
+      function tileAt(x, y) {
+        if (!inBounds(x, y)) return T.STONE;
+        return world[idx(x, y)];
+      }
+      function setTile(x, y, t) {
+        if (!inBounds(x, y)) return;
+        world[idx(x, y)] = t;
+        hardness[idx(x, y)] = (t === T.DIRT ? 1 : t === T.ROOT ? 1 : t === T.STONE ? 2 : t === T.ORE ? 2 : 0);
+        digDamage.delete(`${x},${y}`);
+      }
+      function isWalkable(x, y) {
+        return tileAt(x, y) === T.AIR;
+      }
+
+      let last = performance.now();
+      let moveCooldown = 0;
+
+      const shake = { t: 0, m: 0, maxT: 0, ph: 0 };
+
+      function update(dt) {
+        if (player.swing > 0) player.swing = Math.max(0, player.swing - dt * 7);
+
+        if (shake.t > 0) {
+          shake.t = Math.max(0, shake.t - dt);
+          shake.ph += dt * 38;
+        }
+
+        let mvx = 0, mvy = 0;
+        if (keys.has('ArrowLeft') || keys.has('KeyA')) mvx -= 1;
+        if (keys.has('ArrowRight') || keys.has('KeyD')) mvx += 1;
+        if (keys.has('ArrowUp') || keys.has('KeyW')) mvy -= 1;
+        if (keys.has('ArrowDown') || keys.has('KeyS')) mvy += 1;
+
+        if (mvx !== 0 && mvy !== 0) {
+          if (Math.abs(mvx) >= Math.abs(mvy)) mvy = 0; else mvx = 0;
+        }
+
+        if (mvx !== 0 || mvy !== 0) {
+          player.dir = { x: mvx, y: mvy };
+          if (mvx !== 0) player.facing = (mvx > 0 ? 1 : -1);
+        }
+
+        if (moveCooldown <= 0) {
+          if (mvx !== 0 || mvy !== 0) {
+            const nx = player.x + mvx;
+            const ny = player.y + mvy;
+            if (isWalkable(nx, ny)) {
+              player.x = nx;
+              player.y = ny;
+            }
+            moveCooldown = 0.08;
+          }
+        } else {
+          moveCooldown -= dt;
+        }
+
+        if (player.digCooldown > 0) player.digCooldown -= dt;
+        const wantDig = keys.has('Space');
+        if (wantDig && player.digCooldown <= 0) {
+          tryDig(player.x + player.dir.x, player.y + player.dir.y);
+          player.digCooldown = 0.12;
+        }
+
+        player.px = lerp(player.px, player.x, 1 - Math.pow(0.001, dt));
+        player.py = lerp(player.py, player.y, 1 - Math.pow(0.001, dt));
+
+        const targetCamX = player.px * TILE - VIEW_W / 2;
+        const targetCamY = player.py * TILE - VIEW_H / 2;
+        cam.x = lerp(cam.x, targetCamX, 1 - Math.pow(0.0008, dt));
+        cam.y = lerp(cam.y, targetCamY, 1 - Math.pow(0.0008, dt));
+
+        cam.x = clamp(cam.x, 0, WORLD_W * TILE - VIEW_W);
+        cam.y = clamp(cam.y, 0, WORLD_H * TILE - VIEW_H);
+      }
+
+      function tryDig(tx, ty) {
+        if (!inBounds(tx, ty)) return;
+        const t = tileAt(tx, ty);
+        if (t === T.AIR) return;
+
+        const key = `${tx},${ty}`;
+        const need = hardness[idx(tx, ty)];
+        const remain = digDamage.has(key) ? digDamage.get(key) : need;
+        const next = Math.max(0, remain - player.digPower);
+        digDamage.set(key, next);
+
+        if (next === 0) {
+          if (t === T.ORE) player.inv.ore++;
+          setTile(tx, ty, T.AIR);
+        }
+
+        shake.t = 0.06;
+        shake.maxT = shake.t;
+        shake.m = 1.8;
+
+        player.swing = 1;
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+        const g = ctx.createLinearGradient(0, 0, 0, VIEW_H);
+        g.addColorStop(0, '#5db2ff');
+        g.addColorStop(0.42, '#6ec0ff');
+        g.addColorStop(1, '#2b5fa8');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+        drawTitleOverlay();
+
+        let ox = 0, oy = 0;
+        if (shake.t > 0) {
+          const k = (shake.maxT > 0) ? (shake.t / shake.maxT) : 0;
+          const a = k * k;
+          ox = Math.sin(shake.ph) * shake.m * a;
+          oy = Math.cos(shake.ph * 0.9) * shake.m * 0.75 * a;
+        }
+        ox = Math.round(ox);
+        oy = Math.round(oy);
+
+        ctx.save();
+        const camDrawX = Math.round(cam.x);
+        const camDrawY = Math.round(cam.y);
+        ctx.translate(-camDrawX + ox, -camDrawY + oy);
+
+        const x0 = Math.floor(camDrawX / TILE) - 2;
+        const y0 = Math.floor(camDrawY / TILE) - 2;
+        const x1 = Math.ceil((camDrawX + VIEW_W) / TILE) + 2;
+        const y1 = Math.ceil((camDrawY + VIEW_H) / TILE) + 2;
+
+        drawSurface();
+
+        for (let y = y0; y <= y1; y++) {
+          for (let x = x0; x <= x1; x++) {
+            if (!inBounds(x, y)) continue;
+            const t = tileAt(x, y);
+            const px = x * TILE;
+            const py = y * TILE;
+            if (t === T.AIR) {
+              if (y >= SURFACE_Y) {
+                ctx.fillStyle = '#0b0f16';
+                ctx.fillRect(px, py, TILE, TILE);
+              }
+              continue;
+            }
+
+            if (t === T.DIRT) ctx.fillStyle = '#4b3427';
+            else if (t === T.STONE) ctx.fillStyle = '#2f3845';
+            else if (t === T.ORE) ctx.fillStyle = '#3a3a3a';
+            else if (t === T.ROOT) ctx.fillStyle = '#3b2a20';
+
+            ctx.fillRect(px, py, TILE, TILE);
+
+            const s = (x * 928371 + y * 364479) >>> 0;
+            const r = ((s ^ (s >>> 7)) & 255) / 255;
+            ctx.globalAlpha = 0.18;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(px + 3 + (r * 10)|0, py + 4 + ((1-r) * 9)|0, 2, 2);
+            ctx.globalAlpha = 1;
+
+            if (t === T.ORE) {
+              ctx.fillStyle = '#1f2933';
+              ctx.fillRect(px+3, py+3, TILE-6, TILE-6);
+              ctx.fillStyle = '#4fd1c5';
+              ctx.beginPath();
+              ctx.moveTo(px + TILE/2, py + 6);
+              ctx.lineTo(px + TILE - 6, py + TILE/2);
+              ctx.lineTo(px + TILE/2, py + TILE - 6);
+              ctx.lineTo(px + 6, py + TILE/2);
+              ctx.closePath();
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255,255,255,.6)';
+              ctx.fillRect(px + TILE/2 - 1, py + 8, 2, 4);
+            }
+
+            const key = `${x},${y}`;
+            if (digDamage.has(key)) {
+              const remain = digDamage.get(key);
+              const need = hardness[idx(x, y)] || 1;
+              const p = 1 - remain / need;
+              ctx.strokeStyle = `rgba(255,255,255,${0.18 + 0.25*p})`;
+              ctx.lineWidth = 2;
+              ctx.beginPath();
+              ctx.moveTo(px + 4, py + TILE - 6);
+              ctx.lineTo(px + TILE - 5, py + 6);
+              ctx.moveTo(px + 6, py + 8);
+              ctx.lineTo(px + TILE - 6, py + 8);
+              ctx.stroke();
+            }
+          }
+        }
+
+        drawCaveEdges(x0, y0, x1, y1);
+        drawPlayer();
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,.86)';
+        ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace';
+        ctx.fillText(`Depth: ${Math.max(0, player.y - SURFACE_Y)}  |  Ore: ${player.inv.ore}`, 14, VIEW_H - 16);
+        ctx.restore();
+      }
+
+      function drawSurface() {
+        const skyH = (SURFACE_Y + 4) * TILE;
+        ctx.fillStyle = '#78b9ff';
+        ctx.fillRect(0, 0, WORLD_W * TILE, skyH);
+
+        ctx.fillStyle = '#2b5a36';
+        ctx.fillRect(0, (SURFACE_Y - 1) * TILE, WORLD_W * TILE, TILE * 2);
+        ctx.fillStyle = '#4fbf68';
+        for (let x = 0; x < WORLD_W; x++) {
+          const y = SURFACE_Y - 1;
+          const px = x * TILE;
+          const py = y * TILE;
+          ctx.fillRect(px, py, TILE, TILE);
+        }
+        const groundY = (SURFACE_Y - 1) * TILE;
+        for (let i = 0; i < 18; i++) {
+          const x = Math.floor((i * 17 + 13) % WORLD_W);
+          const px = x * TILE + 8;
+          const leafY = groundY - 62;
+          ctx.fillStyle = '#3b2b20';
+          ctx.fillRect(px, groundY - 38, 8, 38);
+          ctx.fillStyle = '#1f4a2a';
+          ctx.beginPath();
+          ctx.roundRect(px - 18, leafY, 44, 34, 10);
+          ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,.12)';
+          ctx.fillRect(px - 12, leafY + 8, 18, 6);
+        }
+        ctx.fillStyle = 'rgba(255,255,255,.12)';
+        ctx.fillRect(0, (SURFACE_Y - 1) * TILE, WORLD_W * TILE, 3);
+      }
+
+      function drawTitleOverlay() {
+        const barH = TILE * 2.2;
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, VIEW_W, barH);
+
+        ctx.font = `${TILE * 1.8}px ui-monospace, Menlo, Monaco, Consolas, "Courier New", monospace`;
+        ctx.textBaseline = 'middle';
+        const text = 'CHEAP CAVE';
+        const textW = ctx.measureText(text).width;
+        const x = (VIEW_W - textW) / 2;
+        const y = barH / 2;
+
+        ctx.lineWidth = 6;
+        ctx.strokeStyle = '#111827';
+        ctx.strokeText(text, x, y);
+
+        ctx.fillStyle = '#facc15';
+        ctx.fillText(text, x, y);
+
+        ctx.fillStyle = 'rgba(255,255,255,.30)';
+        ctx.fillRect(x, y - (TILE * 0.9), textW, TILE * 0.7);
+
+        ctx.restore();
+      }
+
+      function drawCaveEdges(x0, y0, x1, y1) {
+        ctx.globalAlpha = 0.35;
+        for (let y = y0; y <= y1; y++) {
+          for (let x = x0; x <= x1; x++) {
+            if (!inBounds(x, y)) continue;
+            if (tileAt(x, y) !== T.AIR) continue;
+            const n = tileAt(x, y-1) !== T.AIR;
+            const s = tileAt(x, y+1) !== T.AIR;
+            const w = tileAt(x-1, y) !== T.AIR;
+            const e = tileAt(x+1, y) !== T.AIR;
+            if (!(n||s||w||e)) continue;
+            const px = x*TILE, py=y*TILE;
+            ctx.strokeStyle = 'rgba(0,0,0,.75)';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(px+1.5, py+1.5, TILE-3, TILE-3);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function drawPlayer() {
+        const px = player.px * TILE;
+        const py = player.py * TILE;
+
+        ctx.fillStyle = 'rgba(0,0,0,.30)';
+        ctx.beginPath();
+        ctx.ellipse(px + TILE/2, py + TILE*0.86, TILE*0.38, TILE*0.18, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        const sx = player.facing;
+        const facingRight = sx === 1;
+
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(0,0,0,.55)';
+
+        ctx.fillStyle = '#2b303b';
+        ctx.beginPath();
+        ctx.roundRect(px + 7, py + 16, 7, 8, 3);
+        ctx.roundRect(px + TILE - 14, py + 16, 7, 8, 3);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#c8ced6';
+        ctx.beginPath();
+        ctx.roundRect(px + 6, py + 10, TILE - 12, 10, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(0,0,0,.10)';
+        ctx.fillRect(px + 6, py + 14, TILE - 12, 6);
+
+        ctx.fillStyle = '#e9dccb';
+        ctx.beginPath();
+        ctx.roundRect(px + 8, py + 2, TILE - 16, 10, 5);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#6b7280';
+        ctx.beginPath();
+        ctx.roundRect(px + 8, py + 2, TILE - 16, 4, 3);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.10)';
+        ctx.fillRect(px + 10, py + 3, 6, 2);
+
+        ctx.fillStyle = 'rgba(0,0,0,.55)';
+        ctx.fillRect(px + (facingRight ? 15 : 9), py + 7, 2, 2);
+        ctx.fillStyle = 'rgba(0,0,0,.35)';
+        ctx.fillRect(px + (facingRight ? 13 : 11), py + 10, 3, 1);
+
+        ctx.save();
+        ctx.translate(px + TILE/2, py + 14);
+        ctx.scale(sx, 1);
+        ctx.fillStyle = '#b8bdc6';
+        ctx.beginPath();
+        ctx.roundRect(1, -2, 9, 4, 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        function drawSprite16(sprite, x, y, scale, flipX=false) {
+          const PAL = {
+            'o': 'rgba(0,0,0,.55)',
+            'w': '#6b4a2d',
+            'W': '#8b5a36',
+            'm': '#7d8793',
+            'M': '#bfc7d1',
+            'h': 'rgba(255,255,255,.35)'
+          };
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.scale(flipX ? -1 : 1, 1);
+          if (flipX) ctx.translate(-16*scale, 0);
+
+          for (let yy = 0; yy < 16; yy++) {
+            const row = sprite[yy];
+            for (let xx = 0; xx < 16; xx++) {
+              const c = row[xx];
+              if (c === ' ') continue;
+              ctx.fillStyle = PAL[c] || 'magenta';
+              ctx.fillRect(xx*scale, yy*scale, scale, scale);
+            }
+          }
+          ctx.restore();
+        }
+
+        const PICK_RIGHT = [
+          "                ",
+          "      oooommmm  ",
+          "     oMMMmmmmo  ",
+          "    oMMMmMMMmo  ",
+          "   oMMMmMMMmo   ",
+          "      ommmmo    ",
+          "       ooo      ",
+          "        o       ",
+          "       oWo      ",
+          "      oWwo      ",
+          "     oWwo       ",
+          "    oWwo        ",
+          "   oWwo         ",
+          "  oWwo          ",
+          " oWwo           ",
+          " ooo            ",
+        ];
+
+        const PICK_DOWN = [
+          "                ",
+          "       ooo      ",
+          "      oMMMo     ",
+          "      oMMMo     ",
+          "      oMMMo     ",
+          "      oMMMo     ",
+          "       ooo      ",
+          "        o       ",
+          "       oWo      ",
+          "      oWwo      ",
+          "     oWwo       ",
+          "    oWwo        ",
+          "   oWwo         ",
+          "  oWwo          ",
+          " oWwo           ",
+          " ooo            ",
+        ];
+
+        const ax = player.dir.x;
+        const ay = player.dir.y;
+
+        const s = player.swing;
+        const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+        const down = easeOut(s);
+
+        const flipX = (sx === -1);
+
+        let offY = -6 + 6 * down;
+        let ang = 0;
+
+        if (ay === 0) {
+          ang = (flipX ? 1 : -1) * 0.22 * down;
+        } else {
+          offY = -8 + (ay > 0 ? 9 : -4) * down;
+        }
+
+        ctx.save();
+        ctx.translate(px + TILE/2, py + 3);
+        ctx.rotate(ang);
+
+        const sc = 1.25;
+
+        if (ay === 0) {
+          drawSprite16(PICK_RIGHT, -8*sc + sx*10*sc, 6*sc + offY, sc, flipX);
+        } else {
+          drawSprite16(PICK_DOWN, -8*sc, 6*sc + offY, sc, flipX);
+        }
+        ctx.restore();
+
+        const tx = (player.x + player.dir.x) * TILE;
+        const ty = (player.y + player.dir.y) * TILE;
+        if (tileAt(player.x + player.dir.x, player.y + player.dir.y) !== T.AIR) {
+          ctx.strokeStyle = 'rgba(255,255,255,.22)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(tx + 4, ty + 4, TILE - 8, TILE - 8);
+        }
+      }
+
+      function loop(now) {
+        const dt = Math.min(0.033, (now - last) / 1000);
+        last = now;
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+      }
+
+      if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+          const rr = Array.isArray(r) ? r : [r, r, r, r];
+          const [r1, r2, r3, r4] = rr.map(v => Math.max(0, Math.min(v, Math.min(w, h)/2)));
+          this.beginPath();
+          this.moveTo(x + r1, y);
+          this.lineTo(x + w - r2, y);
+          this.quadraticCurveTo(x + w, y, x + w, y + r2);
+          this.lineTo(x + w, y + h - r3);
+          this.quadraticCurveTo(x + w, y + h, x + w - r3, y + h);
+          this.lineTo(x + r4, y + h);
+          this.quadraticCurveTo(x, y + h, x, y + h - r4);
+          this.lineTo(x, y + r1);
+          this.quadraticCurveTo(x, y, x + r1, y);
+          this.closePath();
+          return this;
+        };
+      }
+
+      reset();
+      requestAnimationFrame(loop);
+
+      canvas.addEventListener('pointerdown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+        const wx = mx + cam.x;
+        const wy = my + cam.y;
+        const tx = Math.floor(wx / TILE);
+        const ty = Math.floor(wy / TILE);
+        const dx = tx - player.x;
+        const dy = ty - player.y;
+        if (Math.abs(dx) + Math.abs(dy) === 1) {
+          player.dir = { x: clamp(dx, -1, 1), y: clamp(dy, -1, 1) };
+          if (dx !== 0) player.facing = (dx > 0 ? 1 : -1);
+          tryDig(tx, ty);
+        }
+      });
+    })();
+    </script>
+  </body>
+</html>
+
