@@ -575,9 +575,9 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             else if (seventh === 11) ext = "mΔ7♭5";
             else ext = "m7♭5";
           } else if (triadQuality === "aug") {
-            // augmented: show altered fifth explicitly
-            if (seventh === 11) ext = "Δ7♯5";
-            else ext = "7♯5";
+            // augmented triad + 7th: prefer named family (like dim/dim7)
+            if (seventh === 11) ext = "augΔ7";
+            else ext = "aug7";
           } else if (triadQuality === "flat5") {
             if (seventh === 11) ext = "Δ7♭5";
             else ext = "7♭5";
@@ -609,8 +609,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           "dim7": "ディミニッシュ・セブンス（フルディミニッシュ）",
           "m7♭5": "マイナー・セブンス・フラットファイブ（ハーフディミニッシュ）",
           "mΔ7♭5": "マイナー・メジャー・セブンス・フラットファイブ",
-          "7♯5": "セブンス・シャープファイブ",
-          "Δ7♯5": "メジャー・セブンス・シャープファイブ",
+          "aug7": "オーギュメント・セブンス（7♯5）",
+          "augΔ7": "オーギュメント・メジャー・セブンス（Δ7♯5）",
           "7♭5": "セブンス・フラットファイブ",
           "Δ7♭5": "メジャー・セブンス・フラットファイブ",
         };
@@ -687,7 +687,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
               else if (sev === 10) ext = "m7♭5";
               else if (sev === 11) ext = "mΔ7♭5";
               else ext = "m7♭5";
-            } else if (triadQuality === "aug") ext = sev === 11 ? "Δ7♯5" : "7♯5";
+            } else if (triadQuality === "aug") ext = sev === 11 ? "augΔ7" : "aug7";
             else if (triadQuality === "flat5") ext = sev === 11 ? "Δ7♭5" : "7♭5";
           }
 
