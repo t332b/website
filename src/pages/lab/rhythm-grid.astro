@@ -24,10 +24,6 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       </div>
     </div>
 
-    <div class="title-row">
-      <input type="text" id="gridTitle" class="title-input" placeholder="タイトル（任意）" maxlength="80" />
-    </div>
-
     <div class="playback-bar">
       <button class="play-btn" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
       <div class="bpm-group">
@@ -95,11 +91,6 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       .btn:hover{background:#eee;border-color:#aaa}
       .btn--primary{background:#333;color:#fff;border-color:#333}
       .btn--primary:hover{background:#555}
-
-      .title-row{margin-bottom:.6rem}
-      .title-input{width:100%;max-width:300px;border:none;border-bottom:1.5px solid #ddd;background:transparent;font-size:.85rem;padding:.25rem .1rem;color:#333;font-family:inherit}
-      .title-input:focus{outline:none;border-bottom-color:#888}
-      .title-input::placeholder{color:#bbb}
 
       /* --- playback bar --- */
       .playback-bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;flex-wrap:wrap}
