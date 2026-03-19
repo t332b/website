@@ -74,18 +74,12 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         border-radius: 14px;
         box-shadow: var(--shadow);
       }
-      .topbar-summary-stack {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-      }
       .topbar-chord-guess {
         font-size: 11px;
         color: var(--muted);
         line-height: 1.2;
         display: none;
-        max-width: 320px;
+        max-width: 1100px;
       }
       .topbar-chord-guess strong {
         color: var(--ink);
@@ -312,6 +306,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         color: rgba(255, 255, 255, 0.98);
         user-select: none;
       }
+      .piano.hide-scale-dots .key-dot { opacity: 0 !important; }
       .black-key .key-dot {
         bottom: 8px;
         width: 14px;
@@ -439,7 +434,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       }
 
       .summary {
-        margin-top: 10px;
+        max-width: 1100px;
+        margin: 10px auto 0;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .summary-row {
         display: flex;
         align-items: center;
         gap: 8px;
@@ -486,14 +488,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             <button type="button" class="seg-btn" data-mode="on">On</button>
           </div>
         </div>
-        <div class="topbar-summary-stack">
-          <div class="topbar-chord-guess" id="topbarChordGuess"></div>
-          <div class="control-row topbar-summary-toggle" style="flex: 0 0 auto; min-width: 0;">
-            <div class="control-label">Summary key</div>
-            <div class="segmented" id="summaryToggle">
-              <button type="button" class="seg-btn is-active" data-mode="off">Off</button>
-              <button type="button" class="seg-btn" data-mode="on">On</button>
-            </div>
+        <div class="control-row topbar-summary-toggle" style="flex: 0 0 auto; min-width: 0;">
+          <div class="control-label">Summary key</div>
+          <div class="segmented" id="summaryToggle">
+            <button type="button" class="seg-btn is-active" data-mode="off">Off</button>
+            <button type="button" class="seg-btn" data-mode="on">On</button>
           </div>
         </div>
       </div>
@@ -502,8 +501,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
     <div class="grid" id="keyboardGrid"></div>
 
     <div class="summary" id="globalSummary" style="display:none;">
-      <div class="summary-title">Pressed Keys Summary</div>
-      <div class="summary-piano" id="globalSummaryPiano"></div>
+      <div class="topbar-chord-guess" id="summaryChordGuess"></div>
+      <div class="summary-row">
+        <div class="summary-title">Pressed Keys Summary</div>
+        <div class="summary-piano" id="globalSummaryPiano"></div>
+      </div>
     </div>
 
     <script>
@@ -602,6 +604,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           "dim": "ディミニッシュ",
           "aug": "オーギュメント",
           "♭5": "フラットファイブ",
+          "sus2": "サス・ツー（sus2）",
+          "sus4": "サス・フォー（sus4）",
+          "add9": "アド・ナイン（add9）",
+          "7sus4": "セブンス・サス・フォー（7sus4）",
           "7": "セブンス",
           "Δ7": "メジャー・セブンス",
           "m7": "マイナー・セブンス",
@@ -641,78 +647,73 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       function detectChordFromPressed(activeMidiSet) {
         const midis = Array.from(activeMidiSet).filter((m)=>Number.isFinite(m)).sort((a,b)=>a-b);
         if (midis.length === 0) return null;
-        const bassPc = midiToPc(midis[0]);
         const pcs = new Set(midis.map(midiToPc));
 
         // If we don't have enough tones to name a chord, still show the pitch classes.
         if (pcs.size < 3) {
           const names = Array.from(pcs).sort((a,b)=>a-b).map(pcToPrettyName);
-          const bassName = pcToPrettyName(bassPc);
           return {
-            rootPc: bassPc,
-            bassPc,
+            rootPc: null,
+            bassPc: null,
             ext: "",
             score: 0,
             symbol: names.join("–"),
-            readingText: `構成音：${names.join(" ")}（ベース：${bassName}）`,
+            readingText: `構成音：${names.join(" ")}`,
           };
         }
 
-        const candidates = [];
+        const CHORD_PATTERNS = {
+          "0,4,7": { ext: "" },
+          "0,3,7": { ext: "m" },
+          "0,3,6": { ext: "dim" },
+          "0,4,8": { ext: "aug" },
+
+          "0,4,7,11": { ext: "Δ7" },
+          "0,4,7,10": { ext: "7" },
+          "0,3,7,10": { ext: "m7" },
+          "0,3,7,11": { ext: "mΔ7" },
+          "0,3,6,10": { ext: "m7♭5" },
+          "0,3,6,9": { ext: "dim7" },
+          "0,4,8,11": { ext: "augΔ7" },
+          "0,4,8,10": { ext: "aug7" },
+
+          "0,2,7": { ext: "sus2" },
+          "0,5,7": { ext: "sus4" },
+          "0,2,4,7": { ext: "add9" },
+          "0,2,5,7": { ext: "7sus4" },
+        };
+
+        const pcsArr = Array.from(pcs);
+        const mkKey = (rootPc) => {
+          const rel = pcsArr.map((pc)=> (pc - rootPc + 12) % 12);
+          rel.sort((a,b)=>a-b);
+          // unique
+          const uniq = [];
+          for (const v of rel) if (uniq[uniq.length-1] !== v) uniq.push(v);
+          // ensure root present
+          if (uniq[0] !== 0) return null;
+          return uniq.join(",");
+        };
+
+        const matches = [];
         for (let rootPc=0; rootPc<12; rootPc++) {
-          const relSet = new Set(Array.from(pcs, (pc)=> (pc - rootPc + 12) % 12));
-          const has = (i)=> relSet.has(i);
-
-          let triadQuality = "other";
-          if (has(3) && has(6)) triadQuality = "dim";
-          else if (has(4) && has(7)) triadQuality = "maj";
-          else if (has(3) && has(7)) triadQuality = "min";
-          else if (has(4) && has(8)) triadQuality = "aug";
-          else if (has(4) && has(6)) triadQuality = "flat5";
-          else continue;
-
-          const sev = has(11) ? 11 : has(10) ? 10 : has(9) ? 9 : null;
-          let ext = "";
-          if (sev == null) {
-            if (triadQuality === "maj") ext = "";
-            else if (triadQuality === "min") ext = "m";
-            else if (triadQuality === "dim") ext = "dim";
-            else if (triadQuality === "aug") ext = "aug";
-            else if (triadQuality === "flat5") ext = "♭5";
-          } else {
-            if (triadQuality === "maj") ext = sev === 11 ? "Δ7" : "7";
-            else if (triadQuality === "min") ext = sev === 11 ? "mΔ7" : "m7";
-            else if (triadQuality === "dim") {
-              if (sev === 9) ext = "dim7";
-              else if (sev === 10) ext = "m7♭5";
-              else if (sev === 11) ext = "mΔ7♭5";
-              else ext = "m7♭5";
-            } else if (triadQuality === "aug") ext = sev === 11 ? "augΔ7" : "aug7";
-            else if (triadQuality === "flat5") ext = sev === 11 ? "Δ7♭5" : "7♭5";
-          }
-
-          const used = new Set([0]);
-          if (triadQuality === "maj") { used.add(4); used.add(7); }
-          else if (triadQuality === "min") { used.add(3); used.add(7); }
-          else if (triadQuality === "dim") { used.add(3); used.add(6); }
-          else if (triadQuality === "aug") { used.add(4); used.add(8); }
-          else if (triadQuality === "flat5") { used.add(4); used.add(6); }
-          if (sev != null) used.add(sev);
-          const usedCount = Array.from(used).filter((i)=> relSet.has(i)).length;
-          const extraCount = Array.from(relSet).filter((i)=> !used.has(i)).length;
-          const score = usedCount * 10 - extraCount * 3;
-          candidates.push({ rootPc, bassPc, ext, score });
+          const key = mkKey(rootPc);
+          if (!key) continue;
+          const pat = CHORD_PATTERNS[key];
+          if (!pat) continue;
+          matches.push({ rootPc, ext: pat.ext, size: key.split(",").length });
         }
-
-        if (candidates.length === 0) return null;
-        candidates.sort((a,b)=> b.score - a.score);
-        const best = candidates[0];
+        if (matches.length === 0) {
+          const names = pcsArr.sort((a,b)=>a-b).map(pcToPrettyName);
+          return { rootPc: null, bassPc: null, ext: "", score: 0, symbol: names.join("–"), readingText: `構成音：${names.join(" ")}` };
+        }
+        matches.sort((a,b)=> b.size - a.size);
+        const best = matches[0];
         const rootName = pcToPrettyName(best.rootPc);
-        const bassName = pcToPrettyName(best.bassPc);
-        const symbol = rootName + best.ext + (best.bassPc !== best.rootPc ? `/${bassName}` : "");
+        const symbol = rootName + best.ext;
         const reading = japaneseChordReading(best.ext);
-        const readingText = reading ? `${rootName}${reading}${best.bassPc !== best.rootPc ? `（ベース：${bassName}）` : ""}` : "";
-        return { ...best, symbol, readingText };
+        const readingText = reading ? `${rootName}${reading}` : "";
+        return { ...best, bassPc: null, score: best.size, symbol, readingText };
       }
 
       // Audio engine (based on existing piano sounds)
@@ -824,6 +825,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           scaleType: "major",
           selectedDegree: null,
           add7: true,
+          showScaleDots: false,
           keyCount: getDefaultKeyCount(),
           startMidi: 48,
         };
@@ -996,6 +998,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
           const dot = el.querySelector(".key-dot");
           if (dot) {
+            if (!state.showScaleDots) {
+              dot.textContent = "";
+              return;
+            }
             if (!isInScale) {
               dot.textContent = "";
             } else {
@@ -1017,19 +1023,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
         if (window.__midiSummary?.enabled && window.__midiSummary.el) {
           renderSummary(window.__midiSummary.el);
-        }
-        const guessEl = document.getElementById("topbarChordGuess");
-        if (guessEl) {
-          const chord = detectChordFromPressed(activeMidi);
-          if (!chord) {
-            guessEl.style.display = "none";
-            guessEl.innerHTML = "";
-          } else {
-            guessEl.style.display = "block";
-            guessEl.innerHTML = chord.readingText
-              ? `<strong>${chord.symbol}</strong>　${chord.readingText}`
-              : `<strong>${chord.symbol}</strong>`;
+          const guessEl = document.getElementById("summaryChordGuess");
+          if (guessEl) {
+            const chord = detectChordFromPressed(activeMidi);
+            if (!chord) {
+              guessEl.style.display = "none";
+              guessEl.innerHTML = "";
+            } else {
+              guessEl.style.display = "block";
+              guessEl.innerHTML = chord.readingText
+                ? `<strong>${chord.symbol}</strong>　${chord.readingText}`
+                : `<strong>${chord.symbol}</strong>`;
+            }
           }
+        } else {
+          const guessEl = document.getElementById("summaryChordGuess");
+          if (guessEl) { guessEl.style.display = "none"; guessEl.innerHTML = ""; }
         }
       }
 
@@ -1061,10 +1070,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           row.appendChild(field);
           controls.appendChild(row);
         };
-
-        mkRow("Tonic", rootSel);
-        mkRow("Scale", scaleSel);
-        mkRow("Keys", countSel);
 
         const startWrap = document.createElement("div");
         startWrap.className = "segmented";
@@ -1103,7 +1108,37 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         startWrap.appendChild(startLabel);
         startWrap.appendChild(startStepUp);
         startWrap.appendChild(startOctUp);
+
+        const dotsSeg = document.createElement("div");
+        dotsSeg.className = "segmented";
+        const dotsOffBtn = document.createElement("button");
+        dotsOffBtn.type = "button";
+        dotsOffBtn.className = "seg-btn";
+        dotsOffBtn.textContent = "Off";
+        const dotsOnBtn = document.createElement("button");
+        dotsOnBtn.type = "button";
+        dotsOnBtn.className = "seg-btn";
+        dotsOnBtn.textContent = "On";
+        dotsSeg.appendChild(dotsOffBtn);
+        dotsSeg.appendChild(dotsOnBtn);
+        const syncDots = () => {
+          const on = Boolean(state.showScaleDots);
+          dotsOnBtn.classList.toggle("is-active", on);
+          dotsOffBtn.classList.toggle("is-active", !on);
+          piano.classList.toggle("hide-scale-dots", !on);
+          if (!on) {
+            piano.querySelectorAll(".key-dot").forEach((d)=>{ d.textContent = ""; });
+          }
+        };
+        dotsOffBtn.addEventListener("click", () => { state.showScaleDots = false; syncDots(); });
+        dotsOnBtn.addEventListener("click", () => { state.showScaleDots = true; syncDots(); updateKeyboardVisuals(state); });
+
+        // order
+        mkRow("Keys", countSel);
         mkRow("Start", startWrap);
+        mkRow("Tonic", rootSel);
+        mkRow("Scale", scaleSel);
+        mkRow("Scale dots", dotsSeg);
 
         const add7Seg = document.createElement("div");
         add7Seg.className = "segmented";
@@ -1177,6 +1212,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
         renderKeyboardKeys(piano, state);
         updateKeyboardVisuals(state);
+        // default OFF
+        piano.classList.toggle("hide-scale-dots", !state.showScaleDots);
+        // sync buttons after first render
+        syncDots();
 
         const adjustStart = (delta) => {
           state.startMidi = clampStartMidi(state.startMidi + delta, state.keyCount);
@@ -1185,8 +1224,19 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           updateKeyboardVisuals(state);
         };
 
-        rootSel.addEventListener("change", () => { state.rootName = rootSel.value; updateKeyboardVisuals(state); });
-        scaleSel.addEventListener("change", () => { state.scaleType = scaleSel.value; state.selectedDegree = null; updateKeyboardVisuals(state); });
+        rootSel.addEventListener("change", () => {
+          state.rootName = rootSel.value;
+          state.showScaleDots = true;
+          syncDots();
+          updateKeyboardVisuals(state);
+        });
+        scaleSel.addEventListener("change", () => {
+          state.scaleType = scaleSel.value;
+          state.selectedDegree = null;
+          state.showScaleDots = true;
+          syncDots();
+          updateKeyboardVisuals(state);
+        });
         countSel.addEventListener("change", () => {
           state.keyCount = Number(countSel.value);
           state.startMidi = clampStartMidi(state.startMidi, state.keyCount);

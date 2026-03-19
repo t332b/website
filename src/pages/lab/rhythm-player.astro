@@ -3,7 +3,25 @@
 // Pattern data is loaded from the URL hash.
 // URL: /lab/rhythm-player/#<base64url-encoded-json>
 import "../../styles/rhythm-vars.css";
+import { readdirSync } from "fs";
+import { join } from "path";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+const DRUM_DIR = join(process.cwd(), "public", "sounds", "drum");
+const SOUND_FILES = (() => {
+  try {
+    return readdirSync(DRUM_DIR)
+      .filter((f) => f.toLowerCase().endsWith(".mp3"))
+      .map((f) => f.replace(/\.mp3$/i, ""))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  } catch {
+    return ["kick", "snare", "hihat", "conga"];
+  }
+})();
+const DEFAULT_SOUND =
+  SOUND_FILES.find((s) => s.toLowerCase() === "conga") ?? SOUND_FILES[0] ?? "conga";
+const SOUND_FILES_JSON = JSON.stringify(SOUND_FILES);
+const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 ---
 
 <html lang="ja">
@@ -27,6 +45,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       </div>
       <div class="rp-grid-area" id="rpGrid"></div>
     </div>
+    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON}></script>
+    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON}></script>
 
     <style is:global>
       *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -103,8 +123,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 
     <script>
       const DEFAULT_DIVS = 4;
-      const SOUND_FILES = ["kick","snare","hihat","conga"] as const;
-      const DEFAULT_SOUND = "conga";
+      const SOUND_FILES = JSON.parse((document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]") as string[];
+      const DEFAULT_SOUND = JSON.parse((document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || "\"conga\"") as string;
+      function normalizeInstrumentName(s: string): string {
+        return s.trim().toLowerCase().replace(/[-_\s]/g, "");
+      }
+      const SOUND_FILES_NORM = SOUND_FILES.map((name) => [name, normalizeInstrumentName(name)] as const);
+      function pickByKeyword(kwNorm: string): string {
+        return SOUND_FILES_NORM.find(([, n]) => n.includes(kwNorm))?.[0] ?? DEFAULT_SOUND;
+      }
       const BASE = document.body.dataset.base || "";
 
       type TupletGroup = [number, number];
@@ -412,12 +439,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
 
         function getSoundName(label: string): string {
-          const norm = label.trim().toLowerCase().replace(/[-_\s]/g, "");
+          const norm = normalizeInstrumentName(label);
           if (!norm) return DEFAULT_SOUND;
-          for (const name of SOUND_FILES) if (norm === name || norm.includes(name)) return name;
-          if (norm === "hh" || norm === "hat") return "hihat";
-          if (norm === "bd" || norm.includes("bass")) return "kick";
-          if (norm === "sd") return "snare";
+          for (const [name, normName] of SOUND_FILES_NORM) {
+            if (norm === normName || norm.includes(normName) || normName.includes(norm)) return name;
+          }
+          // Shortcuts for common labels (when exact file name isn't used)
+          if (norm === "hh" || norm === "hat" || norm === "openhh") return pickByKeyword("hihat");
+          if (norm === "bd" || norm.includes("bass") || norm.includes("kick")) return pickByKeyword("kick");
+          if (norm === "sd" || norm.includes("snare")) return pickByKeyword("snare");
           return DEFAULT_SOUND;
         }
 
