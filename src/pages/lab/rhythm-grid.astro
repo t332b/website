@@ -2,8 +2,27 @@
 // Standalone tool page — not linked from navigation.
 // Accessible only by direct URL: /lab/rhythm-grid/
 import "../../styles/rhythm-vars.css";
+import { readdirSync } from "fs";
+import { join } from "path";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
+
+const DRUM_DIR = join(process.cwd(), "public", "sounds", "drum");
+const SOUND_FILES = (() => {
+  try {
+    return readdirSync(DRUM_DIR)
+      .filter((f) => f.toLowerCase().endsWith(".mp3"))
+      .map((f) => f.replace(/\.mp3$/i, ""))
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  } catch {
+    return ["kick", "snare", "hihat", "conga"];
+  }
+})();
+const DEFAULT_SOUND =
+  SOUND_FILES.find((s) => s.toLowerCase() === "conga") ?? SOUND_FILES[0] ?? "conga";
+
+const SOUND_FILES_JSON = JSON.stringify(SOUND_FILES);
+const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 ---
 
 <html lang="ja">
@@ -60,6 +79,8 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
     </div>
 
     <datalist id="drumList"></datalist>
+    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON}></script>
+    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON}></script>
 
     <div class="grid-area" id="gridArea"></div>
     <p class="grid-help">
@@ -226,8 +247,15 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       /* ===== Constants ===== */
       const STORAGE_KEY = "rhythmGrid_v1";
       const DEFAULT_DIVS = 4;
-      const SOUND_FILES = ["kick", "snare", "hihat", "conga"] as const;
-      const DEFAULT_SOUND = "conga";
+      const SOUND_FILES = JSON.parse((document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]") as string[];
+      const DEFAULT_SOUND = JSON.parse((document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || "\"conga\"") as string;
+      function normalizeInstrumentName(s: string): string {
+        return s.trim().toLowerCase().replace(/[-_\s]/g, "");
+      }
+      const SOUND_FILES_NORM = SOUND_FILES.map((name) => [name, normalizeInstrumentName(name)] as const);
+      function pickByKeyword(kwNorm: string): string {
+        return SOUND_FILES_NORM.find(([, n]) => n.includes(kwNorm))?.[0] ?? DEFAULT_SOUND;
+      }
       const BASE = document.body.dataset.base || "";
       const ORIGIN = document.body.dataset.origin || "https://pr0p0se.com";
 
@@ -386,9 +414,10 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         return 2;
       }
       let cyclesPerLine = calcCyclesPerLine();
+      let uiReady = false;
       window.addEventListener("resize", () => {
         const n = calcCyclesPerLine();
-        if (n !== cyclesPerLine) { cyclesPerLine = n; render(); }
+        if (n !== cyclesPerLine) { cyclesPerLine = n; if (uiReady) render(); }
       });
 
       /* ===== Audio Engine ===== */
@@ -452,12 +481,15 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       }
 
       function getSoundName(label: string): string {
-        const norm = label.trim().toLowerCase().replace(/[-_\s]/g, "");
+        const norm = normalizeInstrumentName(label);
         if (!norm) return DEFAULT_SOUND;
-        for (const name of SOUND_FILES) { if (norm === name || norm.includes(name)) return name; }
-        if (norm === "hh" || norm === "hat" || norm === "openhh") return "hihat";
-        if (norm === "bd" || norm.includes("bass")) return "kick";
-        if (norm === "sd") return "snare";
+        for (const [name, normName] of SOUND_FILES_NORM) {
+          if (norm === normName || norm.includes(normName) || normName.includes(norm)) return name;
+        }
+        // Shortcuts for common labels (when exact file name isn't used)
+        if (norm === "hh" || norm === "hat" || norm === "openhh") return pickByKeyword("hihat");
+        if (norm === "bd" || norm.includes("bass") || norm.includes("kick")) return pickByKeyword("kick");
+        if (norm === "sd" || norm.includes("snare")) return pickByKeyword("snare");
         return DEFAULT_SOUND;
       }
 
@@ -539,7 +571,6 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
 
       /* ===== DOM refs ===== */
       const gridArea = document.getElementById("gridArea")!;
-      const gridTitle = document.getElementById("gridTitle") as HTMLInputElement;
       const downloadBtn = document.getElementById("downloadBtn")!;
       const clearBtn = document.getElementById("clearBtn")!;
       const playBtn = document.getElementById("playBtn")!;
@@ -561,7 +592,6 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       const tupletInfo = document.getElementById("tupletInfo")!;
       const tupletBtns = document.getElementById("tupletBtns")!;
 
-      gridTitle.value = state.title;
       bpmInput.value = String(state.bpm);
       subdivInput.value = String(state.subsPerBeat);
 
@@ -578,7 +608,6 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
         drumList.innerHTML = SOUND_FILES.map((name) => `<option value="${name}"></option>`).join("");
       }
 
-      gridTitle.addEventListener("input", () => { state.title = gridTitle.value; saveState(); });
       bpmInput.addEventListener("change", () => {
         const v = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
         bpmInput.value = String(v); state.bpm = v; saveState();
@@ -1244,6 +1273,7 @@ const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
       window.addEventListener("pagehide", () => { if (isPlaying) stopPlay(); audioCtx?.close(); });
 
       /* ===== Init ===== */
+      uiReady = true;
       render();
     </script>
   </body>
