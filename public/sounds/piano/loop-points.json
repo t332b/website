@@ -1,7 +1,8 @@
 {
   "_default": {
-    "loopStart": 0.08,
-    "loopEndOffset": 0.02,
+    "loopStart": 0.42,
+    "loopEndOffset": 0.52,
+    "loopCrossfade": 0.035,
     "release": 0.05,
     "gain": 1.0
   }
