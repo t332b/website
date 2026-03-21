@@ -744,7 +744,69 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const loopEnd = clamp(reqEnd, loopStart + 0.01, duration);
         const release = clamp(cfg.release ?? defaults.release ?? 0.05, 0.005, 0.3);
         const gain = clamp(cfg.gain ?? defaults.gain ?? 1, 0, 1);
-        return { loopStart, loopEnd, release, gain };
+        const rawCf = cfg.loopCrossfade ?? defaults.loopCrossfade ?? 0;
+        const loopCrossfade = typeof rawCf === "number" && rawCf > 0 ? rawCf : 0;
+        return { loopStart, loopEnd, release, gain, loopCrossfade };
+      }
+      /** Manual sustain loop with crossfade at boundaries (loop=true has no crossfade). */
+      function scheduleCrossfadeSustain(context, buffer, noteGain, tNow, Ls, Le, F, sourcesOut) {
+        const L = Le - Ls;
+        const maxF = Math.max(0, L / 2 - 0.008);
+        const fade = Math.min(F, maxF);
+        if (fade <= 0 || L - 2 * fade < 0.012) return false;
+        const R = L - 2 * fade;
+        const period = L - fade;
+        const ITER = 220;
+        const scheduleXf = (tx) => {
+          const gTail = context.createGain();
+          const gHead = context.createGain();
+          gTail.gain.setValueAtTime(1, tx);
+          gTail.gain.linearRampToValueAtTime(0, tx + fade);
+          gHead.gain.setValueAtTime(0, tx);
+          gHead.gain.linearRampToValueAtTime(1, tx + fade);
+          const tail = context.createBufferSource();
+          const head = context.createBufferSource();
+          tail.buffer = buffer;
+          head.buffer = buffer;
+          tail.connect(gTail);
+          head.connect(gHead);
+          gTail.connect(noteGain);
+          gHead.connect(noteGain);
+          tail.start(tx, Le - fade);
+          tail.stop(tx + fade);
+          head.start(tx, Ls);
+          head.stop(tx + fade);
+          sourcesOut.push(tail, head);
+        };
+        const attackEnd = Ls > 0.001 ? tNow + Ls : tNow;
+        if (Ls > 0.001) {
+          const atk = context.createBufferSource();
+          atk.buffer = buffer;
+          atk.connect(noteGain);
+          atk.start(tNow, 0);
+          atk.stop(attackEnd);
+          sourcesOut.push(atk);
+        }
+        let t = attackEnd;
+        const m0 = context.createBufferSource();
+        m0.buffer = buffer;
+        m0.connect(noteGain);
+        m0.start(t, Ls);
+        m0.stop(t + L - fade);
+        sourcesOut.push(m0);
+        scheduleXf(t + L - fade);
+        t += L;
+        for (let k = 1; k < ITER; k++) {
+          const mid = context.createBufferSource();
+          mid.buffer = buffer;
+          mid.connect(noteGain);
+          mid.start(t, Ls + fade);
+          mid.stop(t + R);
+          sourcesOut.push(mid);
+          scheduleXf(t + R);
+          t += period;
+        }
+        return true;
       }
       async function loadBuffer(note) {
         const cached = audio.buffers.get(note);
@@ -774,7 +836,10 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         v.gain.gain.cancelScheduledValues(now);
         v.gain.gain.setValueAtTime(cur, now);
         v.gain.gain.linearRampToValueAtTime(0, now + v.release);
-        try { v.src.stop(now + v.release + 0.02); } catch {}
+        const list = v.sources ?? (v.src ? [v.src] : []);
+        for (const s of list) {
+          try { s.stop(now + v.release + 0.02); } catch {}
+        }
         audio.active.delete(note);
       }
       async function noteOn(note) {
@@ -786,20 +851,36 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const buf = await loadBuffer(note);
         stopVoice(note);
         const loop = resolveLoop(note, buf.duration);
-        const src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.loop = true;
-        src.loopStart = loop.loopStart;
-        src.loopEnd = loop.loopEnd;
         const gain = ctx.createGain();
         const now = ctx.currentTime;
         gain.gain.setValueAtTime(0, now);
         gain.gain.linearRampToValueAtTime(loop.gain, now + 0.004);
-        src.connect(gain);
         gain.connect(audio.master || ctx.destination);
-        src.start(now, 0);
-        src.onended = () => { if (audio.active.get(note)?.src === src) audio.active.delete(note); };
-        audio.active.set(note, { src, gain, release: loop.release });
+        const sources = [];
+        const usedCf = scheduleCrossfadeSustain(
+          ctx,
+          buf,
+          gain,
+          now,
+          loop.loopStart,
+          loop.loopEnd,
+          loop.loopCrossfade,
+          sources,
+        );
+        if (!usedCf) {
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.loop = true;
+          src.loopStart = loop.loopStart;
+          src.loopEnd = loop.loopEnd;
+          src.connect(gain);
+          src.start(now, 0);
+          src.onended = () => {
+            if (audio.active.get(note)?.sources?.[0] === src) audio.active.delete(note);
+          };
+          sources.push(src);
+        }
+        audio.active.set(note, { sources, gain, release: loop.release });
       }
       function noteOff(note) { if (!audio.enabled) return; stopVoice(note); }
 

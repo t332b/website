@@ -207,7 +207,74 @@
 
             const release = clamp(config.release ?? defaults.release ?? DEFAULT_LOOP.release, 0.005, 0.3);
             const gain = clamp(config.gain ?? defaults.gain ?? DEFAULT_LOOP.gain, 0, 1);
-            return { loopStart: safeLoopStart, loopEnd: safeLoopEnd, release, gain };
+            const rawCf = config.loopCrossfade ?? defaults.loopCrossfade ?? 0;
+            const loopCrossfade = typeof rawCf === "number" && rawCf > 0 ? rawCf : 0;
+            return { loopStart: safeLoopStart, loopEnd: safeLoopEnd, release, gain, loopCrossfade };
+        }
+
+        /** Manual sustain loop with crossfade at boundaries (Web Audio loop=true has no crossfade). */
+        function scheduleCrossfadeSustain(context, buffer, noteGain, tNow, Ls, Le, F, sourcesOut) {
+            const L = Le - Ls;
+            const maxF = Math.max(0, L / 2 - 0.008);
+            const fade = Math.min(F, maxF);
+            if (fade <= 0 || L - 2 * fade < 0.012) return false;
+            const R = L - 2 * fade;
+            const period = L - fade;
+            const ITER = 220;
+
+            const scheduleXf = (tx) => {
+                const gTail = context.createGain();
+                const gHead = context.createGain();
+                gTail.gain.setValueAtTime(1, tx);
+                gTail.gain.linearRampToValueAtTime(0, tx + fade);
+                gHead.gain.setValueAtTime(0, tx);
+                gHead.gain.linearRampToValueAtTime(1, tx + fade);
+                const tail = context.createBufferSource();
+                const head = context.createBufferSource();
+                tail.buffer = buffer;
+                head.buffer = buffer;
+                tail.connect(gTail);
+                head.connect(gHead);
+                gTail.connect(noteGain);
+                gHead.connect(noteGain);
+                tail.start(tx, Le - fade);
+                tail.stop(tx + fade);
+                head.start(tx, Ls);
+                head.stop(tx + fade);
+                sourcesOut.push(tail, head);
+            };
+
+            const attackEnd = Ls > 0.001 ? tNow + Ls : tNow;
+            if (Ls > 0.001) {
+                const atk = context.createBufferSource();
+                atk.buffer = buffer;
+                atk.connect(noteGain);
+                atk.start(tNow, 0);
+                atk.stop(attackEnd);
+                sourcesOut.push(atk);
+            }
+
+            let t = attackEnd;
+            const m0 = context.createBufferSource();
+            m0.buffer = buffer;
+            m0.connect(noteGain);
+            m0.start(t, Ls);
+            m0.stop(t + L - fade);
+            sourcesOut.push(m0);
+            scheduleXf(t + L - fade);
+            t += L;
+
+            for (let k = 1; k < ITER; k++) {
+                const mid = context.createBufferSource();
+                mid.buffer = buffer;
+                mid.connect(noteGain);
+                mid.start(t, Ls + fade);
+                mid.stop(t + R);
+                sourcesOut.push(mid);
+                scheduleXf(t + R);
+                t += period;
+            }
+            return true;
         }
 
         async function loadBuffer(note) {
@@ -250,9 +317,12 @@
             active.gainNode.gain.setValueAtTime(currentGain, now);
             active.gainNode.gain.linearRampToValueAtTime(0, now + active.release);
 
-            try {
-                active.source.stop(now + active.release + 0.02);
-            } catch (_) {}
+            const list = active.sources ?? (active.source ? [active.source] : []);
+            for (const s of list) {
+                try {
+                    s.stop(now + active.release + 0.02);
+                } catch (_) {}
+            }
 
             engine.activeNotes.delete(note);
         }
@@ -277,27 +347,40 @@
                 stopActiveVoice(note);
 
                 const loopConfig = resolveLoopForNote(note, buffer.duration);
-                const source = context.createBufferSource();
-                source.buffer = buffer;
-                source.loop = true;
-                source.loopStart = loopConfig.loopStart;
-                source.loopEnd = loopConfig.loopEnd;
-
                 const gainNode = context.createGain();
                 const now = context.currentTime;
                 gainNode.gain.setValueAtTime(0, now);
                 gainNode.gain.linearRampToValueAtTime(loopConfig.gain, now + 0.004);
-
-                source.connect(gainNode);
                 gainNode.connect(engine.masterGain || context.destination);
-                source.start(now, 0);
 
-                source.onended = () => {
-                    const active = engine.activeNotes.get(note);
-                    if (active?.source === source) engine.activeNotes.delete(note);
-                };
+                const sources = [];
+                const usedCf = scheduleCrossfadeSustain(
+                    context,
+                    buffer,
+                    gainNode,
+                    now,
+                    loopConfig.loopStart,
+                    loopConfig.loopEnd,
+                    loopConfig.loopCrossfade,
+                    sources,
+                );
 
-                engine.activeNotes.set(note, { source, gainNode, release: loopConfig.release });
+                if (!usedCf) {
+                    const source = context.createBufferSource();
+                    source.buffer = buffer;
+                    source.loop = true;
+                    source.loopStart = loopConfig.loopStart;
+                    source.loopEnd = loopConfig.loopEnd;
+                    source.connect(gainNode);
+                    source.start(now, 0);
+                    source.onended = () => {
+                        const active = engine.activeNotes.get(note);
+                        if (active?.sources?.[0] === source) engine.activeNotes.delete(note);
+                    };
+                    sources.push(source);
+                }
+
+                engine.activeNotes.set(note, { sources, gainNode, release: loopConfig.release });
             } catch (_) {
                 noteHoldCount.delete(note);
                 key?.classList.remove("is-pressed");
