@@ -18,8 +18,7 @@ const SOUND_FILES = (() => {
     return ["kick", "snare", "hihat", "conga"];
   }
 })();
-const DEFAULT_SOUND =
-  SOUND_FILES.find((s) => s.toLowerCase() === "conga") ?? SOUND_FILES[0] ?? "conga";
+const DEFAULT_SOUND = SOUND_FILES.find((s) => s === "WoodBlock") ?? SOUND_FILES[0] ?? "WoodBlock";
 const SOUND_FILES_JSON = JSON.stringify(SOUND_FILES);
 const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 ---
@@ -34,7 +33,9 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
   <body data-base={base}>
     <div class="rp" id="rp">
       <div class="rp-bar">
-        <button class="rp-play" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button class="rp-play" id="playBtn" aria-label="再生">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+        </button>
         <span class="rp-title" id="rpTitle"></span>
         <div class="rp-right">
           <label class="rp-bpm">
@@ -45,88 +46,315 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       </div>
       <div class="rp-grid-area" id="rpGrid"></div>
     </div>
-    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON}></script>
-    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON}></script>
+    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON} />
+    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON} />
 
     <style is:global>
-      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-      html,body{height:100%;overflow:hidden}
-      body{
-        font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-        background:#f7f7f8;
-        color:#333;
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f7f7f8;
+        color: #333;
       }
 
-      .rp{display:flex;flex-direction:column;height:100%;padding:8px 10px;max-width:760px;margin:0 auto}
-      .rp-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:32px}
-      .rp-play{width:30px;height:30px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,color .15s}
-      .rp-play svg{width:14px;height:14px}
-      .rp-play:hover{background:#333;color:#fff}
-      .rp-play.playing{background:#e53935;border-color:#e53935;color:#fff}
-      .rp-title{font-size:.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-      .rp-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-shrink:0}
-      .rp-bpm{font-size:.7rem;color:#888;display:flex;align-items:center;gap:3px;font-weight:600}
-      .rp-bpm input{width:48px;border:1px solid #ddd;border-radius:4px;padding:2px 4px;font-size:.75rem;text-align:center;color:#333}
-      .rp-bpm input:focus{outline:none;border-color:#888}
-      .rp-edit{font-size:.85rem;color:#aaa;text-decoration:none;line-height:1}
-      .rp-edit:hover{color:#333}
+      .rp {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 8px 10px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      .rp-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        min-height: 32px;
+      }
+      .rp-play {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #333;
+        background: #fff;
+        color: #333;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .rp-play svg {
+        width: 14px;
+        height: 14px;
+      }
+      .rp-play:hover {
+        background: #333;
+        color: #fff;
+      }
+      .rp-play.playing {
+        background: #e53935;
+        border-color: #e53935;
+        color: #fff;
+      }
+      .rp-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .rp-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .rp-bpm {
+        font-size: 0.7rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        font-weight: 600;
+      }
+      .rp-bpm input {
+        width: 48px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.75rem;
+        text-align: center;
+        color: #333;
+      }
+      .rp-bpm input:focus {
+        outline: none;
+        border-color: #888;
+      }
+      .rp-edit {
+        font-size: 0.85rem;
+        color: #aaa;
+        text-decoration: none;
+        line-height: 1;
+      }
+      .rp-edit:hover {
+        color: #333;
+      }
 
-      .rp-grid-area{flex:1;overflow-x:auto}
+      .rp-grid-area {
+        flex: 1;
+        overflow-x: auto;
+      }
 
-      :root{--cell-h:22px;--lw:52px;--bar-h:16px;--group-h:14px;--beat-h:14px}
+      :root {
+        --cell-h: 22px;
+        --lw: 52px;
+        --bar-h: 16px;
+        --group-h: 14px;
+        --beat-h: 14px;
+      }
 
-      .chunk-wrap{display:flex;margin-bottom:6px}
-      .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
-      .side-spacer-2{min-height:calc(var(--bar-h) + var(--beat-h) + 4px)}
-      .side-spacer-3{min-height:calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px)}
-      .side-row{height:var(--cell-h);display:flex;align-items:center}
-      .side-label{width:var(--lw);min-width:0;overflow:hidden;font-size:.58rem;color:#555}
-      .side-label span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+      .chunk-wrap {
+        display: flex;
+        margin-bottom: 6px;
+      }
+      .chunk-side {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        padding-right: 4px;
+      }
+      .side-spacer-2 {
+        min-height: calc(var(--bar-h) + var(--beat-h) + 4px);
+      }
+      .side-spacer-3 {
+        min-height: calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px);
+      }
+      .side-row {
+        height: var(--cell-h);
+        display: flex;
+        align-items: center;
+      }
+      .side-label {
+        width: var(--lw);
+        min-width: 0;
+        overflow: hidden;
+        font-size: 0.58rem;
+        color: #555;
+      }
+      .side-label span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 2px;
+      }
 
-      .chunk{border:2px solid #888;border-radius:6px;flex:1;min-width:0;overflow:hidden;background:#fff}
-      .chunk-hdr{background:#f9f9f9;border-bottom:1px solid #bbb}
-      .hdr-cells{display:grid;min-width:0}
-      .hdr-cells.bar-hdr{border-bottom:1px solid #ddd}
-      .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
-      .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.54rem;font-weight:700;color:#666}
-      .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl{min-height:var(--group-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#888;padding:1px 2px;flex-wrap:wrap}
-      .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.5rem;font-weight:600;color:#777}
-      .beat-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .beat-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .beat-lbl.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
-      .beat-lbl.tuplet-lbl{background:#f0eaff}
+      .chunk {
+        border: 2px solid #888;
+        border-radius: 6px;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        background: #fff;
+      }
+      .chunk-hdr {
+        background: #f9f9f9;
+        border-bottom: 1px solid #bbb;
+      }
+      .hdr-cells {
+        display: grid;
+        min-width: 0;
+      }
+      .hdr-cells.bar-hdr {
+        border-bottom: 1px solid #ddd;
+      }
+      .hdr-cells.group-hdr {
+        border-bottom: 1px solid #ddd;
+      }
+      .bar-lbl {
+        height: var(--bar-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.54rem;
+        font-weight: 700;
+        color: #666;
+      }
+      .bar-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .group-lbl {
+        min-height: var(--group-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+        font-weight: 600;
+        color: #888;
+        padding: 1px 2px;
+        flex-wrap: wrap;
+      }
+      .group-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .group-lbl.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .beat-lbl {
+        height: var(--beat-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.5rem;
+        font-weight: 600;
+        color: #777;
+      }
+      .beat-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .beat-lbl.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .beat-lbl.beat-sep {
+        box-shadow: inset 1px 0 0 0 #ddd;
+      }
+      .beat-lbl.tuplet-lbl {
+        background: #f0eaff;
+      }
 
-      .chunk-body{}
-      .chunk-cells{display:grid;min-width:0}
-      .cell{height:var(--cell-h);background:#fff}
-      .cell.active{background:var(--rg-active)}
-      .cell.bar-sep{box-shadow:inset 2px 0 0 0 var(--rg-bar-sep)}
-      .cell.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .cell.beat-sep{box-shadow:inset 1px 0 0 0 var(--rg-beat-sep)}
-      .chunk-cells>.cell{border-right:1px solid var(--rg-cell-border);border-bottom:1px solid var(--rg-cell-border)}
-      .chunk-cells>.cell:last-child{border-right:none}
-      .chunk-body>.chunk-cells:last-child .cell{border-bottom:none}
-      .cell.playhead{background:var(--rg-playhead)}
-      .cell.active.playhead{background:var(--rg-active-playhead)}
+      .chunk-body {
+      }
+      .chunk-cells {
+        display: grid;
+        min-width: 0;
+      }
+      .cell {
+        height: var(--cell-h);
+        background: #fff;
+      }
+      .cell.active {
+        background: var(--rg-active);
+      }
+      .cell.bar-sep {
+        box-shadow: inset 2px 0 0 0 var(--rg-bar-sep);
+      }
+      .cell.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .cell.beat-sep {
+        box-shadow: inset 1px 0 0 0 var(--rg-beat-sep);
+      }
+      .chunk-cells > .cell {
+        border-right: 1px solid var(--rg-cell-border);
+        border-bottom: 1px solid var(--rg-cell-border);
+      }
+      .chunk-cells > .cell:last-child {
+        border-right: none;
+      }
+      .chunk-body > .chunk-cells:last-child .cell {
+        border-bottom: none;
+      }
+      .cell.playhead {
+        background: var(--rg-playhead);
+      }
+      .cell.active.playhead {
+        background: var(--rg-active-playhead);
+      }
 
-      @media(max-width:400px){
-        :root{--cell-h:20px;--lw:42px;--bar-h:14px;--group-h:12px;--beat-h:12px}
-        .bar-lbl{font-size:.48rem}
-        .group-lbl{font-size:.44rem}
-        .beat-lbl{font-size:.44rem}
-        .side-label{font-size:.52rem}
+      @media (max-width: 400px) {
+        :root {
+          --cell-h: 20px;
+          --lw: 42px;
+          --bar-h: 14px;
+          --group-h: 12px;
+          --beat-h: 12px;
+        }
+        .bar-lbl {
+          font-size: 0.48rem;
+        }
+        .group-lbl {
+          font-size: 0.44rem;
+        }
+        .beat-lbl {
+          font-size: 0.44rem;
+        }
+        .side-label {
+          font-size: 0.52rem;
+        }
       }
     </style>
 
     <script>
       const DEFAULT_DIVS = 4;
-      const SOUND_FILES = JSON.parse((document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]") as string[];
-      const DEFAULT_SOUND = JSON.parse((document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || "\"conga\"") as string;
+      const SOUND_FILES = JSON.parse(
+        (document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]",
+      ) as string[];
+      const DEFAULT_SOUND = JSON.parse(
+        (document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || '"conga"',
+      ) as string;
       function normalizeInstrumentName(s: string): string {
-        return s.trim().toLowerCase().replace(/[-_\s]/g, "");
+        return s
+          .trim()
+          .toLowerCase()
+          .replace(/[-_\s]/g, "");
       }
       const SOUND_FILES_NORM = SOUND_FILES.map((name) => [name, normalizeInstrumentName(name)] as const);
       function pickByKeyword(kwNorm: string): string {
@@ -135,12 +363,29 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       const BASE = document.body.dataset.base || "";
 
       type TupletGroup = [number, number];
-      interface Row { label: string; cells: boolean[] }
-      interface Pattern { title: string; bpm: number; numCycles: number; beatGroups: number[]; subsPerBeat: number; tuplets: TupletGroup[]; rows: Row[] }
+      interface Row {
+        label: string;
+        cells: boolean[];
+      }
+      interface Pattern {
+        title: string;
+        bpm: number;
+        numCycles: number;
+        beatGroups: number[];
+        subsPerBeat: number;
+        tuplets: TupletGroup[];
+        rows: Row[];
+      }
 
-      function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
-      function lcm(a: number, b: number): number { return (a / gcd(a, b)) * b; }
-      function bpc(groups: number[]): number { return groups.reduce((a, b) => a + b, 0); }
+      function gcd(a: number, b: number): number {
+        return b === 0 ? a : gcd(b, a % b);
+      }
+      function lcm(a: number, b: number): number {
+        return (a / gcd(a, b)) * b;
+      }
+      function bpc(groups: number[]): number {
+        return groups.reduce((a, b) => a + b, 0);
+      }
       function cycleGroupStarts(groups: number[]): number[] {
         const r = [0];
         for (let i = 0; i < groups.length - 1; i++) r.push(r[r.length - 1] + groups[i]);
@@ -148,7 +393,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       }
       function beatToGroupIdx(beatInCycle: number, groups: number[]): number {
         let acc = 0;
-        for (let i = 0; i < groups.length; i++) { acc += groups[i]; if (beatInCycle < acc) return i; }
+        for (let i = 0; i < groups.length; i++) {
+          acc += groups[i];
+          if (beatInCycle < acc) return i;
+        }
         return groups.length - 1;
       }
       function beatInGroup(beatInCycle: number, groups: number[]): number {
@@ -159,14 +407,35 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         }
         return 0;
       }
-      function totalCellCount(tp: TupletGroup[]): number { return tp.reduce((s, [, d]) => s + d, 0); }
-      function groupBeatStarts(tp: TupletGroup[]): number[] { const r: number[] = []; let b = 0; for (const [s] of tp) { r.push(b); b += s; } return r; }
-      function groupCellStarts(tp: TupletGroup[]): number[] { const r: number[] = []; let p = 0; for (const [, d] of tp) { r.push(p); p += d; } return r; }
+      function totalCellCount(tp: TupletGroup[]): number {
+        return tp.reduce((s, [, d]) => s + d, 0);
+      }
+      function groupBeatStarts(tp: TupletGroup[]): number[] {
+        const r: number[] = [];
+        let b = 0;
+        for (const [s] of tp) {
+          r.push(b);
+          b += s;
+        }
+        return r;
+      }
+      function groupCellStarts(tp: TupletGroup[]): number[] {
+        const r: number[] = [];
+        let p = 0;
+        for (const [, d] of tp) {
+          r.push(p);
+          p += d;
+        }
+        return r;
+      }
       function computeFrWidths(groups: TupletGroup[]): number[] {
         let B = 1;
         for (const [s, d] of groups) B = lcm(B, d / gcd(d, s));
         const w: number[] = [];
-        for (const [s, d] of groups) { const fr = s * B / d; for (let i = 0; i < d; i++) w.push(fr); }
+        for (const [s, d] of groups) {
+          const fr = (s * B) / d;
+          for (let i = 0; i < d; i++) w.push(fr);
+        }
         return w;
       }
       function defaultTuplets(totalBeats: number, divs: number): TupletGroup[] {
@@ -175,14 +444,17 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       function hexToCells(hex: string): boolean[] {
         const cells: boolean[] = [];
-        for (const ch of hex) { const n = parseInt(ch, 16); cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1)); }
+        for (const ch of hex) {
+          const n = parseInt(ch, 16);
+          cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1));
+        }
         return cells;
       }
       function fromBase64Url(b64: string): string {
         let s = b64.replace(/-/g, "+").replace(/_/g, "/");
         while (s.length % 4) s += "=";
         const binary = atob(s);
-        return new TextDecoder().decode(new Uint8Array([...binary].map(ch => ch.charCodeAt(0))));
+        return new TextDecoder().decode(new Uint8Array([...binary].map((ch) => ch.charCodeAt(0))));
       }
       function esc(s: string) {
         return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -194,18 +466,24 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           if (!hash) return null;
           const d = JSON.parse(fromBase64Url(hash));
           if (!d.r || !(d.n || d.nc)) return null;
-          const bg: number[] = d.bg || [(d.bp && d.bp >= 1 && d.bp <= 32) ? d.bp : 4];
+          const bg: number[] = d.bg || [d.bp && d.bp >= 1 && d.bp <= 32 ? d.bp : 4];
           const nc = d.nc || d.n;
-          const spb = (d.sd && d.sd >= 1 && d.sd <= 12) ? d.sd : DEFAULT_DIVS;
+          const spb = d.sd && d.sd >= 1 && d.sd <= 12 ? d.sd : DEFAULT_DIVS;
           const tp: TupletGroup[] = d.tp
             ? d.tp.map((t: any): TupletGroup => [t[0], t[1]])
             : defaultTuplets(nc * bpc(bg), spb);
           return {
-            title: d.t || "", bpm: (d.b >= 40 && d.b <= 300) ? d.b : 120,
-            beatGroups: bg, subsPerBeat: spb, numCycles: nc, tuplets: tp,
+            title: d.t || "",
+            bpm: d.b >= 40 && d.b <= 300 ? d.b : 120,
+            beatGroups: bg,
+            subsPerBeat: spb,
+            numCycles: nc,
+            tuplets: tp,
             rows: d.r.map((r: { l: string; c: string }) => ({ label: r.l, cells: hexToCells(r.c) })),
           };
-        } catch { return null; }
+        } catch {
+          return null;
+        }
       }
 
       function calcCyclesPerLine(bg?: number[], spb?: number): number {
@@ -218,7 +496,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       }
 
       const pattern = loadPattern();
-      if (!pattern) { document.getElementById("rp")!.innerHTML = '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>'; }
+      if (!pattern) {
+        document.getElementById("rp")!.innerHTML =
+          '<p style="padding:1rem;color:#999;font-size:.8rem;">パターンデータがありません</p>';
+      }
 
       if (pattern) {
         const rpGrid = document.getElementById("rpGrid")!;
@@ -242,7 +523,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         let cyclesPerLine = calcCyclesPerLine(bg, pattern.subsPerBeat);
         window.addEventListener("resize", () => {
           const n = calcCyclesPerLine(bg, pattern.subsPerBeat);
-          if (n !== cyclesPerLine) { cyclesPerLine = n; renderGrid(); }
+          if (n !== cyclesPerLine) {
+            cyclesPerLine = n;
+            renderGrid();
+          }
         });
         const beatsPerCyc = bpc(bg);
         const spb = pattern.subsPerBeat;
@@ -253,14 +537,16 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
         function renderGrid() {
           const chunks: { startGi: number; endGi: number; startCycle: number }[] = [];
-          let gi0 = 0, csc = 0;
+          let gi0 = 0,
+            csc = 0;
           while (gi0 < tp.length) {
             const cec = Math.min(csc + cyclesPerLine, pattern!.numCycles);
             const ceBeat = cec * beatsPerCyc;
             let eg = gi0;
             while (eg < tp.length && bStarts[eg] < ceBeat) eg++;
             chunks.push({ startGi: gi0, endGi: eg, startCycle: csc });
-            gi0 = eg; csc = cec;
+            gi0 = eg;
+            csc = cec;
           }
 
           let html = "";
@@ -268,7 +554,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const chGroups = tp.slice(ch.startGi, ch.endGi);
             const chCellStart = cStarts[ch.startGi];
             const frW = computeFrWidths(chGroups);
-            const cols = frW.map(f => `${f}fr`).join(" ");
+            const cols = frW.map((f) => `${f}fr`).join(" ");
 
             const cellCycles: number[] = [];
             const cellBGIdx: number[] = [];
@@ -276,7 +562,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
               const [s, d] = chGroups[lgi];
               const gbs = bStarts[ch.startGi + lgi];
               for (let c = 0; c < d; c++) {
-                const bp = gbs + (c + 0.5) / d * s;
+                const bp = gbs + ((c + 0.5) / d) * s;
                 cellCycles.push(Math.floor(bp / beatsPerCyc));
                 cellBGIdx.push(beatToGroupIdx(Math.floor(bp % beatsPerCyc), bg));
               }
@@ -285,7 +571,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const chunkCycles: number[] = [];
             const cycleColCounts = new Map<number, number>();
             for (const cyc of cellCycles) {
-              if (!cycleColCounts.has(cyc)) { chunkCycles.push(cyc); cycleColCounts.set(cyc, 0); }
+              if (!cycleColCounts.has(cyc)) {
+                chunkCycles.push(cyc);
+                cycleColCounts.set(cyc, 0);
+              }
               cycleColCounts.set(cyc, cycleColCounts.get(cyc)! + 1);
             }
 
@@ -406,17 +695,26 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
         function rebuildTiming() {
           const spbTime = 60 / bpm;
-          stepDurs = []; cumT = [0];
+          stepDurs = [];
+          cumT = [0];
           for (const [span, divs] of tp) {
-            const v = spbTime * span / divs;
-            for (let i = 0; i < divs; i++) { stepDurs.push(v); cumT.push(cumT[cumT.length - 1] + v); }
+            const v = (spbTime * span) / divs;
+            for (let i = 0; i < divs; i++) {
+              stepDurs.push(v);
+              cumT.push(cumT[cumT.length - 1] + v);
+            }
           }
         }
 
         function trimSilence(buffer: AudioBuffer): AudioBuffer {
           const ch0 = buffer.getChannelData(0);
           let start = 0;
-          for (let i = 0; i < ch0.length; i++) { if (Math.abs(ch0[i]) > 0.005) { start = i; break; } }
+          for (let i = 0; i < ch0.length; i++) {
+            if (Math.abs(ch0[i]) > 0.005) {
+              start = i;
+              break;
+            }
+          }
           if (start === 0) return buffer;
           const len = buffer.length - start;
           const trimmed = audioCtx!.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
@@ -429,12 +727,14 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           if (!audioCtx) audioCtx = new AudioContext();
           if (audioCtx.state === "suspended") await audioCtx.resume();
           if (soundBuffers.size === 0) {
-            await Promise.all(SOUND_FILES.map(async (name) => {
-              const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
-              const buf = await res.arrayBuffer();
-              const decoded = await audioCtx!.decodeAudioData(buf);
-              soundBuffers.set(name, trimSilence(decoded));
-            }));
+            await Promise.all(
+              SOUND_FILES.map(async (name) => {
+                const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
+                const buf = await res.arrayBuffer();
+                const decoded = await audioCtx!.decodeAudioData(buf);
+                soundBuffers.set(name, trimSilence(decoded));
+              }),
+            );
           }
         }
 
@@ -455,7 +755,9 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           const buf = soundBuffers.get(name);
           if (!buf || !audioCtx) return;
           const src = audioCtx.createBufferSource();
-          src.buffer = buf; src.connect(audioCtx.destination); src.start(time);
+          src.buffer = buf;
+          src.connect(audioCtx.destination);
+          src.start(time);
         }
 
         function scheduleNote(step: number, time: number) {
@@ -469,43 +771,63 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
         function scheduler() {
           if (!audioCtx || !isPlaying) return;
-          while (nextNoteTime < audioCtx.currentTime + 0.1) { scheduleNote(currentStep, nextNoteTime); advanceStep(); }
+          while (nextNoteTime < audioCtx.currentTime + 0.1) {
+            scheduleNote(currentStep, nextNoteTime);
+            advanceStep();
+          }
           schedulerTimer = window.setTimeout(scheduler, 25);
         }
 
         function updatePH() {
           if (!isPlaying || !audioCtx) return;
           const loopDur = cumT[tCells];
-          const elapsed = ((audioCtx.currentTime - playStartTime) % loopDur + loopDur) % loopDur;
-          let lo = 0, hi = tCells - 1;
-          while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (cumT[mid] <= elapsed) lo = mid; else hi = mid - 1; }
-          rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-          rpGrid.querySelectorAll(`.cell[data-c="${lo}"]`).forEach(el => el.classList.add("playhead"));
+          const elapsed = (((audioCtx.currentTime - playStartTime) % loopDur) + loopDur) % loopDur;
+          let lo = 0,
+            hi = tCells - 1;
+          while (lo < hi) {
+            const mid = (lo + hi + 1) >> 1;
+            if (cumT[mid] <= elapsed) lo = mid;
+            else hi = mid - 1;
+          }
+          rpGrid.querySelectorAll(".cell.playhead").forEach((el) => el.classList.remove("playhead"));
+          rpGrid.querySelectorAll(`.cell[data-c="${lo}"]`).forEach((el) => el.classList.add("playhead"));
           phRAF = requestAnimationFrame(updatePH);
         }
 
         async function startPlay() {
           await ensureAudio();
           rebuildTiming();
-          isPlaying = true; currentStep = 0;
+          isPlaying = true;
+          currentStep = 0;
           nextNoteTime = audioCtx!.currentTime + 0.05;
           playStartTime = nextNoteTime;
-          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>'; playBtn.classList.add("playing");
-          scheduler(); updatePH();
+          playBtn.innerHTML =
+            '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>';
+          playBtn.classList.add("playing");
+          scheduler();
+          updatePH();
         }
 
         function stopPlay() {
           isPlaying = false;
           if (schedulerTimer !== null) clearTimeout(schedulerTimer);
           if (phRAF !== null) cancelAnimationFrame(phRAF);
-          rpGrid.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; playBtn.classList.remove("playing");
+          rpGrid.querySelectorAll(".cell.playhead").forEach((el) => el.classList.remove("playhead"));
+          playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+          playBtn.classList.remove("playing");
         }
 
-        playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
+        playBtn.addEventListener("click", () => {
+          isPlaying ? stopPlay() : startPlay();
+        });
 
-        document.addEventListener("visibilitychange", () => { if (document.hidden && isPlaying) stopPlay(); });
-        window.addEventListener("pagehide", () => { if (isPlaying) stopPlay(); audioCtx?.close(); });
+        document.addEventListener("visibilitychange", () => {
+          if (document.hidden && isPlaying) stopPlay();
+        });
+        window.addEventListener("pagehide", () => {
+          if (isPlaying) stopPlay();
+          audioCtx?.close();
+        });
 
         function notifyHeight() {
           const h = document.documentElement.scrollHeight;
