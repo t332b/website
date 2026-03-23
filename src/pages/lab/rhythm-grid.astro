@@ -5,7 +5,7 @@ import "../../styles/rhythm-vars.css";
 import { readdirSync } from "fs";
 import { join } from "path";
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-const siteOrigin = (Astro.site?.origin ?? "https://pr0p0se.com");
+const siteOrigin = Astro.site?.origin ?? "https://pr0p0se.com";
 
 const DRUM_DIR = join(process.cwd(), "public", "sounds", "drum");
 const SOUND_FILES = (() => {
@@ -18,8 +18,7 @@ const SOUND_FILES = (() => {
     return ["kick", "snare", "hihat", "conga"];
   }
 })();
-const DEFAULT_SOUND =
-  SOUND_FILES.find((s) => s.toLowerCase() === "conga") ?? SOUND_FILES[0] ?? "conga";
+const DEFAULT_SOUND = SOUND_FILES.find((s) => s === "WoodBlock") ?? SOUND_FILES[0] ?? "WoodBlock";
 
 const SOUND_FILES_JSON = JSON.stringify(SOUND_FILES);
 const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
@@ -44,17 +43,29 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
     </div>
 
     <div class="playback-bar">
-      <button class="play-btn" id="playBtn" aria-label="再生"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+      <button class="play-btn" id="playBtn" aria-label="再生">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"></path></svg>
+      </button>
       <div class="bpm-group">
         <label class="bpm-label" for="bpmInput">BPM</label>
         <input type="number" id="bpmInput" class="bpm-input" min="40" max="300" step="1" />
       </div>
       <button class="metro-btn" id="metroBtn" aria-label="メトロノーム" title="メトロノーム">
-        <svg class="metro-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 22h12l-2.5-16h-7L6 22z"/>
-          <line x1="12" y1="6" x2="16.5" y2="2"/>
-          <circle cx="17" cy="1.8" r="1" fill="currentColor" stroke="none"/>
-          <line x1="12" y1="22" x2="10" y2="12" class="metro-pendulum"/>
+        <svg
+          class="metro-icon"
+          viewBox="0 0 24 24"
+          width="22"
+          height="22"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M6 22h12l-2.5-16h-7L6 22z"></path>
+          <line x1="12" y1="6" x2="16.5" y2="2"></line>
+          <circle cx="17" cy="1.8" r="1" fill="currentColor" stroke="none"></circle>
+          <line x1="12" y1="22" x2="10" y2="12" class="metro-pendulum"></line>
         </svg>
       </button>
       <div class="sig-group" id="sigGroup">
@@ -79,13 +90,11 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
     </div>
 
     <datalist id="drumList"></datalist>
-    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON}></script>
-    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON}></script>
+    <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON} />
+    <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON} />
 
     <div class="grid-area" id="gridArea"></div>
-    <p class="grid-help">
-      楽器名は自由に入力できます。候補から選択するとその音が鳴ります。
-    </p>
+    <p class="grid-help">楽器名は自由に入力できます。候補から選択するとその音が鳴ります。</p>
 
     <!-- Embed modal -->
     <div class="embed-overlay" id="embedOverlay" hidden>
@@ -101,145 +110,714 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
     </div>
 
     <style is:global>
-      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-      html{-webkit-text-size-adjust:100%}
-      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:#f7f7f8;color:#333;min-height:100dvh;padding:1rem 1rem 3rem;max-width:760px;margin:0 auto}
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #f7f7f8;
+        color: #333;
+        min-height: 100dvh;
+        padding: 1rem 1rem 3rem;
+        max-width: 760px;
+        margin: 0 auto;
+      }
 
-      .toolbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.6rem}
-      h1{font-size:1.1rem;font-weight:700;letter-spacing:.02em}
-      .toolbar-actions{display:flex;gap:.4rem}
-      .btn{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;border:1px solid #ccc;border-radius:6px;background:#fff;color:#333;font-size:.78rem;cursor:pointer;transition:background .15s,border-color .15s;user-select:none}
-      .btn:hover{background:#eee;border-color:#aaa}
-      .btn--primary{background:#333;color:#fff;border-color:#333}
-      .btn--primary:hover{background:#555}
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-bottom: 0.6rem;
+      }
+      h1 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+      .toolbar-actions {
+        display: flex;
+        gap: 0.4rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: #fff;
+        color: #333;
+        font-size: 0.78rem;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        user-select: none;
+      }
+      .btn:hover {
+        background: #eee;
+        border-color: #aaa;
+      }
+      .btn--primary {
+        background: #333;
+        color: #fff;
+        border-color: #333;
+      }
+      .btn--primary:hover {
+        background: #555;
+      }
 
       /* --- playback bar --- */
-      .playback-bar{display:flex;align-items:center;gap:.7rem;margin-bottom:.8rem;flex-wrap:wrap}
-      .play-btn{width:36px;height:36px;border-radius:50%;border:2px solid #333;background:#fff;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s;flex-shrink:0}
-      .play-btn svg{width:16px;height:16px}
-      .play-btn:hover{background:#333;color:#fff}
-      .play-btn.playing{background:#fe6e6c;border-color:#fe6e6c;color:#fff}
-      .play-btn.playing:hover{background:#e34a4a}
-      .bpm-group{display:flex;align-items:center;gap:.3rem}
-      .bpm-label{font-size:.75rem;color:#888;font-weight:600}
-      .bpm-input{width:52px;border:1px solid #ddd;border-radius:5px;padding:.25rem .3rem;font-size:.8rem;text-align:center;font-family:inherit;color:#333}
-      .bpm-input:focus{outline:none;border-color:#888}
-      .metro-btn{width:34px;height:34px;border-radius:7px;border:1.5px solid #ccc;background:#fff;color:#aaa;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s,border-color .15s}
-      .metro-btn:hover{border-color:#999;color:#666}
-      .metro-btn.on{background:#333;border-color:#333;color:#fff}
-      .metro-btn.on:hover{background:#555}
-      .metro-pendulum{transition:transform .15s;transform-origin:12px 22px}
+      .playback-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 0.8rem;
+        flex-wrap: wrap;
+      }
+      .play-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 2px solid #333;
+        background: #fff;
+        color: #333;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s,
+          color 0.15s;
+        flex-shrink: 0;
+      }
+      .play-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+      .play-btn:hover {
+        background: #333;
+        color: #fff;
+      }
+      .play-btn.playing {
+        background: #fe6e6c;
+        border-color: #fe6e6c;
+        color: #fff;
+      }
+      .play-btn.playing:hover {
+        background: #e34a4a;
+      }
+      .bpm-group {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .bpm-label {
+        font-size: 0.75rem;
+        color: #888;
+        font-weight: 600;
+      }
+      .bpm-input {
+        width: 52px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 0.25rem 0.3rem;
+        font-size: 0.8rem;
+        text-align: center;
+        font-family: inherit;
+        color: #333;
+      }
+      .bpm-input:focus {
+        outline: none;
+        border-color: #888;
+      }
+      .metro-btn {
+        width: 34px;
+        height: 34px;
+        border-radius: 7px;
+        border: 1.5px solid #ccc;
+        background: #fff;
+        color: #aaa;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .metro-btn:hover {
+        border-color: #999;
+        color: #666;
+      }
+      .metro-btn.on {
+        background: #333;
+        border-color: #333;
+        color: #fff;
+      }
+      .metro-btn.on:hover {
+        background: #555;
+      }
+      .metro-pendulum {
+        transition: transform 0.15s;
+        transform-origin: 12px 22px;
+      }
 
-      .sig-group{display:flex;align-items:center;gap:3px;margin-left: 5px;}
-      .sig-input{width:36px;border:1px solid #ddd;border-radius:5px;padding:.2rem .15rem;font-size:.78rem;text-align:center;font-family:inherit;color:#333;font-weight:600}
-      .sig-input:focus{outline:none;border-color:#888}
-      .sig-lbl{font-size:.68rem;font-weight:600;color:#888}
-      .sig-times{font-size:.72rem;font-weight:600;color:#aaa;margin:0 1px}
-      .bar-group{display:flex;align-items:center;gap:3px;margin-left:auto}
-      .bar-group-lbl{font-size:.75rem;color:#888;font-weight:600;margin-right:2px}
-      .bar-adj{width:26px;height:26px;border-radius:5px;border:1px solid #ddd;background:#fff;color:#666;font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s;line-height:1}
-      .bar-adj:hover{background:#f0f0f0;border-color:#bbb}
-      .bar-count{font-size:.85rem;font-weight:600;min-width:18px;text-align:center;color:#333}
+      .sig-group {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: 5px;
+      }
+      .sig-input {
+        width: 36px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 0.2rem 0.15rem;
+        font-size: 0.78rem;
+        text-align: center;
+        font-family: inherit;
+        color: #333;
+        font-weight: 600;
+      }
+      .sig-input:focus {
+        outline: none;
+        border-color: #888;
+      }
+      .sig-lbl {
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: #888;
+      }
+      .sig-times {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #aaa;
+        margin: 0 1px;
+      }
+      .bar-group {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        margin-left: auto;
+      }
+      .bar-group-lbl {
+        font-size: 0.75rem;
+        color: #888;
+        font-weight: 600;
+        margin-right: 2px;
+      }
+      .bar-adj {
+        width: 26px;
+        height: 26px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        background: #fff;
+        color: #666;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+        line-height: 1;
+      }
+      .bar-adj:hover {
+        background: #f0f0f0;
+        border-color: #bbb;
+      }
+      .bar-count {
+        font-size: 0.85rem;
+        font-weight: 600;
+        min-width: 18px;
+        text-align: center;
+        color: #333;
+      }
 
       /* --- grid layout --- */
-      :root{--cell-h:26px;--lw:60px;--rm-w:20px;--bar-h:18px;--group-h:22px;--beat-h:16px}
-      .grid-area{}
-      .grid-help{margin-top:4px;margin-bottom:10px;font-size:.7rem;color:#999}
+      :root {
+        --cell-h: 26px;
+        --lw: 60px;
+        --rm-w: 20px;
+        --bar-h: 18px;
+        --group-h: 22px;
+        --beat-h: 16px;
+      }
+      .grid-area {
+      }
+      .grid-help {
+        margin-top: 4px;
+        margin-bottom: 10px;
+        font-size: 0.7rem;
+        color: #999;
+      }
 
       /* chunk wrapper: side panel (labels) + bordered grid */
-      .chunk-wrap{display:flex;margin-bottom:10px}
-      .chunk-side{display:flex;flex-direction:column;flex-shrink:0;padding-right:4px}
-      .side-spacer{min-height:calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px)}
-      .side-row{height:var(--cell-h);display:flex;align-items:center;gap:2px}
-      .rm-spacer{width:var(--rm-w);flex-shrink:0}
-      .side-label{width:var(--lw);min-width:0;overflow:hidden}
-      .side-label input{width:100%;border:none;border-bottom:1px solid transparent;background:transparent;font-size:.65rem;padding:1px 2px;color:#333;font-family:inherit;min-width:0}
-      .side-label input:focus{outline:none;border-bottom-color:#aaa}
-      .side-label input::placeholder{color:#ccc}
-      .side-label-ro{font-size:.58rem;color:#888}
-      .side-label-ro span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 2px}
+      .chunk-wrap {
+        display: flex;
+        margin-bottom: 10px;
+      }
+      .chunk-side {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        padding-right: 4px;
+      }
+      .side-spacer {
+        min-height: calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px);
+      }
+      .side-row {
+        height: var(--cell-h);
+        display: flex;
+        align-items: center;
+        gap: 2px;
+      }
+      .rm-spacer {
+        width: var(--rm-w);
+        flex-shrink: 0;
+      }
+      .side-label {
+        width: var(--lw);
+        min-width: 0;
+        overflow: hidden;
+      }
+      .side-label input {
+        width: 100%;
+        border: none;
+        border-bottom: 1px solid transparent;
+        background: transparent;
+        font-size: 0.65rem;
+        padding: 1px 2px;
+        color: #333;
+        font-family: inherit;
+        min-width: 0;
+      }
+      .side-label input:focus {
+        outline: none;
+        border-bottom-color: #aaa;
+      }
+      .side-label input::placeholder {
+        color: #ccc;
+      }
+      .side-label-ro {
+        font-size: 0.58rem;
+        color: #888;
+      }
+      .side-label-ro span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        padding: 0 2px;
+      }
 
-      .row-rm{width:var(--rm-w);height:var(--rm-w);border:none;background:none;color:#fe6e6c;font-size:.65rem;cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;padding:0;flex-shrink:0}
-      .row-rm:hover{color:#c33;background:#fef0f0}
+      .row-rm {
+        width: var(--rm-w);
+        height: var(--rm-w);
+        border: none;
+        background: none;
+        color: #fe6e6c;
+        font-size: 0.65rem;
+        cursor: pointer;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          color 0.15s,
+          background 0.15s;
+        padding: 0;
+        flex-shrink: 0;
+      }
+      .row-rm:hover {
+        color: #c33;
+        background: #fef0f0;
+      }
 
       /* bordered grid chunk */
-      .chunk{border:2px solid #888;border-radius:6px;flex:1;min-width:0;overflow:hidden;background:#fff}
-      .chunk-hdr{background:#f9f9f9;border-bottom:1px solid #bbb}
-      .hdr-cells{display:grid;min-width:0}
-      .hdr-cells.bar-hdr{border-bottom:1px solid #ddd}
-      .hdr-cells.group-hdr{border-bottom:1px solid #ddd}
-      .bar-lbl{height:var(--bar-h);display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;color:#666}
-      .bar-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl{min-height:var(--group-h);display:flex;align-items:center;justify-content:center;gap:2px;font-size:.56rem;font-weight:600;color:#666;padding:1px 2px;overflow:hidden;position:relative;flex-wrap:wrap}
-      .group-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .group-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .grp-beats{font-size:.56rem;font-weight:700;color:#555}
-      .grp-adj{width:16px;height:16px;border-radius:3px;border:1px solid #ccc;background:#fff;color:#666;font-size:.6rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex-shrink:0;transition:background .1s}
-      .grp-adj:hover{background:#eee;border-color:#999}
-      .grp-rm{width:16px;height:16px;border-radius:3px;border:1px solid #e8c0c0;background:#fff;color:#e66;font-size:.55rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;flex-shrink:0;transition:background .1s}
-      .grp-rm:hover{background:#fee;border-color:#c88}
-      .grp-add{width:18px;height:16px;border-radius:3px;border:1px dashed #bbb;background:#fff;color:#999;font-size:.65rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;position:absolute;right:2px;top:50%;transform:translateY(-50%);transition:background .1s,color .1s}
-      .grp-add:hover{background:#eef;color:#66a;border-color:#99b}
-      .beat-lbl{height:var(--beat-h);display:flex;align-items:center;justify-content:center;font-size:.56rem;font-weight:600;color:#777}
-      .beat-lbl.bar-sep{box-shadow:inset 2px 0 0 0 #888}
-      .beat-lbl.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .beat-lbl.beat-sep{box-shadow:inset 1px 0 0 0 #ddd}
+      .chunk {
+        border: 2px solid #888;
+        border-radius: 6px;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        background: #fff;
+      }
+      .chunk-hdr {
+        background: #f9f9f9;
+        border-bottom: 1px solid #bbb;
+      }
+      .hdr-cells {
+        display: grid;
+        min-width: 0;
+      }
+      .hdr-cells.bar-hdr {
+        border-bottom: 1px solid #ddd;
+      }
+      .hdr-cells.group-hdr {
+        border-bottom: 1px solid #ddd;
+      }
+      .bar-lbl {
+        height: var(--bar-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.58rem;
+        font-weight: 700;
+        color: #666;
+      }
+      .bar-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .group-lbl {
+        min-height: var(--group-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        font-size: 0.56rem;
+        font-weight: 600;
+        color: #666;
+        padding: 1px 2px;
+        overflow: hidden;
+        position: relative;
+        flex-wrap: wrap;
+      }
+      .group-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .group-lbl.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .grp-beats {
+        font-size: 0.56rem;
+        font-weight: 700;
+        color: #555;
+      }
+      .grp-adj {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid #ccc;
+        background: #fff;
+        color: #666;
+        font-size: 0.6rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding: 0;
+        flex-shrink: 0;
+        transition: background 0.1s;
+      }
+      .grp-adj:hover {
+        background: #eee;
+        border-color: #999;
+      }
+      .grp-rm {
+        width: 16px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px solid #e8c0c0;
+        background: #fff;
+        color: #e66;
+        font-size: 0.55rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding: 0;
+        flex-shrink: 0;
+        transition: background 0.1s;
+      }
+      .grp-rm:hover {
+        background: #fee;
+        border-color: #c88;
+      }
+      .grp-add {
+        width: 18px;
+        height: 16px;
+        border-radius: 3px;
+        border: 1px dashed #bbb;
+        background: #fff;
+        color: #999;
+        font-size: 0.65rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        padding: 0;
+        position: absolute;
+        right: 2px;
+        top: 50%;
+        transform: translateY(-50%);
+        transition:
+          background 0.1s,
+          color 0.1s;
+      }
+      .grp-add:hover {
+        background: #eef;
+        color: #66a;
+        border-color: #99b;
+      }
+      .beat-lbl {
+        height: var(--beat-h);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.56rem;
+        font-weight: 600;
+        color: #777;
+      }
+      .beat-lbl.bar-sep {
+        box-shadow: inset 2px 0 0 0 #888;
+      }
+      .beat-lbl.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .beat-lbl.beat-sep {
+        box-shadow: inset 1px 0 0 0 #ddd;
+      }
 
-      .chunk-body{}
-      .chunk-cells{display:grid;min-width:0}
+      .chunk-body {
+      }
+      .chunk-cells {
+        display: grid;
+        min-width: 0;
+      }
 
-      .cell{height:var(--cell-h);cursor:pointer;background:#fff;transition:background .08s}
-      .cell:hover{background:#f0f0f0}
-      .cell.active{background:var(--rg-active)}
-      .cell.active:hover{background:var(--rg-active-hover)}
-      .cell.bar-sep{box-shadow:inset 2px 0 0 0 var(--rg-bar-sep)}
-      .cell.group-sep{box-shadow:inset 2px 0 0 0 #bbb}
-      .cell.beat-sep{box-shadow:inset 1px 0 0 0 var(--rg-beat-sep)}
-      .chunk-cells>.cell{border-right:1px solid var(--rg-cell-border);border-bottom:1px solid var(--rg-cell-border)}
-      .chunk-cells>.cell:last-child{border-right:none}
-      .chunk-body>.chunk-cells:last-child .cell{border-bottom:none}
+      .cell {
+        height: var(--cell-h);
+        cursor: pointer;
+        background: #fff;
+        transition: background 0.08s;
+      }
+      .cell:hover {
+        background: #f0f0f0;
+      }
+      .cell.active {
+        background: var(--rg-active);
+      }
+      .cell.active:hover {
+        background: var(--rg-active-hover);
+      }
+      .cell.bar-sep {
+        box-shadow: inset 2px 0 0 0 var(--rg-bar-sep);
+      }
+      .cell.group-sep {
+        box-shadow: inset 2px 0 0 0 #bbb;
+      }
+      .cell.beat-sep {
+        box-shadow: inset 1px 0 0 0 var(--rg-beat-sep);
+      }
+      .chunk-cells > .cell {
+        border-right: 1px solid var(--rg-cell-border);
+        border-bottom: 1px solid var(--rg-cell-border);
+      }
+      .chunk-cells > .cell:last-child {
+        border-right: none;
+      }
+      .chunk-body > .chunk-cells:last-child .cell {
+        border-bottom: none;
+      }
 
-      .cell.playhead{background:var(--rg-playhead)}
-      .cell.active.playhead{background:var(--rg-active-playhead)}
+      .cell.playhead {
+        background: var(--rg-playhead);
+      }
+      .cell.active.playhead {
+        background: var(--rg-active-playhead);
+      }
 
-      .add-row-btn{display:inline-flex;align-items:center;justify-content:center;border:1.5px dashed #d0d0d0;border-radius:5px;background:none;color:#bbb;cursor:pointer;user-select:none;transition:border-color .15s,color .15s;height:26px;padding:0 20px;margin-top:5px;font-size:.78rem}
-      .add-row-btn:hover{border-color:#999;color:#666;background:#fafafa}
+      .add-row-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1.5px dashed #d0d0d0;
+        border-radius: 5px;
+        background: none;
+        color: #bbb;
+        cursor: pointer;
+        user-select: none;
+        transition:
+          border-color 0.15s,
+          color 0.15s;
+        height: 26px;
+        padding: 0 20px;
+        margin-top: 5px;
+        font-size: 0.78rem;
+      }
+      .add-row-btn:hover {
+        border-color: #999;
+        color: #666;
+        background: #fafafa;
+      }
 
       /* --- embed modal --- */
-      .embed-overlay{position:fixed;inset:0;z-index:900;display:flex;align-items:center;justify-content:center;padding:1rem}
-      .embed-overlay[hidden]{display:none}
-      .embed-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.45);cursor:pointer}
-      .embed-dialog{position:relative;background:#fff;border-radius:10px;padding:1.25rem;max-width:520px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,.15)}
-      .embed-title{font-size:.95rem;font-weight:600;margin-bottom:.75rem}
-      .embed-code{width:100%;border:1px solid #ddd;border-radius:6px;padding:.6rem;font-family:monospace;font-size:.75rem;resize:vertical;color:#333;background:#f9f9f9}
-      .embed-actions{display:flex;gap:.5rem;margin-top:.75rem;justify-content:flex-end}
+      .embed-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .embed-overlay[hidden] {
+        display: none;
+      }
+      .embed-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        cursor: pointer;
+      }
+      .embed-dialog {
+        position: relative;
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.25rem;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+      }
+      .embed-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+      }
+      .embed-code {
+        width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 0.6rem;
+        font-family: monospace;
+        font-size: 0.75rem;
+        resize: vertical;
+        color: #333;
+        background: #f9f9f9;
+      }
+      .embed-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+        justify-content: flex-end;
+      }
 
       /* --- tuplet bar --- */
-      .tuplet-bar{display:flex;align-items:center;gap:.5rem;margin-bottom:.6rem;padding:.4rem .6rem;background:#eef;border:1px solid #ccd;border-radius:6px;flex-wrap:wrap}
-      .tuplet-bar[hidden]{display:none}
-      .tuplet-info{font-size:.72rem;color:#555;font-weight:600;margin-right:auto}
-      .tbtn{padding:.25rem .55rem;border:1px solid #bbc;border-radius:5px;background:#fff;color:#444;font-size:.72rem;cursor:pointer;transition:background .12s,border-color .12s}
-      .tbtn:hover{background:#ddf;border-color:#99b}
+      .tuplet-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.6rem;
+        padding: 0.4rem 0.6rem;
+        background: #eef;
+        border: 1px solid #ccd;
+        border-radius: 6px;
+        flex-wrap: wrap;
+      }
+      .tuplet-bar[hidden] {
+        display: none;
+      }
+      .tuplet-info {
+        font-size: 0.72rem;
+        color: #555;
+        font-weight: 600;
+        margin-right: auto;
+      }
+      .tbtn {
+        padding: 0.25rem 0.55rem;
+        border: 1px solid #bbc;
+        border-radius: 5px;
+        background: #fff;
+        color: #444;
+        font-size: 0.72rem;
+        cursor: pointer;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
+      }
+      .tbtn:hover {
+        background: #ddf;
+        border-color: #99b;
+      }
 
       /* --- beat header selectable --- */
-      .beat-lbl{cursor:pointer;user-select:none;transition:background .1s}
-      .beat-lbl:hover{background:#eef}
-      .beat-lbl.selected{background:#cdf;box-shadow:inset 0 -2px 0 0 #57a}
-      .beat-lbl.tuplet-lbl{background:#f0eaff}
-      .beat-lbl.tuplet-lbl.selected{background:#c8bfff}
-      .tp-badge{font-weight:700;color:#7c4dff;font-size:.52rem}
+      .beat-lbl {
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.1s;
+      }
+      .beat-lbl:hover {
+        background: #eef;
+      }
+      .beat-lbl.selected {
+        background: #cdf;
+        box-shadow: inset 0 -2px 0 0 #57a;
+      }
+      .beat-lbl.tuplet-lbl {
+        background: #f0eaff;
+      }
+      .beat-lbl.tuplet-lbl.selected {
+        background: #c8bfff;
+      }
+      .tp-badge {
+        font-weight: 700;
+        color: #7c4dff;
+        font-size: 0.52rem;
+      }
 
-      @media(max-width:600px){
-        body{padding:.5rem .5rem 2rem}
-        :root{--cell-h:22px;--lw:46px;--rm-w:16px;--bar-h:16px;--group-h:20px;--beat-h:14px}
-        .side-label input{font-size:.58rem}
-        .playback-bar{gap:.5rem}
-        .toolbar{gap:.4rem}
-        h1{font-size:1rem}
-        .btn{padding:.3rem .55rem;font-size:.72rem}
-        .bar-lbl{font-size:.52rem}
-        .group-lbl{font-size:.5rem}
-        .beat-lbl{font-size:.48rem}
+      @media (max-width: 600px) {
+        body {
+          padding: 0.5rem 0.5rem 2rem;
+        }
+        :root {
+          --cell-h: 22px;
+          --lw: 46px;
+          --rm-w: 16px;
+          --bar-h: 16px;
+          --group-h: 20px;
+          --beat-h: 14px;
+        }
+        .side-label input {
+          font-size: 0.58rem;
+        }
+        .playback-bar {
+          gap: 0.5rem;
+        }
+        .toolbar {
+          gap: 0.4rem;
+        }
+        h1 {
+          font-size: 1rem;
+        }
+        .btn {
+          padding: 0.3rem 0.55rem;
+          font-size: 0.72rem;
+        }
+        .bar-lbl {
+          font-size: 0.52rem;
+        }
+        .group-lbl {
+          font-size: 0.5rem;
+        }
+        .beat-lbl {
+          font-size: 0.48rem;
+        }
       }
     </style>
 
@@ -247,10 +825,17 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       /* ===== Constants ===== */
       const STORAGE_KEY = "rhythmGrid_v1";
       const DEFAULT_DIVS = 4;
-      const SOUND_FILES = JSON.parse((document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]") as string[];
-      const DEFAULT_SOUND = JSON.parse((document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || "\"conga\"") as string;
+      const SOUND_FILES = JSON.parse(
+        (document.getElementById("soundFilesJson") as HTMLScriptElement | null)?.textContent || "[]",
+      ) as string[];
+      const DEFAULT_SOUND = JSON.parse(
+        (document.getElementById("defaultSoundJson") as HTMLScriptElement | null)?.textContent || '"conga"',
+      ) as string;
       function normalizeInstrumentName(s: string): string {
-        return s.trim().toLowerCase().replace(/[-_\s]/g, "");
+        return s
+          .trim()
+          .toLowerCase()
+          .replace(/[-_\s]/g, "");
       }
       const SOUND_FILES_NORM = SOUND_FILES.map((name) => [name, normalizeInstrumentName(name)] as const);
       function pickByKeyword(kwNorm: string): string {
@@ -261,16 +846,30 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       /* ===== Types & Helpers ===== */
       type TupletGroup = [number, number];
-      interface Row { label: string; cells: boolean[] }
+      interface Row {
+        label: string;
+        cells: boolean[];
+      }
       interface State {
-        title: string; numCycles: number; bpm: number; beatGroups: number[];
-        subsPerBeat: number; tuplets: TupletGroup[]; rows: Row[];
+        title: string;
+        numCycles: number;
+        bpm: number;
+        beatGroups: number[];
+        subsPerBeat: number;
+        tuplets: TupletGroup[];
+        rows: Row[];
       }
 
-      function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
-      function lcm(a: number, b: number): number { return (a / gcd(a, b)) * b; }
+      function gcd(a: number, b: number): number {
+        return b === 0 ? a : gcd(b, a % b);
+      }
+      function lcm(a: number, b: number): number {
+        return (a / gcd(a, b)) * b;
+      }
 
-      function bpc(groups: number[]): number { return groups.reduce((a, b) => a + b, 0); }
+      function bpc(groups: number[]): number {
+        return groups.reduce((a, b) => a + b, 0);
+      }
       function cycleGroupStarts(groups: number[]): number[] {
         const r = [0];
         for (let i = 0; i < groups.length - 1; i++) r.push(r[r.length - 1] + groups[i]);
@@ -278,7 +877,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       }
       function beatToGroupIdx(beatInCycle: number, groups: number[]): number {
         let acc = 0;
-        for (let i = 0; i < groups.length; i++) { acc += groups[i]; if (beatInCycle < acc) return i; }
+        for (let i = 0; i < groups.length; i++) {
+          acc += groups[i];
+          if (beatInCycle < acc) return i;
+        }
         return groups.length - 1;
       }
       function beatInGroup(beatInCycle: number, groups: number[]): number {
@@ -300,7 +902,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         return tp.every(([s, d]) => s === 1 && d === divs);
       }
       function ensureTuplets(s: any): TupletGroup[] {
-        const divs = (s.subsPerBeat && s.subsPerBeat >= 1 && s.subsPerBeat <= 12) ? s.subsPerBeat : DEFAULT_DIVS;
+        const divs = s.subsPerBeat && s.subsPerBeat >= 1 && s.subsPerBeat <= 12 ? s.subsPerBeat : DEFAULT_DIVS;
         const bg: number[] = s.beatGroups || [s.beatsPerBar || 4];
         const nc = s.numCycles || s.numBars || 1;
         const totalBeats = nc * bpc(bg);
@@ -311,13 +913,21 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         return defaultTuplets(totalBeats, divs);
       }
       function groupCellStarts(tp: TupletGroup[]): number[] {
-        const r: number[] = []; let p = 0;
-        for (const [, d] of tp) { r.push(p); p += d; }
+        const r: number[] = [];
+        let p = 0;
+        for (const [, d] of tp) {
+          r.push(p);
+          p += d;
+        }
         return r;
       }
       function groupBeatStarts(tp: TupletGroup[]): number[] {
-        const r: number[] = []; let b = 0;
-        for (const [s] of tp) { r.push(b); b += s; }
+        const r: number[] = [];
+        let b = 0;
+        for (const [s] of tp) {
+          r.push(b);
+          b += s;
+        }
         return r;
       }
 
@@ -325,14 +935,20 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         let B = 1;
         for (const [s, d] of groups) B = lcm(B, d / gcd(d, s));
         const w: number[] = [];
-        for (const [s, d] of groups) { const fr = s * B / d; for (let i = 0; i < d; i++) w.push(fr); }
+        for (const [s, d] of groups) {
+          const fr = (s * B) / d;
+          for (let i = 0; i < d; i++) w.push(fr);
+        }
         return w;
       }
 
       function buildStepDurations(bpm: number, tp: TupletGroup[]): number[] {
         const spb = 60 / bpm;
         const d: number[] = [];
-        for (const [span, divs] of tp) { const v = spb * span / divs; for (let i = 0; i < divs; i++) d.push(v); }
+        for (const [span, divs] of tp) {
+          const v = (spb * span) / divs;
+          for (let i = 0; i < divs; i++) d.push(v);
+        }
         return d;
       }
       function buildCumTimes(durations: number[]): number[] {
@@ -343,11 +959,18 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       /* ===== State ===== */
       function defaultState(): State {
-        const bg = [4], n = 2, spb = 4;
+        const bg = [4],
+          n = 2,
+          spb = 4;
         const tp = defaultTuplets(n * bpc(bg), spb);
         const tc = totalCellCount(tp);
         return {
-          title: "", numCycles: n, bpm: 120, beatGroups: bg, subsPerBeat: spb, tuplets: tp,
+          title: "",
+          numCycles: n,
+          bpm: 120,
+          beatGroups: bg,
+          subsPerBeat: spb,
+          tuplets: tp,
           rows: [
             { label: "Kick", cells: Array(tc).fill(false) },
             { label: "Snare", cells: Array(tc).fill(false) },
@@ -375,11 +998,23 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             while (r.cells.length < total) r.cells.push(false);
             if (r.cells.length > total) r.cells.length = total;
           });
-          return { title: s.title || "", numCycles: s.numCycles, bpm: s.bpm, beatGroups: s.beatGroups, subsPerBeat: s.subsPerBeat, tuplets: s.tuplets, rows: s.rows } as State;
-        } catch { return defaultState(); }
+          return {
+            title: s.title || "",
+            numCycles: s.numCycles,
+            bpm: s.bpm,
+            beatGroups: s.beatGroups,
+            subsPerBeat: s.subsPerBeat,
+            tuplets: s.tuplets,
+            rows: s.rows,
+          } as State;
+        } catch {
+          return defaultState();
+        }
       }
 
-      function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
 
       let state = loadState();
 
@@ -388,23 +1023,28 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (hash) {
           const d = JSON.parse(fromBase64Url(hash)) as any;
           if (d.r && (d.n || d.nc)) {
-            const bg: number[] = d.bg || [(d.bp && d.bp >= 1 && d.bp <= 32) ? d.bp : 4];
+            const bg: number[] = d.bg || [d.bp && d.bp >= 1 && d.bp <= 32 ? d.bp : 4];
             const nc = d.nc || d.n;
-            const spb = (d.sd && d.sd >= 1 && d.sd <= 12) ? d.sd : DEFAULT_DIVS;
+            const spb = d.sd && d.sd >= 1 && d.sd <= 12 ? d.sd : DEFAULT_DIVS;
             const tp: TupletGroup[] = d.tp
               ? d.tp.map((t: any): TupletGroup => [t[0], t[1]])
               : defaultTuplets(nc * bpc(bg), spb);
             state = {
               title: d.t || "",
-              bpm: (d.b && d.b >= 40 && d.b <= 300) ? d.b : 120,
-              beatGroups: bg, subsPerBeat: spb, numCycles: nc, tuplets: tp,
+              bpm: d.b && d.b >= 40 && d.b <= 300 ? d.b : 120,
+              beatGroups: bg,
+              subsPerBeat: spb,
+              numCycles: nc,
+              tuplets: tp,
               rows: d.r.map((r: any) => ({ label: r.l, cells: hexToCells(r.c) })),
             };
             saveState();
             history.replaceState(null, "", window.location.pathname);
           }
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
 
       /* ===== Layout ===== */
       function calcCyclesPerLine(): number {
@@ -417,7 +1057,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       let uiReady = false;
       window.addEventListener("resize", () => {
         const n = calcCyclesPerLine();
-        if (n !== cyclesPerLine) { cyclesPerLine = n; if (uiReady) render(); }
+        if (n !== cyclesPerLine) {
+          cyclesPerLine = n;
+          if (uiReady) render();
+        }
       });
 
       /* ===== Audio Engine ===== */
@@ -444,21 +1087,30 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         cumTimes = buildCumTimes(stepDurations);
         const beatsPerCyc = bpc(state.beatGroups);
         const cgs = new Set(cycleGroupStarts(state.beatGroups));
-        beatStartSteps = new Set(); groupStartSteps = new Set(); cycleStartSteps = new Set();
-        let cell = 0, beat = 0;
+        beatStartSteps = new Set();
+        groupStartSteps = new Set();
+        cycleStartSteps = new Set();
+        let cell = 0,
+          beat = 0;
         for (const [s, d] of state.tuplets) {
           beatStartSteps.add(cell);
           const bInCyc = beat % beatsPerCyc;
           if (bInCyc === 0) cycleStartSteps.add(cell);
           else if (cgs.has(bInCyc)) groupStartSteps.add(cell);
-          cell += d; beat += s;
+          cell += d;
+          beat += s;
         }
       }
 
       function trimSilence(buffer: AudioBuffer): AudioBuffer {
         const ch0 = buffer.getChannelData(0);
         let start = 0;
-        for (let i = 0; i < ch0.length; i++) { if (Math.abs(ch0[i]) > 0.005) { start = i; break; } }
+        for (let i = 0; i < ch0.length; i++) {
+          if (Math.abs(ch0[i]) > 0.005) {
+            start = i;
+            break;
+          }
+        }
         if (start === 0) return buffer;
         const len = buffer.length - start;
         const trimmed = audioCtx!.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
@@ -471,12 +1123,14 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (!audioCtx) audioCtx = new AudioContext();
         if (audioCtx.state === "suspended") await audioCtx.resume();
         if (soundBuffers.size === 0) {
-          await Promise.all(SOUND_FILES.map(async (name) => {
-            const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
-            const buf = await res.arrayBuffer();
-            const decoded = await audioCtx!.decodeAudioData(buf);
-            soundBuffers.set(name, trimSilence(decoded));
-          }));
+          await Promise.all(
+            SOUND_FILES.map(async (name) => {
+              const res = await fetch(`${BASE}/sounds/drum/${name}.mp3`);
+              const buf = await res.arrayBuffer();
+              const decoded = await audioCtx!.decodeAudioData(buf);
+              soundBuffers.set(name, trimSilence(decoded));
+            }),
+          );
         }
       }
 
@@ -497,18 +1151,22 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const buf = soundBuffers.get(name);
         if (!buf || !audioCtx) return;
         const src = audioCtx.createBufferSource();
-        src.buffer = buf; src.connect(audioCtx.destination); src.start(time);
+        src.buffer = buf;
+        src.connect(audioCtx.destination);
+        src.start(time);
       }
 
       function playMetroClick(time: number, freq: number, vol: number) {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
         osc.frequency.value = freq;
         gain.gain.setValueAtTime(vol, time);
         gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
-        osc.start(time); osc.stop(time + 0.06);
+        osc.start(time);
+        osc.stop(time + 0.06);
       }
 
       function scheduleNote(step: number, time: number) {
@@ -530,7 +1188,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       function scheduler() {
         if (!audioCtx || !isPlaying) return;
         while (nextNoteTime < audioCtx.currentTime + SCHEDULE_AHEAD) {
-          scheduleNote(currentStep, nextNoteTime); advanceStep();
+          scheduleNote(currentStep, nextNoteTime);
+          advanceStep();
         }
         schedulerTimer = window.setTimeout(scheduler, TIMER_INTERVAL);
       }
@@ -539,34 +1198,51 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (!isPlaying || !audioCtx) return;
         const total = totalCellCount(state.tuplets);
         const loopDur = cumTimes[total];
-        const elapsed = ((audioCtx.currentTime - playStartTime) % loopDur + loopDur) % loopDur;
-        let lo = 0, hi = total - 1;
-        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (cumTimes[mid] <= elapsed) lo = mid; else hi = mid - 1; }
+        const elapsed = (((audioCtx.currentTime - playStartTime) % loopDur) + loopDur) % loopDur;
+        let lo = 0,
+          hi = total - 1;
+        while (lo < hi) {
+          const mid = (lo + hi + 1) >> 1;
+          if (cumTimes[mid] <= elapsed) lo = mid;
+          else hi = mid - 1;
+        }
         highlightStep(lo);
         playheadRAF = requestAnimationFrame(updatePlayhead);
       }
 
       function highlightStep(step: number) {
-        gridArea.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-        gridArea.querySelectorAll(`.cell[data-c="${step}"]`).forEach(el => el.classList.add("playhead"));
+        gridArea.querySelectorAll(".cell.playhead").forEach((el) => el.classList.remove("playhead"));
+        gridArea.querySelectorAll(`.cell[data-c="${step}"]`).forEach((el) => el.classList.add("playhead"));
       }
 
       async function startPlay() {
         await ensureAudio();
         rebuildTimingCache();
-        isPlaying = true; currentStep = 0;
+        isPlaying = true;
+        currentStep = 0;
         nextNoteTime = audioCtx!.currentTime + 0.05;
         playStartTime = nextNoteTime;
-        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>'; playBtn.setAttribute("aria-label", "停止"); playBtn.classList.add("playing");
-        scheduler(); updatePlayhead();
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h4v12H6zM14 6h4v12h-4z"/></svg>';
+        playBtn.setAttribute("aria-label", "停止");
+        playBtn.classList.add("playing");
+        scheduler();
+        updatePlayhead();
       }
 
       function stopPlay() {
         isPlaying = false;
-        if (schedulerTimer !== null) { clearTimeout(schedulerTimer); schedulerTimer = null; }
-        if (playheadRAF !== null) { cancelAnimationFrame(playheadRAF); playheadRAF = null; }
-        gridArea.querySelectorAll(".cell.playhead").forEach(el => el.classList.remove("playhead"));
-        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>'; playBtn.setAttribute("aria-label", "再生"); playBtn.classList.remove("playing");
+        if (schedulerTimer !== null) {
+          clearTimeout(schedulerTimer);
+          schedulerTimer = null;
+        }
+        if (playheadRAF !== null) {
+          cancelAnimationFrame(playheadRAF);
+          playheadRAF = null;
+        }
+        gridArea.querySelectorAll(".cell.playhead").forEach((el) => el.classList.remove("playhead"));
+        playBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+        playBtn.setAttribute("aria-label", "再生");
+        playBtn.classList.remove("playing");
       }
 
       /* ===== DOM refs ===== */
@@ -610,7 +1286,9 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       bpmInput.addEventListener("change", () => {
         const v = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
-        bpmInput.value = String(v); state.bpm = v; saveState();
+        bpmInput.value = String(v);
+        state.bpm = v;
+        saveState();
       });
       sigNum.addEventListener("change", () => {
         if (state.beatGroups.length > 1) return;
@@ -620,13 +1298,15 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         state.beatGroups = [v];
         state.tuplets = defaultTuplets(state.numCycles * v, state.subsPerBeat);
         const total = totalCellCount(state.tuplets);
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc = Array(total).fill(false);
           for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
           row.cells = nc;
         });
         if (isPlaying) stopPlay();
-        clearSelection(); saveState(); render();
+        clearSelection();
+        saveState();
+        render();
       });
       subdivInput.addEventListener("change", () => {
         const v = Math.max(1, Math.min(12, Number(subdivInput.value) || 4));
@@ -635,16 +1315,24 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         state.subsPerBeat = v;
         state.tuplets = defaultTuplets(state.numCycles * bpc(state.beatGroups), v);
         const total = totalCellCount(state.tuplets);
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc = Array(total).fill(false);
           for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
           row.cells = nc;
         });
         if (isPlaying) stopPlay();
-        rebuildTupletButtons(); clearSelection(); saveState(); render();
+        rebuildTupletButtons();
+        clearSelection();
+        saveState();
+        render();
       });
-      metroBtn.addEventListener("click", () => { metronomeOn = !metronomeOn; metroBtn.classList.toggle("on", metronomeOn); });
-      playBtn.addEventListener("click", () => { isPlaying ? stopPlay() : startPlay(); });
+      metroBtn.addEventListener("click", () => {
+        metronomeOn = !metronomeOn;
+        metroBtn.classList.toggle("on", metronomeOn);
+      });
+      playBtn.addEventListener("click", () => {
+        isPlaying ? stopPlay() : startPlay();
+      });
       addCycleBtn.addEventListener("click", addCycle);
       rmCycleBtn.addEventListener("click", removeCycle);
 
@@ -653,28 +1341,35 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       let selEnd: number | null = null;
 
       function clearSelection() {
-        selStart = null; selEnd = null;
+        selStart = null;
+        selEnd = null;
         tupletBar.hidden = true;
-        gridArea.querySelectorAll(".beat-lbl.selected").forEach(el => el.classList.remove("selected"));
+        gridArea.querySelectorAll(".beat-lbl.selected").forEach((el) => el.classList.remove("selected"));
       }
 
       function rebuildTupletButtons() {
         const spb = state.subsPerBeat;
         const options = [spb, 3, 4, 5, 7];
         const unique = [...new Set(options)].sort((a, b) => a - b);
-        tupletBtns.innerHTML = unique.map(d =>
-          d === spb
-            ? `<button class="tbtn" data-tuplet="${d}">通常(${d})</button>`
-            : `<button class="tbtn" data-tuplet="${d}">${d}連</button>`
-        ).join("");
+        tupletBtns.innerHTML = unique
+          .map((d) =>
+            d === spb
+              ? `<button class="tbtn" data-tuplet="${d}">通常(${d})</button>`
+              : `<button class="tbtn" data-tuplet="${d}">${d}連</button>`,
+          )
+          .join("");
       }
       rebuildTupletButtons();
 
       function updateSelectionUI() {
-        gridArea.querySelectorAll(".beat-lbl.selected").forEach(el => el.classList.remove("selected"));
-        if (selStart === null) { tupletBar.hidden = true; return; }
-        const lo = selStart, hi = selEnd ?? selStart;
-        gridArea.querySelectorAll<HTMLElement>(".beat-lbl[data-beat-start]").forEach(el => {
+        gridArea.querySelectorAll(".beat-lbl.selected").forEach((el) => el.classList.remove("selected"));
+        if (selStart === null) {
+          tupletBar.hidden = true;
+          return;
+        }
+        const lo = selStart,
+          hi = selEnd ?? selStart;
+        gridArea.querySelectorAll<HTMLElement>(".beat-lbl[data-beat-start]").forEach((el) => {
           const bs = Number(el.dataset.beatStart);
           const be = Number(el.dataset.beatEnd) - 1;
           if (be >= lo && bs <= hi) el.classList.add("selected");
@@ -687,7 +1382,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       /* ===== Tuplet Application ===== */
       function applyTuplet(divisions: number) {
         if (selStart === null) return;
-        const lo = selStart, hi = selEnd ?? selStart;
+        const lo = selStart,
+          hi = selEnd ?? selStart;
         const bStarts = groupBeatStarts(state.tuplets);
         const cStarts = groupCellStarts(state.tuplets);
         const newTp: TupletGroup[] = [];
@@ -697,26 +1393,32 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (divisions === spb) {
           for (let gi = 0; gi < state.tuplets.length; gi++) {
             const [s, d] = state.tuplets[gi];
-            const gbs = bStarts[gi], gbe = gbs + s - 1;
+            const gbs = bStarts[gi],
+              gbe = gbs + s - 1;
             if (gbe < lo || gbs > hi) {
-              newTp.push([s, d]); slices.push({ oldStart: cStarts[gi], oldEnd: cStarts[gi] + d, newLen: d });
+              newTp.push([s, d]);
+              slices.push({ oldStart: cStarts[gi], oldEnd: cStarts[gi] + d, newLen: d });
             } else {
               for (let b = 0; b < s; b++) {
                 newTp.push([1, spb]);
-                const os = cStarts[gi] + Math.round(b * d / s);
-                const oe = cStarts[gi] + Math.round((b + 1) * d / s);
+                const os = cStarts[gi] + Math.round((b * d) / s);
+                const oe = cStarts[gi] + Math.round(((b + 1) * d) / s);
                 slices.push({ oldStart: os, oldEnd: oe, newLen: spb });
               }
             }
           }
         } else {
           const spanBeats = hi - lo + 1;
-          let mergeStart = -1, mergeEnd = -1, mergeAdded = false;
+          let mergeStart = -1,
+            mergeEnd = -1,
+            mergeAdded = false;
           for (let gi = 0; gi < state.tuplets.length; gi++) {
             const [s, d] = state.tuplets[gi];
-            const gbs = bStarts[gi], gbe = gbs + s - 1;
+            const gbs = bStarts[gi],
+              gbe = gbs + s - 1;
             if (gbe < lo || gbs > hi) {
-              newTp.push([s, d]); slices.push({ oldStart: cStarts[gi], oldEnd: cStarts[gi] + d, newLen: d });
+              newTp.push([s, d]);
+              slices.push({ oldStart: cStarts[gi], oldEnd: cStarts[gi] + d, newLen: d });
             } else {
               if (mergeStart < 0) mergeStart = cStarts[gi];
               mergeEnd = cStarts[gi] + d;
@@ -731,7 +1433,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         }
 
         state.tuplets = newTp;
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc: boolean[] = [];
           for (const { oldStart, oldEnd, newLen } of slices) {
             const old = row.cells.slice(oldStart, oldEnd);
@@ -741,7 +1443,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         });
         clearSelection();
         if (isPlaying) stopPlay();
-        saveState(); render();
+        saveState();
+        render();
       }
 
       tupletBar.addEventListener("click", (e: Event) => {
@@ -758,14 +1461,16 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const cStarts = groupCellStarts(tp);
 
         const chunks: { startGi: number; endGi: number; startCycle: number }[] = [];
-        let gi0 = 0, csc = 0;
+        let gi0 = 0,
+          csc = 0;
         while (gi0 < tp.length) {
           const cec = Math.min(csc + cyclesPerLine, state.numCycles);
           const ceBeat = cec * beatsPerCyc;
           let eg = gi0;
           while (eg < tp.length && bStarts[eg] < ceBeat) eg++;
           chunks.push({ startGi: gi0, endGi: eg, startCycle: csc });
-          gi0 = eg; csc = cec;
+          gi0 = eg;
+          csc = cec;
         }
 
         const showRm = state.rows.length > 1;
@@ -777,7 +1482,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           const chGroups = tp.slice(ch.startGi, ch.endGi);
           const chCellStart = cStarts[ch.startGi];
           const frW = computeFrWidths(chGroups);
-          const cols = frW.map(f => `${f}fr`).join(" ");
+          const cols = frW.map((f) => `${f}fr`).join(" ");
 
           const cellCycles: number[] = [];
           const cellBGIdx: number[] = [];
@@ -785,7 +1490,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const [s, d] = chGroups[lgi];
             const gbs = bStarts[ch.startGi + lgi];
             for (let c = 0; c < d; c++) {
-              const bp = gbs + (c + 0.5) / d * s;
+              const bp = gbs + ((c + 0.5) / d) * s;
               cellCycles.push(Math.floor(bp / beatsPerCyc));
               cellBGIdx.push(beatToGroupIdx(Math.floor(bp % beatsPerCyc), bg));
             }
@@ -794,7 +1499,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           const chunkCycles: number[] = [];
           const cycleColCounts = new Map<number, number>();
           for (const cyc of cellCycles) {
-            if (!cycleColCounts.has(cyc)) { chunkCycles.push(cyc); cycleColCounts.set(cyc, 0); }
+            if (!cycleColCounts.has(cyc)) {
+              chunkCycles.push(cyc);
+              cycleColCounts.set(cyc, 0);
+            }
             cycleColCounts.set(cyc, cycleColCounts.get(cyc)! + 1);
           }
 
@@ -817,13 +1525,15 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const row = state.rows[r];
             html += `<div class="side-row">`;
             if (showRm) {
-              html += ci === 0
-                ? `<button class="row-rm" data-remove-row="${r}" title="行を削除">×</button>`
-                : `<div class="rm-spacer"></div>`;
+              html +=
+                ci === 0
+                  ? `<button class="row-rm" data-remove-row="${r}" title="行を削除">×</button>`
+                  : `<div class="rm-spacer"></div>`;
             }
-            html += ci === 0
-              ? `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名（候補＋自由入力OK）" list="drumList" /></div>`
-              : `<div class="side-label side-label-ro"><span title="${esc(row.label)}">${esc(row.label)}</span></div>`;
+            html +=
+              ci === 0
+                ? `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名（候補＋自由入力OK）" list="drumList" /></div>`
+                : `<div class="side-label side-label-ro"><span title="${esc(row.label)}">${esc(row.label)}</span></div>`;
             html += `</div>`;
           }
           html += `</div>`;
@@ -923,9 +1633,19 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
         gridArea.querySelectorAll<HTMLInputElement>(".side-label input").forEach((inp) => {
           let prevValue = "";
-          inp.addEventListener("focus", () => { if (!inp.value) return; prevValue = inp.value; inp.value = ""; });
-          inp.addEventListener("blur", () => { if (!inp.value && prevValue) inp.value = prevValue; prevValue = ""; });
-          inp.addEventListener("input", () => { state.rows[Number(inp.dataset.row)].label = inp.value; saveState(); });
+          inp.addEventListener("focus", () => {
+            if (!inp.value) return;
+            prevValue = inp.value;
+            inp.value = "";
+          });
+          inp.addEventListener("blur", () => {
+            if (!inp.value && prevValue) inp.value = prevValue;
+            prevValue = "";
+          });
+          inp.addEventListener("input", () => {
+            state.rows[Number(inp.dataset.row)].label = inp.value;
+            saveState();
+          });
         });
         document.getElementById("addRowBtn")?.addEventListener("click", addRow);
         updateSelectionUI();
@@ -942,8 +1662,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         state.numCycles++;
         state.tuplets.push(...nb);
         const nc = totalCellCount(nb);
-        state.rows.forEach(r => r.cells.push(...Array(nc).fill(false)));
-        clearSelection(); saveState(); render();
+        state.rows.forEach((r) => r.cells.push(...Array(nc).fill(false)));
+        clearSelection();
+        saveState();
+        render();
       }
       function removeCycle() {
         if (state.numCycles <= 1) return;
@@ -951,60 +1673,80 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const lastCycleBeat = (state.numCycles - 1) * beatsPerCyc;
         const bSt = groupBeatStarts(state.tuplets);
         let removeFrom = state.tuplets.length;
-        for (let i = state.tuplets.length - 1; i >= 0; i--) { if (bSt[i] >= lastCycleBeat) removeFrom = i; else break; }
+        for (let i = state.tuplets.length - 1; i >= 0; i--) {
+          if (bSt[i] >= lastCycleBeat) removeFrom = i;
+          else break;
+        }
         const removedCells = state.tuplets.slice(removeFrom).reduce((s, [, d]) => s + d, 0);
         state.tuplets.splice(removeFrom);
         state.numCycles--;
-        state.rows.forEach(r => r.cells.splice(r.cells.length - removedCells, removedCells));
-        clearSelection(); saveState(); render();
+        state.rows.forEach((r) => r.cells.splice(r.cells.length - removedCells, removedCells));
+        clearSelection();
+        saveState();
+        render();
       }
       function addGroup() {
         state.beatGroups.push(4);
         state.tuplets = defaultTuplets(state.numCycles * bpc(state.beatGroups), state.subsPerBeat);
         const total = totalCellCount(state.tuplets);
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc = Array(total).fill(false);
           for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
           row.cells = nc;
         });
         if (isPlaying) stopPlay();
-        clearSelection(); saveState(); render();
+        clearSelection();
+        saveState();
+        render();
       }
       function removeGroup(groupIdx: number) {
         if (state.beatGroups.length <= 1) return;
         state.beatGroups.splice(groupIdx, 1);
         state.tuplets = defaultTuplets(state.numCycles * bpc(state.beatGroups), state.subsPerBeat);
         const total = totalCellCount(state.tuplets);
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc = Array(total).fill(false);
           for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
           row.cells = nc;
         });
         if (isPlaying) stopPlay();
-        clearSelection(); saveState(); render();
+        clearSelection();
+        saveState();
+        render();
       }
       function changeGroupBeats(groupIdx: number, delta: number) {
         const newBeats = state.beatGroups[groupIdx] + delta;
-        if (newBeats <= 0) { removeGroup(groupIdx); return; }
+        if (newBeats <= 0) {
+          removeGroup(groupIdx);
+          return;
+        }
         if (newBeats > 32) return;
         state.beatGroups[groupIdx] = newBeats;
         state.tuplets = defaultTuplets(state.numCycles * bpc(state.beatGroups), state.subsPerBeat);
         const total = totalCellCount(state.tuplets);
-        state.rows.forEach(row => {
+        state.rows.forEach((row) => {
           const nc = Array(total).fill(false);
           for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
           row.cells = nc;
         });
         if (isPlaying) stopPlay();
-        clearSelection(); saveState(); render();
+        clearSelection();
+        saveState();
+        render();
       }
       function addRow() {
         state.rows.push({ label: "", cells: Array(totalCellCount(state.tuplets)).fill(false) });
-        saveState(); render();
+        saveState();
+        render();
         const inputs = gridArea.querySelectorAll<HTMLInputElement>(".side-label input");
         inputs[inputs.length - 1]?.focus();
       }
-      function removeRow(idx: number) { if (state.rows.length <= 1) return; state.rows.splice(idx, 1); saveState(); render(); }
+      function removeRow(idx: number) {
+        if (state.rows.length <= 1) return;
+        state.rows.splice(idx, 1);
+        saveState();
+        render();
+      }
 
       /* ===== Cell painting ===== */
       let painting = false;
@@ -1014,26 +1756,34 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const cell = (e.target as HTMLElement).closest(".cell") as HTMLElement | null;
         if (!cell) return;
         e.preventDefault();
-        const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+        const r = Number(cell.dataset.r),
+          c = Number(cell.dataset.c);
         paintMode = !state.rows[r].cells[c];
         state.rows[r].cells[c] = paintMode;
         cell.classList.toggle("active", paintMode);
-        painting = true; saveState();
+        painting = true;
+        saveState();
       });
       gridArea.addEventListener("pointerover", (e: PointerEvent) => {
         if (!painting) return;
         const cell = (e.target as HTMLElement).closest(".cell") as HTMLElement | null;
         if (!cell) return;
-        const r = Number(cell.dataset.r), c = Number(cell.dataset.c);
+        const r = Number(cell.dataset.r),
+          c = Number(cell.dataset.c);
         state.rows[r].cells[c] = paintMode;
         cell.classList.toggle("active", paintMode);
         saveState();
       });
-      window.addEventListener("pointerup", () => { painting = false; });
+      window.addEventListener("pointerup", () => {
+        painting = false;
+      });
 
       gridArea.addEventListener("click", (e: Event) => {
         const rmBtn = (e.target as HTMLElement).closest("[data-remove-row]") as HTMLElement | null;
-        if (rmBtn) { removeRow(Number(rmBtn.dataset.removeRow)); return; }
+        if (rmBtn) {
+          removeRow(Number(rmBtn.dataset.removeRow));
+          return;
+        }
         const grpBtn = (e.target as HTMLElement).closest("[data-grp-action]") as HTMLElement | null;
         if (grpBtn) {
           const action = grpBtn.dataset.grpAction;
@@ -1051,7 +1801,9 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           if (selStart !== null && bs === selStart && be === (selEnd ?? selStart)) {
             clearSelection();
           } else if (selStart === null) {
-            selStart = bs; selEnd = be; updateSelectionUI();
+            selStart = bs;
+            selEnd = be;
+            updateSelectionUI();
           } else {
             selStart = Math.min(selStart, bs);
             selEnd = Math.max(selEnd ?? selStart, be);
@@ -1060,7 +1812,9 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           return;
         }
       });
-      gridArea.addEventListener("selectstart", (e) => { if (painting) e.preventDefault(); });
+      gridArea.addEventListener("selectstart", (e) => {
+        if (painting) e.preventDefault();
+      });
 
       document.addEventListener("click", (e: Event) => {
         if (selStart === null) return;
@@ -1069,14 +1823,18 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       });
 
       /* ===== Clear ===== */
-      clearBtn.addEventListener("click", () => { state.rows.forEach(r => r.cells.fill(false)); saveState(); render(); });
+      clearBtn.addEventListener("click", () => {
+        state.rows.forEach((r) => r.cells.fill(false));
+        saveState();
+        render();
+      });
 
       /* ===== Embed code ===== */
       function cellsToHex(cells: boolean[]): string {
         let hex = "";
         for (let i = 0; i < cells.length; i += 4) {
           let nibble = 0;
-          for (let j = 0; j < 4 && i + j < cells.length; j++) if (cells[i + j]) nibble |= (8 >> j);
+          for (let j = 0; j < 4 && i + j < cells.length; j++) if (cells[i + j]) nibble |= 8 >> j;
           hex += nibble.toString(16);
         }
         return hex;
@@ -1084,7 +1842,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       function toBase64Url(str: string): string {
         const bytes = new TextEncoder().encode(str);
-        let binary = ""; bytes.forEach(b => binary += String.fromCharCode(b));
+        let binary = "";
+        bytes.forEach((b) => (binary += String.fromCharCode(b)));
         return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       }
 
@@ -1092,11 +1851,17 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const bg = state.beatGroups;
         const singleGroup = bg.length === 1;
         const data: any = {
-          t: state.title, b: state.bpm,
-          r: state.rows.map(r => ({ l: r.label, c: cellsToHex(r.cells) })),
+          t: state.title,
+          b: state.bpm,
+          r: state.rows.map((r) => ({ l: r.label, c: cellsToHex(r.cells) })),
         };
-        if (singleGroup) { data.n = state.numCycles; data.bp = bg[0]; }
-        else { data.nc = state.numCycles; data.bg = bg; }
+        if (singleGroup) {
+          data.n = state.numCycles;
+          data.bp = bg[0];
+        } else {
+          data.nc = state.numCycles;
+          data.bg = bg;
+        }
         if (state.subsPerBeat !== DEFAULT_DIVS) data.sd = state.subsPerBeat;
         if (!isAllDefault(state.tuplets, state.subsPerBeat)) data.tp = state.tuplets;
         const encoded = toBase64Url(JSON.stringify(data));
@@ -1109,11 +1874,16 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         return `<iframe src="${ORIGIN}${BASE}/lab/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
       }
 
-      embedBtn.addEventListener("click", () => { embedCode.value = generateEmbedCode(); embedOverlay.hidden = false; });
+      embedBtn.addEventListener("click", () => {
+        embedCode.value = generateEmbedCode();
+        embedOverlay.hidden = false;
+      });
       copyEmbedBtn.addEventListener("click", async () => {
         await navigator.clipboard.writeText(embedCode.value);
         copyEmbedBtn.textContent = "コピーしました！";
-        setTimeout(() => { copyEmbedBtn.textContent = "コピー"; }, 1500);
+        setTimeout(() => {
+          copyEmbedBtn.textContent = "コピー";
+        }, 1500);
       });
       embedOverlay.addEventListener("click", (e) => {
         if ((e.target as Element).closest("[data-close-embed]")) embedOverlay.hidden = true;
@@ -1126,8 +1896,15 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const beatsPerCyc = bpc(bg);
         const bSt = groupBeatStarts(tp);
         const cSt = groupCellStarts(tp);
-        const scale = 2, labelW = 72, padX = 12, padY = 10, cellH = 24;
-        const barHdrH = 16, groupHdrH = 14, beatHdrH = 16, hdrH = barHdrH + groupHdrH + beatHdrH;
+        const scale = 2,
+          labelW = 72,
+          padX = 12,
+          padY = 10,
+          cellH = 24;
+        const barHdrH = 16,
+          groupHdrH = 14,
+          beatHdrH = 16,
+          hdrH = barHdrH + groupHdrH + beatHdrH;
         const chunkGap = 8;
         const titleH = state.title ? 24 : 0;
         const beatW = cellH * state.subsPerBeat;
@@ -1140,20 +1917,25 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const canvasH = padY * 2 + titleH + numChunks * chunkH + Math.max(0, numChunks - 1) * chunkGap;
 
         const canvas = document.createElement("canvas");
-        canvas.width = canvasW * scale; canvas.height = canvasH * scale;
+        canvas.width = canvasW * scale;
+        canvas.height = canvasH * scale;
         const ctx = canvas.getContext("2d")!;
         ctx.scale(scale, scale);
         const rs = getComputedStyle(document.documentElement);
         const activeColor = rs.getPropertyValue("--rg-active").trim() || "#0ece2b";
-        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvasW, canvasH);
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvasW, canvasH);
 
         if (state.title) {
-          ctx.fillStyle = "#333"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "left";
+          ctx.fillStyle = "#333";
+          ctx.font = "bold 12px sans-serif";
+          ctx.textAlign = "left";
           ctx.fillText(state.title, padX, padY + 14);
         }
 
         const cgsArr = cycleGroupStarts(bg);
-        let gi = 0, csCyc = 0;
+        let gi = 0,
+          csCyc = 0;
         for (let chunk = 0; chunk < numChunks; chunk++) {
           const ceCyc = Math.min(csCyc + cyclesPerLine, state.numCycles);
           const ceBeat = ceCyc * beatsPerCyc;
@@ -1162,17 +1944,21 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           const chGrps = tp.slice(gi, eg);
           const chCellStart = cSt[gi];
           const cy = padY + titleH + chunk * (chunkH + chunkGap);
-          const gx = padX + labelW, gy = cy + hdrH;
+          const gx = padX + labelW,
+            gy = cy + hdrH;
           const localGridW = (ceCyc - csCyc) * beatsPerCyc * beatW;
           const csBeat = csCyc * beatsPerCyc;
 
-          ctx.fillStyle = "#666"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
+          ctx.fillStyle = "#666";
+          ctx.font = "bold 8px sans-serif";
+          ctx.textAlign = "center";
           for (let c = csCyc; c < ceCyc; c++) {
             const lc = c - csCyc;
             ctx.fillText(`cycle ${c + 1}`, gx + lc * beatsPerCyc * beatW + (beatsPerCyc * beatW) / 2, cy + barHdrH - 4);
           }
 
-          ctx.fillStyle = "#888"; ctx.font = "bold 7px sans-serif";
+          ctx.fillStyle = "#888";
+          ctx.font = "bold 7px sans-serif";
           for (let c = csCyc; c < ceCyc; c++) {
             const lc = c - csCyc;
             for (let g = 0; g < bg.length; g++) {
@@ -1184,7 +1970,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             }
           }
 
-          ctx.fillStyle = "#777"; ctx.font = "bold 9px sans-serif";
+          ctx.fillStyle = "#777";
+          ctx.font = "bold 9px sans-serif";
           for (let lgi = 0; lgi < chGrps.length; lgi++) {
             const [s, d] = chGrps[lgi];
             const gbs = bSt[gi + lgi];
@@ -1192,7 +1979,8 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const w = s * beatW;
             const bInCyc = gbs % beatsPerCyc;
             const bInG = beatInGroup(bInCyc, bg);
-            const lbl = s === 1 && d === state.subsPerBeat ? String(bInG + 1) : s === 1 ? `${bInG + 1}(${d}連)` : `${d}連`;
+            const lbl =
+              s === 1 && d === state.subsPerBeat ? String(bInG + 1) : s === 1 ? `${bInG + 1}(${d}連)` : `${d}連`;
             ctx.fillText(lbl, gx + x + w / 2, cy + hdrH - 4);
           }
 
@@ -1202,75 +1990,113 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             const gbs = bSt[gi + lgi];
             for (let c = 0; c < d; c++) {
               const gc = chCellStart + localIdx;
-              const cx2 = (gbs - csBeat + c / d * s) * beatW;
-              const cw = s / d * beatW;
+              const cx2 = (gbs - csBeat + (c / d) * s) * beatW;
+              const cw = (s / d) * beatW;
               for (let r = 0; r < state.rows.length; r++) {
                 if (state.rows[r].cells[gc]) {
                   ctx.fillStyle = activeColor;
                   ctx.fillRect(gx + cx2 + 1, gy + r * cellH + 1, cw - 2, cellH - 2);
                 }
               }
-              ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 0.5;
-              ctx.beginPath(); ctx.moveTo(gx + cx2, gy); ctx.lineTo(gx + cx2, gy + chunkBodyH); ctx.stroke();
+              ctx.strokeStyle = "#e0e0e0";
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.moveTo(gx + cx2, gy);
+              ctx.lineTo(gx + cx2, gy + chunkBodyH);
+              ctx.stroke();
               localIdx++;
             }
           }
 
-          ctx.strokeStyle = "#e0e0e0"; ctx.lineWidth = 0.5;
+          ctx.strokeStyle = "#e0e0e0";
+          ctx.lineWidth = 0.5;
           for (let r = 0; r <= state.rows.length; r++) {
             const y = gy + r * cellH;
-            ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx + localGridW, y); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(gx, y);
+            ctx.lineTo(gx + localGridW, y);
+            ctx.stroke();
           }
-          ctx.beginPath(); ctx.moveTo(gx + localGridW, gy); ctx.lineTo(gx + localGridW, gy + chunkBodyH); ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(gx + localGridW, gy);
+          ctx.lineTo(gx + localGridW, gy + chunkBodyH);
+          ctx.stroke();
 
-          ctx.strokeStyle = "#bbb"; ctx.lineWidth = 1;
+          ctx.strokeStyle = "#bbb";
+          ctx.lineWidth = 1;
           for (let c = csCyc; c < ceCyc; c++) {
             const lc = c - csCyc;
             for (let g = 1; g < bg.length; g++) {
               const x = gx + (lc * beatsPerCyc + cgsArr[g]) * beatW;
-              ctx.beginPath(); ctx.moveTo(x, cy + barHdrH); ctx.lineTo(x, gy + chunkBodyH); ctx.stroke();
+              ctx.beginPath();
+              ctx.moveTo(x, cy + barHdrH);
+              ctx.lineTo(x, gy + chunkBodyH);
+              ctx.stroke();
             }
           }
 
-          ctx.strokeStyle = "#888"; ctx.lineWidth = 1.5;
+          ctx.strokeStyle = "#888";
+          ctx.lineWidth = 1.5;
           for (let c = 0; c <= ceCyc - csCyc; c++) {
             const x = gx + c * beatsPerCyc * beatW;
-            ctx.beginPath(); ctx.moveTo(x, cy); ctx.lineTo(x, gy + chunkBodyH); ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x, cy);
+            ctx.lineTo(x, gy + chunkBodyH);
+            ctx.stroke();
           }
-          ctx.beginPath(); ctx.moveTo(gx, cy); ctx.lineTo(gx + localGridW, cy); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(gx, gy + chunkBodyH); ctx.lineTo(gx + localGridW, gy + chunkBodyH); ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(gx, cy);
+          ctx.lineTo(gx + localGridW, cy);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(gx, gy + chunkBodyH);
+          ctx.lineTo(gx + localGridW, gy + chunkBodyH);
+          ctx.stroke();
 
-          ctx.fillStyle = "#333"; ctx.font = "10px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+          ctx.fillStyle = "#333";
+          ctx.font = "10px sans-serif";
+          ctx.textAlign = "left";
+          ctx.textBaseline = "middle";
           for (let r = 0; r < state.rows.length; r++) {
             ctx.fillText(state.rows[r].label, padX + 2, gy + r * cellH + cellH / 2);
           }
 
-          gi = eg; csCyc = ceCyc;
+          gi = eg;
+          csCyc = ceCyc;
         }
 
         const a = document.createElement("a");
         a.download = (state.title || "rhythm-grid").replace(/[^\w\s\u3000-\u9FFF-]/g, "") + ".png";
-        a.href = canvas.toDataURL("image/png"); a.click();
+        a.href = canvas.toDataURL("image/png");
+        a.click();
       }
       downloadBtn.addEventListener("click", downloadImage);
 
       /* ===== Encoding helpers ===== */
       function hexToCells(hex: string): boolean[] {
         const cells: boolean[] = [];
-        for (const ch of hex) { const n = parseInt(ch, 16); cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1)); }
+        for (const ch of hex) {
+          const n = parseInt(ch, 16);
+          cells.push(!!(n & 8), !!(n & 4), !!(n & 2), !!(n & 1));
+        }
         return cells;
       }
       function fromBase64Url(b64: string): string {
         let s = b64.replace(/-/g, "+").replace(/_/g, "/");
         while (s.length % 4) s += "=";
         const binary = atob(s);
-        const bytes = new Uint8Array([...binary].map(ch => ch.charCodeAt(0)));
+        const bytes = new Uint8Array([...binary].map((ch) => ch.charCodeAt(0)));
         return new TextDecoder().decode(bytes);
       }
 
       /* ===== Cleanup on page leave ===== */
-      document.addEventListener("visibilitychange", () => { if (document.hidden && isPlaying) stopPlay(); });
-      window.addEventListener("pagehide", () => { if (isPlaying) stopPlay(); audioCtx?.close(); });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden && isPlaying) stopPlay();
+      });
+      window.addEventListener("pagehide", () => {
+        if (isPlaying) stopPlay();
+        audioCtx?.close();
+      });
 
       /* ===== Init ===== */
       uiReady = true;
