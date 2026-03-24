@@ -209,7 +209,13 @@
             const gain = clamp(config.gain ?? defaults.gain ?? DEFAULT_LOOP.gain, 0, 1);
             const rawCf = config.loopCrossfade ?? defaults.loopCrossfade ?? 0;
             const loopCrossfade = typeof rawCf === "number" && rawCf > 0 ? rawCf : 0;
-            return { loopStart: safeLoopStart, loopEnd: safeLoopEnd, release, gain, loopCrossfade };
+            const useLoop =
+                typeof config.useLoop === "boolean"
+                    ? config.useLoop
+                    : typeof defaults.useLoop === "boolean"
+                      ? defaults.useLoop
+                      : false;
+            return { loopStart: safeLoopStart, loopEnd: safeLoopEnd, release, gain, loopCrossfade, useLoop };
         }
 
         /** Manual sustain loop with crossfade at boundaries (Web Audio loop=true has no crossfade). */
@@ -354,23 +360,9 @@
                 gainNode.connect(engine.masterGain || context.destination);
 
                 const sources = [];
-                const usedCf = scheduleCrossfadeSustain(
-                    context,
-                    buffer,
-                    gainNode,
-                    now,
-                    loopConfig.loopStart,
-                    loopConfig.loopEnd,
-                    loopConfig.loopCrossfade,
-                    sources,
-                );
-
-                if (!usedCf) {
+                if (!loopConfig.useLoop) {
                     const source = context.createBufferSource();
                     source.buffer = buffer;
-                    source.loop = true;
-                    source.loopStart = loopConfig.loopStart;
-                    source.loopEnd = loopConfig.loopEnd;
                     source.connect(gainNode);
                     source.start(now, 0);
                     source.onended = () => {
@@ -378,6 +370,31 @@
                         if (active?.sources?.[0] === source) engine.activeNotes.delete(note);
                     };
                     sources.push(source);
+                } else {
+                    const usedCf = scheduleCrossfadeSustain(
+                        context,
+                        buffer,
+                        gainNode,
+                        now,
+                        loopConfig.loopStart,
+                        loopConfig.loopEnd,
+                        loopConfig.loopCrossfade,
+                        sources,
+                    );
+                    if (!usedCf) {
+                        const source = context.createBufferSource();
+                        source.buffer = buffer;
+                        source.loop = true;
+                        source.loopStart = loopConfig.loopStart;
+                        source.loopEnd = loopConfig.loopEnd;
+                        source.connect(gainNode);
+                        source.start(now, 0);
+                        source.onended = () => {
+                            const active = engine.activeNotes.get(note);
+                            if (active?.sources?.[0] === source) engine.activeNotes.delete(note);
+                        };
+                        sources.push(source);
+                    }
                 }
 
                 engine.activeNotes.set(note, { sources, gainNode, release: loopConfig.release });

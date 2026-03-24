@@ -37,7 +37,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       }
 
       .topbar {
-        max-width: 1100px;
+        max-width: min(1320px, calc(100vw - 28px));
         margin: 0 auto 12px;
         display: flex;
         align-items: center;
@@ -79,7 +79,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         color: var(--muted);
         line-height: 1.2;
         display: none;
-        max-width: 1100px;
+        max-width: min(1320px, calc(100vw - 28px));
       }
       .topbar-chord-guess strong {
         color: var(--ink);
@@ -110,11 +110,16 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       .toggle input { margin: 0; }
 
       .grid {
-        max-width: 1100px;
+        /* 以前は 1100px で頭打ち → 窓を広げても鍵盤が大きくならなかった */
+        max-width: min(1320px, calc(100vw - 28px));
         margin: 0 auto;
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: 12px;
+      }
+      /* 合計鍵数が多いときは1列にして、各カードを横幅いっぱいに（鍵が極端に細くならない） */
+      .grid.grid--one-col {
+        grid-template-columns: 1fr;
       }
       .card {
         background: var(--card);
@@ -434,7 +439,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
       }
 
       .summary {
-        max-width: 1100px;
+        max-width: min(1320px, calc(100vw - 28px));
         margin: 10px auto 0;
         display: flex;
         flex-direction: column;
@@ -471,6 +476,120 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           inset 0 0 0 2px rgba(251, 113, 133, 0.95),
           0 0 0 2px rgba(251, 113, 133, 0.22);
       }
+
+      .topbar-midi-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .topbar-midi-group .segmented {
+        flex-shrink: 0;
+      }
+      .midi-settings-open {
+        padding: 8px 10px;
+        min-width: 40px;
+        justify-content: center;
+      }
+      .midi-settings-open .material-symbols-rounded {
+        font-size: 22px;
+      }
+
+      .midi-settings-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(4px);
+      }
+      .midi-settings-backdrop.is-open {
+        display: flex;
+      }
+      .midi-settings-dialog {
+        width: min(420px, 100%);
+        max-height: min(72vh, 520px);
+        overflow: auto;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 16px 18px 14px;
+      }
+      .midi-settings-dialog h2 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .midi-settings-dialog .midi-settings-lead {
+        margin: 0 0 14px;
+        font-size: 12px;
+        color: var(--muted);
+        line-height: 1.45;
+      }
+      .midi-settings-mode {
+        margin-bottom: 12px;
+      }
+      .midi-settings-mode .control-label {
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .midi-input-list {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 8px 10px;
+        background: rgba(255, 255, 255, 0.65);
+        margin-bottom: 10px;
+        max-height: 220px;
+        overflow-y: auto;
+      }
+      .midi-input-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .midi-input-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .midi-input-row input {
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+      .midi-input-row .midi-in-name {
+        font-weight: 600;
+        color: var(--ink);
+        word-break: break-word;
+      }
+      .midi-input-row .midi-in-id {
+        font-size: 10px;
+        color: var(--muted);
+        font-family: ui-monospace, monospace;
+        margin-top: 2px;
+      }
+      .midi-settings-hint {
+        font-size: 11px;
+        color: var(--muted);
+        margin: 0 0 12px;
+        line-height: 1.4;
+      }
+      .midi-settings-hint.is-warn {
+        color: #b45309;
+      }
+      .midi-settings-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 4px;
+      }
     </style>
   </head>
   <body>
@@ -488,12 +607,33 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
             <button type="button" class="seg-btn" data-mode="on">On</button>
           </div>
         </div>
-        <div class="control-row topbar-summary-toggle" style="flex: 0 0 auto; min-width: 0;">
+        <div class="control-row topbar-summary-toggle topbar-midi-group" style="flex: 0 0 auto; min-width: 0;">
           <div class="control-label">Summary key</div>
           <div class="segmented" id="summaryToggle">
             <button type="button" class="seg-btn is-active" data-mode="off">Off</button>
             <button type="button" class="seg-btn" data-mode="on">On</button>
           </div>
+        </div>
+        <button type="button" class="btn icon-btn midi-settings-open" id="midiInputSettingsBtn" aria-label="MIDI入力の設定" title="MIDI入力の設定">
+          <span class="material-symbols-rounded" aria-hidden="true">settings</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="midi-settings-backdrop" id="midiSettingsBackdrop" aria-hidden="true">
+      <div class="midi-settings-dialog" role="dialog" aria-modal="true" aria-labelledby="midiSettingsTitle" tabindex="-1">
+        <h2 id="midiSettingsTitle">MIDI 入力</h2>
+        <div class="midi-settings-mode">
+          <div class="control-label">受信モード</div>
+          <div class="segmented" id="midiFilterModeToggle">
+            <button type="button" class="seg-btn is-active" data-mode="all">すべて</button>
+            <button type="button" class="seg-btn" data-mode="selected">選択のみ</button>
+          </div>
+        </div>
+        <p class="midi-settings-hint" id="midiSettingsHint"></p>
+        <div class="midi-input-list" id="midiInputList"></div>
+        <div class="midi-settings-actions">
+          <button type="button" class="btn" id="midiSettingsCloseBtn">閉じる</button>
         </div>
       </div>
     </div>
@@ -746,7 +886,13 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         const gain = clamp(cfg.gain ?? defaults.gain ?? 1, 0, 1);
         const rawCf = cfg.loopCrossfade ?? defaults.loopCrossfade ?? 0;
         const loopCrossfade = typeof rawCf === "number" && rawCf > 0 ? rawCf : 0;
-        return { loopStart, loopEnd, release, gain, loopCrossfade };
+        const useLoop =
+          typeof cfg.useLoop === "boolean"
+            ? cfg.useLoop
+            : typeof defaults.useLoop === "boolean"
+              ? defaults.useLoop
+              : false;
+        return { loopStart, loopEnd, release, gain, loopCrossfade, useLoop };
       }
       /** Manual sustain loop with crossfade at boundaries (loop=true has no crossfade). */
       function scheduleCrossfadeSustain(context, buffer, noteGain, tNow, Ls, Le, F, sourcesOut) {
@@ -857,28 +1003,39 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         gain.gain.linearRampToValueAtTime(loop.gain, now + 0.004);
         gain.connect(audio.master || ctx.destination);
         const sources = [];
-        const usedCf = scheduleCrossfadeSustain(
-          ctx,
-          buf,
-          gain,
-          now,
-          loop.loopStart,
-          loop.loopEnd,
-          loop.loopCrossfade,
-          sources,
-        );
-        if (!usedCf) {
+        if (!loop.useLoop) {
           const src = ctx.createBufferSource();
           src.buffer = buf;
-          src.loop = true;
-          src.loopStart = loop.loopStart;
-          src.loopEnd = loop.loopEnd;
           src.connect(gain);
           src.start(now, 0);
           src.onended = () => {
             if (audio.active.get(note)?.sources?.[0] === src) audio.active.delete(note);
           };
           sources.push(src);
+        } else {
+          const usedCf = scheduleCrossfadeSustain(
+            ctx,
+            buf,
+            gain,
+            now,
+            loop.loopStart,
+            loop.loopEnd,
+            loop.loopCrossfade,
+            sources,
+          );
+          if (!usedCf) {
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.loop = true;
+            src.loopStart = loop.loopStart;
+            src.loopEnd = loop.loopEnd;
+            src.connect(gain);
+            src.start(now, 0);
+            src.onended = () => {
+              if (audio.active.get(note)?.sources?.[0] === src) audio.active.delete(note);
+            };
+            sources.push(src);
+          }
         }
         audio.active.set(note, { sources, gain, release: loop.release });
       }
@@ -987,13 +1144,33 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         }
       }
 
+      const GRID_ONE_COL_TOTAL_KEYS = 48;
+
+      function getTotalKeyboardKeys() {
+        return keyboards.reduce((sum, k) => sum + (k.keyCount | 0), 0);
+      }
+
+      /** 合計鍵数が多いときはグリッドを1列にし、各鍵盤に横幅を譲る。全カードの鍵盤を再計測する */
+      function syncKeyboardGridLayout() {
+        const grid = document.getElementById("keyboardGrid");
+        if (!grid) return;
+        grid.classList.toggle("grid--one-col", getTotalKeyboardKeys() >= GRID_ONE_COL_TOTAL_KEYS);
+        for (const kb of keyboards) {
+          if (kb._pianoEl) renderKeyboardKeys(kb._pianoEl, kb);
+        }
+      }
+
       function renderKeyboardKeys(pianoEl, state) {
         pianoEl.innerHTML = "";
         state.startMidi = clampStartMidi(state.startMidi, state.keyCount);
         const notes = Array.from({ length: state.keyCount }, (_,i)=> state.startMidi + i);
         const whiteCount = notes.filter(m => !NOTE_NAMES_SHARP[m%12].includes("s")).length;
-        const targetWidth = Math.min(980, Math.max(360, (pianoEl.parentElement?.getBoundingClientRect().width || 420) - 24));
-        const whiteW = clamp(targetWidth / whiteCount, 18, 44);
+        const parentW = Math.max(280, (pianoEl.parentElement?.getBoundingClientRect().width || 420) - 24);
+        const MIN_WHITE = 22;
+        const MAX_WHITE = 44;
+        const idealW = whiteCount * MIN_WHITE;
+        const targetWidth = Math.min(1280, Math.max(360, parentW, idealW));
+        const whiteW = clamp(targetWidth / whiteCount, MIN_WHITE, MAX_WHITE);
         const blackW = whiteW * 0.6;
         const blackHalf = blackW / 2;
         const gapAdjust = whiteW / 20;
@@ -1291,8 +1468,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         state._pianoEl = piano;
         state._readoutEl = readout;
 
-        renderKeyboardKeys(piano, state);
-        updateKeyboardVisuals(state);
+        syncKeyboardGridLayout();
+        for (const kb of keyboards) updateKeyboardVisuals(kb);
         // default OFF
         piano.classList.toggle("hide-scale-dots", !state.showScaleDots);
         // sync buttons after first render
@@ -1321,8 +1498,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         countSel.addEventListener("change", () => {
           state.keyCount = Number(countSel.value);
           state.startMidi = clampStartMidi(state.startMidi, state.keyCount);
-          renderKeyboardKeys(piano, state);
-          updateKeyboardVisuals(state);
+          syncKeyboardGridLayout();
+          for (const kb of keyboards) updateKeyboardVisuals(kb);
         });
         startStepDown.addEventListener("click", () => adjustStart(-1));
         startStepUp.addEventListener("click", () => adjustStart(1));
@@ -1333,6 +1510,176 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
           const idx = keyboards.findIndex((k)=>k.id===state.id);
           if (idx >= 0) keyboards.splice(idx, 1);
           card.remove();
+          syncKeyboardGridLayout();
+          for (const kb of keyboards) updateKeyboardVisuals(kb);
+        });
+      }
+
+      const MIDI_INPUT_FILTER_KEY = "midiKeyMonitor.midiInputFilter";
+      let midiAccessRef = null;
+      const midiInputFilter = (function loadMidiInputFilter() {
+        try {
+          const raw = localStorage.getItem(MIDI_INPUT_FILTER_KEY);
+          if (!raw) return { filterMode: "all", selectedIds: [] };
+          const j = JSON.parse(raw);
+          return {
+            filterMode: j.filterMode === "selected" ? "selected" : "all",
+            selectedIds: Array.isArray(j.selectedIds) ? j.selectedIds.filter((x) => typeof x === "string") : [],
+          };
+        } catch {
+          return { filterMode: "all", selectedIds: [] };
+        }
+      })();
+
+      function persistMidiInputFilter() {
+        try {
+          localStorage.setItem(
+            MIDI_INPUT_FILTER_KEY,
+            JSON.stringify({ filterMode: midiInputFilter.filterMode, selectedIds: midiInputFilter.selectedIds }),
+          );
+        } catch {}
+      }
+
+      function applyMidiInputBindings() {
+        if (!midiAccessRef) return;
+        const selectedSet = new Set(midiInputFilter.selectedIds);
+        midiAccessRef.inputs.forEach((input) => {
+          input.onmidimessage = null;
+          if (midiInputFilter.filterMode === "all") {
+            input.onmidimessage = onMIDIMessage;
+          } else if (selectedSet.has(input.id)) {
+            input.onmidimessage = onMIDIMessage;
+          }
+        });
+      }
+
+      function syncMidiFilterModeUI() {
+        const toggle = document.getElementById("midiFilterModeToggle");
+        if (!toggle) return;
+        const allBtn = toggle.querySelector('button[data-mode="all"]');
+        const selBtn = toggle.querySelector('button[data-mode="selected"]');
+        const isAll = midiInputFilter.filterMode === "all";
+        allBtn?.classList.toggle("is-active", isAll);
+        selBtn?.classList.toggle("is-active", !isAll);
+      }
+
+      function renderMidiInputList() {
+        const listEl = document.getElementById("midiInputList");
+        const hintEl = document.getElementById("midiSettingsHint");
+        if (!listEl) return;
+        const selected = new Set(midiInputFilter.selectedIds);
+        listEl.innerHTML = "";
+        if (!midiAccessRef || midiAccessRef.inputs.size === 0) {
+          const row = document.createElement("div");
+          row.className = "midi-input-row";
+          row.style.border = "none";
+          row.textContent =
+            "MIDI 入力が見つかりません。ケーブル・仮想ポートを確認し、ブラウザで MIDI デバイスへのアクセスを許可してください。";
+          listEl.appendChild(row);
+          if (hintEl) {
+            hintEl.textContent = "";
+            hintEl.classList.remove("is-warn");
+          }
+          return;
+        }
+        let checkedCount = 0;
+        midiAccessRef.inputs.forEach((input) => {
+          const row = document.createElement("label");
+          row.className = "midi-input-row";
+          row.style.opacity = midiInputFilter.filterMode === "all" ? "0.75" : "";
+          const cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = selected.has(input.id);
+          cb.disabled = midiInputFilter.filterMode === "all";
+          if (cb.checked) checkedCount++;
+          cb.dataset.inputId = input.id;
+          const wrap = document.createElement("div");
+          const nameEl = document.createElement("div");
+          nameEl.className = "midi-in-name";
+          nameEl.textContent = input.name || "(名称なし)";
+          const idEl = document.createElement("div");
+          idEl.className = "midi-in-id";
+          idEl.textContent = input.id;
+          wrap.appendChild(nameEl);
+          wrap.appendChild(idEl);
+          row.appendChild(cb);
+          row.appendChild(wrap);
+          listEl.appendChild(row);
+        });
+        if (hintEl) {
+          hintEl.classList.remove("is-warn");
+          if (midiInputFilter.filterMode === "all") {
+            hintEl.textContent =
+              "「すべて」では、上記の入力ポートすべてからノートを受け取ります（Ableton 用の1本だけにしたいときは「選択のみ」へ）。";
+          } else if (checkedCount === 0) {
+            hintEl.textContent =
+              "入力が1つも選ばれていません。このページでは MIDI を受信しません。使いたいポートにチェックを付けてください。";
+            hintEl.classList.add("is-warn");
+          } else {
+            hintEl.textContent = "チェックを付けた入力だけがこのページに反映されます。設定はこのブラウザに保存されます。";
+          }
+        }
+      }
+
+      function openMidiSettings() {
+        const bd = document.getElementById("midiSettingsBackdrop");
+        if (!bd) return;
+        syncMidiFilterModeUI();
+        renderMidiInputList();
+        bd.classList.add("is-open");
+        bd.setAttribute("aria-hidden", "false");
+        document.getElementById("midiSettingsCloseBtn")?.focus();
+      }
+
+      function closeMidiSettings() {
+        const bd = document.getElementById("midiSettingsBackdrop");
+        if (!bd) return;
+        bd.classList.remove("is-open");
+        bd.setAttribute("aria-hidden", "true");
+        document.getElementById("midiInputSettingsBtn")?.focus();
+      }
+
+      function wireMidiInputSettingsUI() {
+        document.getElementById("midiInputSettingsBtn")?.addEventListener("click", () => openMidiSettings());
+        document.getElementById("midiSettingsCloseBtn")?.addEventListener("click", () => closeMidiSettings());
+        const backdrop = document.getElementById("midiSettingsBackdrop");
+        const dialog = backdrop?.querySelector(".midi-settings-dialog");
+        dialog?.addEventListener("click", (e) => e.stopPropagation());
+        backdrop?.addEventListener("click", (e) => {
+          if (e.target === backdrop) closeMidiSettings();
+        });
+        const modeToggle = document.getElementById("midiFilterModeToggle");
+        modeToggle?.querySelector('button[data-mode="all"]')?.addEventListener("click", () => {
+          midiInputFilter.filterMode = "all";
+          persistMidiInputFilter();
+          syncMidiFilterModeUI();
+          renderMidiInputList();
+          applyMidiInputBindings();
+        });
+        modeToggle?.querySelector('button[data-mode="selected"]')?.addEventListener("click", () => {
+          midiInputFilter.filterMode = "selected";
+          persistMidiInputFilter();
+          syncMidiFilterModeUI();
+          renderMidiInputList();
+          applyMidiInputBindings();
+        });
+        document.getElementById("midiInputList")?.addEventListener("change", (e) => {
+          const t = e.target;
+          if (!(t instanceof HTMLInputElement) || t.type !== "checkbox" || t.disabled) return;
+          const id = t.dataset.inputId;
+          if (!id) return;
+          const set = new Set(midiInputFilter.selectedIds);
+          if (t.checked) set.add(id);
+          else set.delete(id);
+          midiInputFilter.selectedIds = Array.from(set);
+          persistMidiInputFilter();
+          applyMidiInputBindings();
+          renderMidiInputList();
+        });
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "Escape") return;
+          const bd = document.getElementById("midiSettingsBackdrop");
+          if (bd?.classList.contains("is-open")) closeMidiSettings();
         });
       }
 
@@ -1340,9 +1687,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         if (!navigator.requestMIDIAccess) return;
         try {
           const access = await navigator.requestMIDIAccess();
-          const bind = () => access.inputs.forEach((input) => { input.onmidimessage = onMIDIMessage; });
-          bind();
-          access.onstatechange = bind;
+          midiAccessRef = access;
+          const onChange = () => {
+            applyMidiInputBindings();
+            const bd = document.getElementById("midiSettingsBackdrop");
+            if (bd?.classList.contains("is-open")) renderMidiInputList();
+          };
+          applyMidiInputBindings();
+          access.onstatechange = onChange;
         } catch (e) {
           console.log("Failed to access MIDI devices.", e);
         }
@@ -1406,6 +1758,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, "");
         onBtn?.addEventListener("click", () => { audio.enabled = true; syncSound(); });
         syncSound();
       }
+
+      wireMidiInputSettingsUI();
 
       const initial = createKeyboardState();
       keyboards.push(initial);

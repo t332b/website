@@ -89,12 +89,11 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       <span id="tupletBtns"></span>
     </div>
 
-    <datalist id="drumList"></datalist>
     <script type="application/json" id="soundFilesJson" set:html={SOUND_FILES_JSON} />
     <script type="application/json" id="defaultSoundJson" set:html={DEFAULT_SOUND_JSON} />
 
     <div class="grid-area" id="gridArea"></div>
-    <p class="grid-help">楽器名は自由に入力できます。候補から選択するとその音が鳴ります。</p>
+    <p class="grid-help">楽器名は自由に入力・削除できます。入力欄をタップすると全候補が開き、選んでも直接入力してもOKです。</p>
 
     <!-- Embed modal -->
     <div class="embed-overlay" id="embedOverlay" hidden>
@@ -355,6 +354,18 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         --group-h: 22px;
         --beat-h: 16px;
       }
+      .row-drag-indicator {
+        position: fixed;
+        z-index: 99999;
+        pointer-events: none;
+        height: 2px;
+        background: rgba(124, 58, 237, 0.95);
+        box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
+        border-radius: 999px;
+        left: 0;
+        width: 100px;
+        transform: translateY(-1px);
+      }
       .grid-area {
       }
       .grid-help {
@@ -392,9 +403,13 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         width: var(--lw);
         min-width: 0;
         overflow: hidden;
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
       .side-label input {
-        width: 100%;
+        width: auto;
+        flex: 1 1 auto;
         border: none;
         border-bottom: 1px solid transparent;
         background: transparent;
@@ -411,6 +426,30 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       .side-label input::placeholder {
         color: #ccc;
       }
+
+      .row-drag-handle {
+        width: 16px;
+        height: 16px;
+        flex: 0 0 auto;
+        border: none;
+        background: transparent;
+        color: rgba(0, 0, 0, 0.42);
+        cursor: grab;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        user-select: none;
+      }
+      .row-drag-handle:hover {
+        background: rgba(15, 23, 42, 0.06);
+        color: rgba(0, 0, 0, 0.65);
+      }
+      .row-drag-handle:active {
+        cursor: grabbing;
+        background: rgba(15, 23, 42, 0.08);
+      }
       .side-label-ro {
         font-size: 0.58rem;
         color: #888;
@@ -421,6 +460,38 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         text-overflow: ellipsis;
         white-space: nowrap;
         padding: 0 2px;
+      }
+
+      /* 楽器候補（datalist 廃止: 入力値で絞り込まない・▼なし） */
+      .instrument-picker-host {
+        position: fixed;
+        z-index: 10000;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #bbb;
+        border-radius: 6px;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+        padding: 4px 0;
+      }
+      .instrument-picker-host[hidden] {
+        display: none !important;
+      }
+      .instrument-opt {
+        display: block;
+        width: 100%;
+        text-align: left;
+        padding: 6px 10px;
+        border: none;
+        background: transparent;
+        font-size: 0.72rem;
+        cursor: pointer;
+        color: #333;
+        font-family: inherit;
+      }
+      .instrument-opt:hover,
+      .instrument-opt:focus-visible {
+        background: #eef6ff;
+        outline: none;
       }
 
       .row-rm {
@@ -1046,6 +1117,234 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         /* ignore */
       }
 
+      /* ===== Instrument picker（datalist 廃止: ▼なし・入力文字で候補を絞らない） ===== */
+      let instrumentPickerEl: HTMLDivElement | null = null;
+      let instrumentPickerActiveInput: HTMLInputElement | null = null;
+
+      function hideInstrumentPicker() {
+        if (instrumentPickerEl) instrumentPickerEl.hidden = true;
+        instrumentPickerActiveInput = null;
+      }
+
+      function ensureInstrumentPicker(): HTMLDivElement {
+        if (instrumentPickerEl) return instrumentPickerEl;
+        const el = document.createElement("div");
+        el.className = "instrument-picker-host";
+        el.setAttribute("role", "listbox");
+        el.tabIndex = -1;
+        el.hidden = true;
+        el.addEventListener("pointerdown", (e) => e.preventDefault());
+        el.addEventListener("click", (e) => {
+          const btn = (e.target as HTMLElement).closest(".instrument-opt") as HTMLButtonElement | null;
+          if (!btn || !instrumentPickerActiveInput) return;
+          const v = btn.dataset.value ?? "";
+          instrumentPickerActiveInput.value = v;
+          const row = Number(instrumentPickerActiveInput.dataset.row);
+          if (!Number.isNaN(row) && state.rows[row]) {
+            state.rows[row].label = v;
+            saveState();
+          }
+          hideInstrumentPicker();
+        });
+        for (const name of SOUND_FILES) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "instrument-opt";
+          b.setAttribute("role", "option");
+          b.dataset.value = name;
+          b.textContent = name;
+          el.appendChild(b);
+        }
+        document.body.appendChild(el);
+        instrumentPickerEl = el;
+        return el;
+      }
+
+      function positionInstrumentPicker(input: HTMLInputElement) {
+        instrumentPickerActiveInput = input;
+        const p = ensureInstrumentPicker();
+        const r = input.getBoundingClientRect();
+        const pad = 8;
+        const w = Math.min(Math.max(160, r.width), window.innerWidth - pad * 2);
+        let left = r.left;
+        if (left + w > window.innerWidth - pad) left = window.innerWidth - pad - w;
+        if (left < pad) left = pad;
+        p.style.left = `${left}px`;
+        p.style.width = `${w}px`;
+        p.style.maxHeight = `${Math.min(220, Math.max(120, window.innerHeight * 0.38))}px`;
+        let top = r.bottom + 2;
+        p.hidden = false;
+        requestAnimationFrame(() => {
+          const ph = p.getBoundingClientRect().height;
+          if (top + ph > window.innerHeight - pad) {
+            top = Math.max(pad, r.top - ph - 2);
+          }
+          p.style.top = `${top}px`;
+        });
+      }
+
+      document.addEventListener(
+        "pointerdown",
+        (e) => {
+          if (!instrumentPickerEl || instrumentPickerEl.hidden) return;
+          const t = e.target as Node;
+          if (instrumentPickerEl.contains(t)) return;
+          if (
+            instrumentPickerActiveInput &&
+            (instrumentPickerActiveInput === t || instrumentPickerActiveInput.contains(t))
+          )
+            return;
+          hideInstrumentPicker();
+        },
+        true,
+      );
+      window.addEventListener(
+        "scroll",
+        () => {
+          if (instrumentPickerEl && !instrumentPickerEl.hidden) hideInstrumentPicker();
+        },
+        true,
+      );
+
+      /* ===== Row reorder (drag handle) =====
+       * - ドラッグ中はホバー位置（行の上/下）でリアルタイムに state.rows の順を入れ替える
+       * - 挿入位置は行の上/下の境界に線を出して分かりやすくする
+       */
+      let rowDragActive = false;
+      let rowDragFromIndex: number | null = null;
+      let rowDragPointerId: number | null = null;
+      let rowDragLastTargetIndex: number | null = null;
+      let rowDragIndicatorEl: HTMLDivElement | null = null;
+      let rowDragJustFinished = false;
+
+      let rowDragMoveListener: ((e: PointerEvent) => void) | null = null;
+      let rowDragUpListener: ((e: PointerEvent) => void) | null = null;
+
+      function ensureRowDragIndicator() {
+        if (rowDragIndicatorEl) return rowDragIndicatorEl;
+        const el = document.createElement("div");
+        el.className = "row-drag-indicator";
+        el.hidden = true;
+        document.body.appendChild(el);
+        rowDragIndicatorEl = el;
+        return el;
+      }
+
+      function hideRowDragIndicator() {
+        if (!rowDragIndicatorEl) return;
+        rowDragIndicatorEl.hidden = true;
+      }
+
+      function computeRowHoverDetailed(clientY: number) {
+        const ga = document.getElementById("gridArea");
+        if (!ga) return null;
+        const inputs = Array.from(ga.querySelectorAll<HTMLInputElement>(".instrument-input"));
+        if (inputs.length === 0) return null;
+
+        const first = inputs[0];
+        const last = inputs[inputs.length - 1];
+        const firstRect = first.getBoundingClientRect();
+        const lastRect = last.getBoundingClientRect();
+        const firstIdx = Number(first.dataset.row);
+        const lastIdx = Number(last.dataset.row);
+        if (!Number.isFinite(firstIdx) || !Number.isFinite(lastIdx)) return null;
+
+        if (clientY < firstRect.top) return { input: first, rowIndex: firstIdx, before: true };
+        if (clientY > lastRect.bottom) return { input: last, rowIndex: lastIdx, before: false };
+
+        for (const inp of inputs) {
+          const rect = inp.getBoundingClientRect();
+          if (clientY >= rect.top && clientY <= rect.bottom) {
+            const idx = Number(inp.dataset.row);
+            if (!Number.isFinite(idx)) continue;
+            const before = clientY < rect.top + rect.height / 2;
+            return { input: inp, rowIndex: idx, before };
+          }
+        }
+        return null;
+      }
+
+      function updateRowDragIndicator(hover: { input: HTMLInputElement; before: boolean }) {
+        const ga = document.getElementById("gridArea");
+        if (!ga) return;
+        const gaRect = ga.getBoundingClientRect();
+        const r = hover.input.getBoundingClientRect();
+        const y = hover.before ? r.top : r.bottom;
+        const ind = ensureRowDragIndicator();
+        ind.hidden = false;
+        ind.style.top = `${y}px`;
+        ind.style.left = `${gaRect.left}px`;
+        ind.style.width = `${gaRect.width}px`;
+      }
+
+      function startRowDrag(fromIndex: number, pointerId: number) {
+        if (!Number.isFinite(fromIndex)) return;
+        rowDragActive = true;
+        rowDragFromIndex = fromIndex;
+        rowDragPointerId = pointerId;
+        rowDragLastTargetIndex = null;
+        rowDragJustFinished = false;
+        hideInstrumentPicker();
+
+        if (isPlaying) stopPlay();
+
+        ensureRowDragIndicator().hidden = true;
+        const move = (e: PointerEvent) => {
+          if (!rowDragActive) return;
+          if (rowDragPointerId !== null && e.pointerId !== rowDragPointerId) return;
+          e.preventDefault();
+
+          const hover = computeRowHoverDetailed(e.clientY);
+          if (!hover || rowDragFromIndex === null) return;
+          updateRowDragIndicator({ input: hover.input, before: hover.before });
+
+          const from = rowDragFromIndex;
+          const insertIndex = hover.before ? hover.rowIndex : hover.rowIndex + 1;
+          const L = state.rows.length;
+
+          let targetIndex = insertIndex;
+          if (from < insertIndex) targetIndex -= 1;
+          targetIndex = Math.max(0, Math.min(targetIndex, L - 1));
+
+          if (targetIndex === from) return;
+          if (rowDragLastTargetIndex === targetIndex) return;
+          rowDragLastTargetIndex = targetIndex;
+
+          const item = state.rows.splice(from, 1)[0];
+          // splice の挿入先: 削除後配列は長さ L-1
+          state.rows.splice(targetIndex, 0, item);
+          rowDragFromIndex = targetIndex;
+          render();
+        };
+
+        const up = (e: PointerEvent) => {
+          if (rowDragPointerId !== null && e.pointerId !== rowDragPointerId) return;
+          rowDragActive = false;
+          rowDragFromIndex = null;
+          rowDragPointerId = null;
+          rowDragLastTargetIndex = null;
+          hideRowDragIndicator();
+
+          saveState();
+          rowDragJustFinished = true;
+          window.setTimeout(() => {
+            rowDragJustFinished = false;
+          }, 0);
+          window.removeEventListener("pointermove", move as any);
+          window.removeEventListener("pointerup", up as any);
+        };
+
+        rowDragMoveListener = move;
+        rowDragUpListener = up;
+        window.addEventListener("pointermove", rowDragMoveListener as any, { passive: false });
+        window.addEventListener("pointerup", rowDragUpListener as any, { passive: false });
+      }
+
+      // drag 中はクリックで変な選択が入らないように抑制
+      function shouldSuppressGridClick() {
+        return rowDragActive || rowDragJustFinished;
+      }
+
       /* ===== Layout ===== */
       function calcCyclesPerLine(): number {
         if (window.innerWidth < 370) return 1;
@@ -1056,6 +1355,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       let cyclesPerLine = calcCyclesPerLine();
       let uiReady = false;
       window.addEventListener("resize", () => {
+        hideInstrumentPicker();
         const n = calcCyclesPerLine();
         if (n !== cyclesPerLine) {
           cyclesPerLine = n;
@@ -1263,7 +1563,6 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       const sigTimes = document.getElementById("sigTimes")!;
       const sigBeatsLbl = document.getElementById("sigBeatsLbl")!;
       const subdivInput = document.getElementById("subdivInput") as HTMLInputElement;
-      const drumList = document.getElementById("drumList") as HTMLDataListElement | null;
       const tupletBar = document.getElementById("tupletBar")!;
       const tupletInfo = document.getElementById("tupletInfo")!;
       const tupletBtns = document.getElementById("tupletBtns")!;
@@ -1279,10 +1578,6 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (!multi) sigNum.value = String(state.beatGroups[0]);
       }
       updateSigVisibility();
-
-      if (drumList) {
-        drumList.innerHTML = SOUND_FILES.map((name) => `<option value="${name}"></option>`).join("");
-      }
 
       bpmInput.addEventListener("change", () => {
         const v = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
@@ -1454,6 +1749,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
       /* ===== Render ===== */
       function render() {
+        hideInstrumentPicker();
         const bg = state.beatGroups;
         const beatsPerCyc = bpc(bg);
         const tp = state.tuplets;
@@ -1532,7 +1828,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             }
             html +=
               ci === 0
-                ? `<div class="side-label"><input type="text" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名（候補＋自由入力OK）" list="drumList" /></div>`
+                ? `<div class="side-label"><button type="button" class="row-drag-handle" data-drag-row="${r}" title="行を並び替え" aria-label="行を並び替え">⋮⋮</button><input type="text" class="instrument-input" value="${esc(row.label)}" data-row="${r}" placeholder="楽器名" autocomplete="off" spellcheck="false" /></div>`
                 : `<div class="side-label side-label-ro"><span title="${esc(row.label)}">${esc(row.label)}</span></div>`;
             html += `</div>`;
           }
@@ -1631,22 +1927,28 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         cycleCountEl.textContent = String(state.numCycles);
         gridArea.innerHTML = html;
 
-        gridArea.querySelectorAll<HTMLInputElement>(".side-label input").forEach((inp) => {
-          let prevValue = "";
+        gridArea.querySelectorAll<HTMLInputElement>(".instrument-input").forEach((inp) => {
           inp.addEventListener("focus", () => {
-            if (!inp.value) return;
-            prevValue = inp.value;
-            inp.value = "";
-          });
-          inp.addEventListener("blur", () => {
-            if (!inp.value && prevValue) inp.value = prevValue;
-            prevValue = "";
+            positionInstrumentPicker(inp);
           });
           inp.addEventListener("input", () => {
             state.rows[Number(inp.dataset.row)].label = inp.value;
             saveState();
           });
         });
+
+        // Drag-to-reorder (real-time on hover)
+        gridArea.querySelectorAll<HTMLButtonElement>(".row-drag-handle").forEach((h) => {
+          h.addEventListener("pointerdown", (e: PointerEvent) => {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            const from = Number(h.dataset.dragRow);
+            if (!Number.isFinite(from)) return;
+            e.preventDefault();
+            e.stopPropagation();
+            startRowDrag(from, e.pointerId);
+          });
+        });
+
         document.getElementById("addRowBtn")?.addEventListener("click", addRow);
         updateSelectionUI();
         updateSigVisibility();
@@ -1738,7 +2040,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         state.rows.push({ label: "", cells: Array(totalCellCount(state.tuplets)).fill(false) });
         saveState();
         render();
-        const inputs = gridArea.querySelectorAll<HTMLInputElement>(".side-label input");
+        const inputs = gridArea.querySelectorAll<HTMLInputElement>(".instrument-input");
         inputs[inputs.length - 1]?.focus();
       }
       function removeRow(idx: number) {
@@ -1779,6 +2081,11 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       });
 
       gridArea.addEventListener("click", (e: Event) => {
+        if (rowDragActive) return;
+        if (rowDragJustFinished) {
+          rowDragJustFinished = false;
+          return;
+        }
         const rmBtn = (e.target as HTMLElement).closest("[data-remove-row]") as HTMLElement | null;
         if (rmBtn) {
           removeRow(Number(rmBtn.dataset.removeRow));
