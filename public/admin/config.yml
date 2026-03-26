@@ -33,6 +33,19 @@ collections:
     create: true
     slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
     format: "frontmatter"
+    summary: "{{is_public | ternary('', '[非公開] ')}}{{date | date('YYYY/MM/DD(ddd) HH:mm')}}`   `{{title}}"
+    sortable_fields:
+      fields: [title, date, is_public, commit_date]
+      default:
+        field: date
+        direction: descending
+    view_filters:
+      - label: "公開のみ"
+        field: is_public
+        pattern: true
+      - label: "非公開のみ"
+        field: is_public
+        pattern: false
     fields:
       - label: "タイトル"
         name: "title"
