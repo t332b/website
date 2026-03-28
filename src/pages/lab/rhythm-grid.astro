@@ -351,8 +351,60 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         --lw: 60px;
         --rm-w: 20px;
         --bar-h: 18px;
-        --group-h: 22px;
+        /* グループ行（グリッド内はラベル＋操作のみ。複数グループ時はボタン分やや広げる） */
+        --group-band: 24px;
         --beat-h: 16px;
+      }
+      .grid-area.has-multi-groups {
+        --group-band: 32px;
+      }
+      .chunk-outer {
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        align-items: stretch;
+        gap: 4px;
+      }
+      .chunk-add-rail {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 3rem;
+        box-sizing: border-box;
+      }
+      .chunk-add-bar-slot,
+      .chunk-add-beat-slot {
+        flex-shrink: 0;
+        width: 100%;
+      }
+      .chunk-add-group-slot {
+        flex-shrink: 0;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
+        padding: 0 1px;
+        box-sizing: border-box;
+      }
+      .grp-add-link {
+        padding: 0;
+        border: none;
+        background: none;
+        font-size: 0.62rem;
+        color: #777;
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        font-family: inherit;
+        line-height: 1.25;
+        text-align: left;
+        max-width: 100%;
+        word-break: keep-all;
+      }
+      .grp-add-link:hover {
+        color: #333;
       }
       .row-drag-indicator {
         position: fixed;
@@ -386,8 +438,10 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         flex-shrink: 0;
         padding-right: 4px;
       }
+      /* 高さは JS（syncChunkLayoutMetrics）で .chunk-hdr に合わせる */
       .side-spacer {
-        min-height: calc(var(--bar-h) + var(--group-h) + var(--beat-h) + 6px);
+        flex-shrink: 0;
+        min-height: calc(var(--bar-h) + var(--group-band) + var(--beat-h) + 6px);
       }
       .side-row {
         height: var(--cell-h);
@@ -553,18 +607,33 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         box-shadow: inset 2px 0 0 0 #888;
       }
       .group-lbl {
-        min-height: var(--group-h);
+        min-height: var(--group-band);
         display: flex;
-        align-items: center;
+        flex-direction: column;
+        align-items: stretch;
         justify-content: center;
-        gap: 2px;
+        gap: 4px;
         font-size: 0.56rem;
         font-weight: 600;
         color: #666;
-        padding: 1px 2px;
-        overflow: hidden;
-        position: relative;
+        padding: 4px 3px;
+        box-sizing: border-box;
+      }
+      .group-lbl-inner {
+        display: flex;
         flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 4px 6px;
+        row-gap: 4px;
+        width: 100%;
+      }
+      .group-lbl-tools {
+        display: inline-flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 3px;
+        flex-shrink: 0;
       }
       .group-lbl.bar-sep {
         box-shadow: inset 2px 0 0 0 #888;
@@ -576,6 +645,22 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         font-size: 0.56rem;
         font-weight: 700;
         color: #555;
+        max-width: 100%;
+        text-align: center;
+      }
+      .grp-beats-line {
+        display: inline-flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: baseline;
+        gap: 0 0.2em;
+        max-width: 100%;
+      }
+      .grp-beats-name {
+        white-space: nowrap;
+      }
+      .grp-beats-meta {
+        white-space: nowrap;
       }
       .grp-adj {
         width: 16px;
@@ -618,33 +703,6 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       .grp-rm:hover {
         background: #fee;
         border-color: #c88;
-      }
-      .grp-add {
-        width: 18px;
-        height: 16px;
-        border-radius: 3px;
-        border: 1px dashed #bbb;
-        background: #fff;
-        color: #999;
-        font-size: 0.65rem;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        padding: 0;
-        position: absolute;
-        right: 2px;
-        top: 50%;
-        transform: translateY(-50%);
-        transition:
-          background 0.1s,
-          color 0.1s;
-      }
-      .grp-add:hover {
-        background: #eef;
-        color: #66a;
-        border-color: #99b;
       }
       .beat-lbl {
         height: var(--beat-h);
@@ -861,8 +919,11 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           --lw: 46px;
           --rm-w: 16px;
           --bar-h: 16px;
-          --group-h: 20px;
+          --group-band: 26px;
           --beat-h: 14px;
+        }
+        .grid-area.has-multi-groups {
+          --group-band: 40px;
         }
         .side-label input {
           font-size: 0.58rem;
@@ -884,7 +945,20 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           font-size: 0.52rem;
         }
         .group-lbl {
-          font-size: 0.5rem;
+          font-size: 0.52rem;
+        }
+        .grp-beats {
+          font-size: 0.52rem;
+          line-height: 1.35;
+        }
+        .grp-add-link {
+          font-size: 0.62rem;
+        }
+        .grid-area.has-multi-groups .grp-adj,
+        .grid-area.has-multi-groups .grp-rm {
+          width: 22px;
+          height: 22px;
+          font-size: 0.68rem;
         }
         .beat-lbl {
           font-size: 0.48rem;
@@ -1002,6 +1076,41 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         return r;
       }
 
+      /**
+       * 分割数変更時: 各セルの左端をグローバル拍座標に写し、新しい均等分割グリッドへ再配置する。
+       * 単純な先頭詰めコピーだと拍境界がずれ「左に流れる」ため、拍の頭は維持される。
+       */
+      function remapCellsForSubsChange(
+        cells: boolean[],
+        oldTp: TupletGroup[],
+        newTp: TupletGroup[],
+        newDivs: number,
+      ): boolean[] {
+        const newTotal = totalCellCount(newTp);
+        const nc = Array(newTotal).fill(false);
+        const cOld = groupCellStarts(oldTp);
+        const bOld = groupBeatStarts(oldTp);
+        const v = newDivs;
+
+        for (let gi = 0; gi < oldTp.length; gi++) {
+          const [s, d] = oldTp[gi];
+          const beat0 = bOld[gi];
+          for (let j = 0; j < d; j++) {
+            const oi = cOld[gi] + j;
+            if (oi >= cells.length || !cells[oi]) continue;
+            const tStart = beat0 + (j / d) * s;
+            const B = Math.floor(tStart);
+            const f = tStart - B;
+            let k = Math.floor(f * v);
+            if (k >= v) k = v - 1;
+            if (k < 0) k = 0;
+            const ni = B * v + k;
+            if (ni >= 0 && ni < newTotal) nc[ni] = true;
+          }
+        }
+        return nc;
+      }
+
       function computeFrWidths(groups: TupletGroup[]): number[] {
         let B = 1;
         for (const [s, d] of groups) B = lcm(B, d / gcd(d, s));
@@ -1031,7 +1140,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       /* ===== State ===== */
       function defaultState(): State {
         const bg = [4],
-          n = 2,
+          n = 1,
           spb = 4;
         const tp = defaultTuplets(n * bpc(bg), spb);
         const tc = totalCellCount(tp);
@@ -1354,14 +1463,6 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       }
       let cyclesPerLine = calcCyclesPerLine();
       let uiReady = false;
-      window.addEventListener("resize", () => {
-        hideInstrumentPicker();
-        const n = calcCyclesPerLine();
-        if (n !== cyclesPerLine) {
-          cyclesPerLine = n;
-          if (uiReady) render();
-        }
-      });
 
       /* ===== Audio Engine ===== */
       let audioCtx: AudioContext | null = null;
@@ -1400,6 +1501,52 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           cell += d;
           beat += s;
         }
+      }
+
+      /** 再生中に BPM だけ変えたとき、ループ内の位置（位相）を保ったまま間隔を差し替える */
+      function resyncPlaybackAfterBpmChange() {
+        if (!audioCtx || !isPlaying) {
+          rebuildTimingCache();
+          return;
+        }
+        const total = totalCellCount(state.tuplets);
+        const loopDurOld = cumTimes[total];
+        if (!(loopDurOld > 0)) {
+          rebuildTimingCache();
+          return;
+        }
+        const t = audioCtx.currentTime;
+        const elapsed = (((t - playStartTime) % loopDurOld) + loopDurOld) % loopDurOld;
+        const phase = elapsed / loopDurOld;
+
+        rebuildTimingCache();
+        const loopDurNew = cumTimes[total];
+        const newElapsed = phase * loopDurNew;
+        playStartTime = t - newElapsed;
+
+        let bestT = Infinity;
+        let bestStep = 0;
+        for (let n = 0; n <= 2; n++) {
+          for (let s = 0; s < total; s++) {
+            const absT = playStartTime + cumTimes[s] + n * loopDurNew;
+            if (absT > t + 0.001 && absT < bestT) {
+              bestT = absT;
+              bestStep = s;
+            }
+          }
+        }
+        if (bestT === Infinity) {
+          bestT = t + 0.05;
+          bestStep = 0;
+        }
+        nextNoteTime = bestT;
+        currentStep = bestStep;
+
+        if (schedulerTimer !== null) {
+          clearTimeout(schedulerTimer);
+          schedulerTimer = null;
+        }
+        scheduler();
       }
 
       function trimSilence(buffer: AudioBuffer): AudioBuffer {
@@ -1566,9 +1713,48 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       const tupletBar = document.getElementById("tupletBar")!;
       const tupletInfo = document.getElementById("tupletInfo")!;
       const tupletBtns = document.getElementById("tupletBtns")!;
+      const addGroupBtn = document.getElementById("addGroupBtn") as HTMLButtonElement | null;
 
       bpmInput.value = String(state.bpm);
       subdivInput.value = String(state.subsPerBeat);
+      rebuildTimingCache();
+
+      /** 左スペーサー高さ＝chunk-hdr 実測、グループ追加レールの3段を bar/group/beat 行に揃える */
+      function syncChunkLayoutMetrics() {
+        gridArea.querySelectorAll(".chunk-wrap").forEach((wrap) => {
+          const hdr = wrap.querySelector(".chunk-hdr");
+          const spacer = wrap.querySelector(".side-spacer");
+          const rail = wrap.querySelector(".chunk-add-rail");
+          if (!(hdr instanceof HTMLElement) || !(spacer instanceof HTMLElement)) return;
+          spacer.style.height = `${hdr.offsetHeight}px`;
+
+          if (!(rail instanceof HTMLElement)) return;
+          const barHdr = hdr.querySelector(".bar-hdr");
+          const groupHdr = hdr.querySelector(".group-hdr");
+          const beatHdr = hdr.querySelector(".beat-hdr");
+          const barSlot = rail.querySelector(".chunk-add-bar-slot");
+          const groupSlot = rail.querySelector(".chunk-add-group-slot");
+          const beatSlot = rail.querySelector(".chunk-add-beat-slot");
+          rail.style.height = `${hdr.offsetHeight}px`;
+          if (barSlot instanceof HTMLElement && barHdr instanceof HTMLElement)
+            barSlot.style.height = `${barHdr.offsetHeight}px`;
+          if (groupSlot instanceof HTMLElement && groupHdr instanceof HTMLElement)
+            groupSlot.style.height = `${groupHdr.offsetHeight}px`;
+          if (beatSlot instanceof HTMLElement && beatHdr instanceof HTMLElement)
+            beatSlot.style.height = `${beatHdr.offsetHeight}px`;
+        });
+      }
+
+      window.addEventListener("resize", () => {
+        hideInstrumentPicker();
+        const n = calcCyclesPerLine();
+        if (n !== cyclesPerLine) {
+          cyclesPerLine = n;
+          if (uiReady) render();
+        } else if (uiReady) {
+          syncChunkLayoutMetrics();
+        }
+      });
 
       function updateSigVisibility() {
         const multi = state.beatGroups.length > 1;
@@ -1579,10 +1765,32 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
       }
       updateSigVisibility();
 
+      function readBpmFromField(): number | null {
+        const raw = bpmInput.value.trim();
+        if (raw === "") return null;
+        const n = Number(raw);
+        if (!Number.isFinite(n)) return null;
+        return Math.max(40, Math.min(300, Math.round(n)));
+      }
+
+      let bpmInputDebounce: number | null = null;
+      bpmInput.addEventListener("input", () => {
+        if (bpmInputDebounce !== null) window.clearTimeout(bpmInputDebounce);
+        bpmInputDebounce = window.setTimeout(() => {
+          bpmInputDebounce = null;
+          const p = readBpmFromField();
+          if (p === null) return;
+          state.bpm = p;
+          if (isPlaying) resyncPlaybackAfterBpmChange();
+          else rebuildTimingCache();
+        }, 50);
+      });
       bpmInput.addEventListener("change", () => {
-        const v = Math.max(40, Math.min(300, Number(bpmInput.value) || 120));
+        const v = Math.max(40, Math.min(300, Number(bpmInput.value) || state.bpm));
         bpmInput.value = String(v);
         state.bpm = v;
+        if (isPlaying) resyncPlaybackAfterBpmChange();
+        else rebuildTimingCache();
         saveState();
       });
       sigNum.addEventListener("change", () => {
@@ -1607,13 +1815,11 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const v = Math.max(1, Math.min(12, Number(subdivInput.value) || 4));
         subdivInput.value = String(v);
         if (v === state.subsPerBeat) return;
+        const oldTp = state.tuplets.map((t): TupletGroup => [t[0], t[1]]);
         state.subsPerBeat = v;
         state.tuplets = defaultTuplets(state.numCycles * bpc(state.beatGroups), v);
-        const total = totalCellCount(state.tuplets);
         state.rows.forEach((row) => {
-          const nc = Array(total).fill(false);
-          for (let i = 0; i < Math.min(row.cells.length, total); i++) nc[i] = row.cells[i];
-          row.cells = nc;
+          row.cells = remapCellsForSubsChange(row.cells, oldTp, state.tuplets, v);
         });
         if (isPlaying) stopPlay();
         rebuildTupletButtons();
@@ -1771,6 +1977,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
 
         const showRm = state.rows.length > 1;
         const multiGroup = bg.length > 1;
+        gridArea.classList.toggle("has-multi-groups", multiGroup);
         let html = "";
 
         for (let ci = 0; ci < chunks.length; ci++) {
@@ -1834,6 +2041,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
           }
           html += `</div>`;
 
+          html += `<div class="chunk-outer">`;
           html += `<div class="chunk"><div class="chunk-hdr">`;
           html += `<div class="hdr-cells bar-hdr" style="grid-template-columns:${cols}">`;
           for (let bi = 0; bi < chunkCycles.length; bi++) {
@@ -1852,16 +2060,15 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
               cls += ginfo.cycIdx !== prev.cycIdx ? " bar-sep" : " group-sep";
             }
             const isFirstCycle = ginfo.cycIdx === ch.startCycle;
-            const isLastInCycle = gi2 === grpInfos.length - 1 || grpInfos[gi2 + 1].cycIdx !== ginfo.cycIdx;
-            let content = `<span class="grp-beats">group ${ginfo.grpIdx + 1}（${ginfo.beats}拍）</span>`;
+            let inner = `<span class="grp-beats"><span class="grp-beats-line"><span class="grp-beats-name">group ${ginfo.grpIdx + 1}</span><span class="grp-beats-meta">（${ginfo.beats}拍）</span></span></span>`;
             if (multiGroup && isFirstCycle) {
-              content += `<button class="grp-adj" data-grp-action="dec" data-grp-idx="${ginfo.grpIdx}">−</button>`;
-              content += `<button class="grp-adj" data-grp-action="inc" data-grp-idx="${ginfo.grpIdx}">＋</button>`;
-              content += `<button class="grp-rm" data-grp-action="del" data-grp-idx="${ginfo.grpIdx}">×</button>`;
+              inner += `<span class="group-lbl-tools">`;
+              inner += `<button type="button" class="grp-adj" data-grp-action="dec" data-grp-idx="${ginfo.grpIdx}">−</button>`;
+              inner += `<button type="button" class="grp-adj" data-grp-action="inc" data-grp-idx="${ginfo.grpIdx}">＋</button>`;
+              inner += `<button type="button" class="grp-rm" data-grp-action="del" data-grp-idx="${ginfo.grpIdx}">×</button>`;
+              inner += `</span>`;
             }
-            if (isLastInCycle && isFirstCycle) {
-              content += `<button class="grp-add" data-grp-action="add" title="グループ追加">+</button>`;
-            }
+            const content = `<div class="group-lbl-inner">${inner}</div>`;
             html += `<div class="${cls}" style="grid-column:span ${ginfo.colCount}">${content}</div>`;
           }
           html += `</div>`;
@@ -1920,12 +2127,24 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
             }
             html += `</div>`;
           }
-          html += `</div></div></div>`;
+          html += `</div></div>`;
+          html += `<div class="chunk-add-rail">`;
+          html += `<div class="chunk-add-bar-slot" aria-hidden="true"></div>`;
+          html += `<div class="chunk-add-group-slot">`;
+          html += `<button type="button" class="grp-add-link" data-add-group title="グループを末尾に追加">グループ<br>追加</button>`;
+          html += `</div>`;
+          html += `<div class="chunk-add-beat-slot" aria-hidden="true"></div>`;
+          html += `</div>`;
+          html += `</div></div>`;
         }
 
         html += `<button class="add-row-btn" id="addRowBtn" title="行を追加">＋</button>`;
         cycleCountEl.textContent = String(state.numCycles);
         gridArea.innerHTML = html;
+        syncChunkLayoutMetrics();
+        requestAnimationFrame(() => {
+          syncChunkLayoutMetrics();
+        });
 
         gridArea.querySelectorAll<HTMLInputElement>(".instrument-input").forEach((inp) => {
           inp.addEventListener("focus", () => {
@@ -2095,8 +2314,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         if (grpBtn) {
           const action = grpBtn.dataset.grpAction;
           const idx = Number(grpBtn.dataset.grpIdx);
-          if (action === "add") addGroup();
-          else if (action === "del") removeGroup(idx);
+          if (action === "del") removeGroup(idx);
           else if (action === "inc") changeGroupBeats(idx, 1);
           else if (action === "dec") changeGroupBeats(idx, -1);
           return;
@@ -2176,7 +2394,7 @@ const DEFAULT_SOUND_JSON = JSON.stringify(DEFAULT_SOUND);
         const cpl = cellsPerCyc > 16 ? 1 : 2;
         const numChunks = Math.ceil(state.numCycles / cpl);
         const multiGrp = bg.length > 1;
-        const hdrH = multiGrp ? 62 : 54;
+        const hdrH = multiGrp ? 64 : 58;
         const h = 52 + numChunks * (hdrH + state.rows.length * 22 + 12);
         return `<iframe src="${ORIGIN}${BASE}/lab/rhythm-player/#${encoded}" width="100%" height="${h}" style="border:none;border-radius:8px;overflow:hidden;"></iframe>`;
       }
