@@ -351,7 +351,12 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     }
   }
 
+  let reactionsAbort: AbortController | null = null;
+
   function setupReactions() {
+    reactionsAbort?.abort();
+    reactionsAbort = new AbortController();
+    const { signal } = reactionsAbort;
     const SB_URL  = window.__SB_URL__;
     const SB_KEY  = window.__SB_KEY__;
     const slug    = window.__NOTE_SLUG__;
@@ -427,7 +432,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
         );
       }
       await loadLikes();
-    });
+    }, { signal });
 
     // ── コメント ─────────────────────────────────────────────
     function esc(s: string) {
@@ -570,7 +575,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
         msg.textContent = '送信に失敗しました';
       }
       btn.disabled = false;
-    });
+    }, { signal });
 
     loadLikes();
     loadComments();
@@ -1060,19 +1065,20 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     margin-bottom: 1.5rem;
   }
 
-  .comment-empty {
+  :global(.comment-empty) {
     font-size: 0.85rem;
     color: var(--muted);
   }
 
-  .comment-item {
+  /* JS で動的生成される要素は :global() が必要 */
+  :global(.comment-item) {
     background: #fff;
     border: 1px solid #ede8e0;
     border-radius: 14px;
     padding: 0.9rem 1rem;
   }
 
-  .comment-meta {
+  :global(.comment-meta) {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
@@ -1082,16 +1088,16 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     flex-wrap: wrap;
   }
 
-  .comment-author {
+  :global(.comment-author) {
     font-weight: 600;
     color: var(--wa-ink);
   }
 
-  .comment-date {
+  :global(.comment-date) {
     color: #9ca3af;
   }
 
-  .comment-body {
+  :global(.comment-body) {
     font-size: 0.94rem;
     white-space: pre-wrap;
     word-break: break-word;
@@ -1099,14 +1105,14 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     color: var(--fg);
   }
 
-  .comment-replies {
+  :global(.comment-replies) {
     margin-top: 0.75rem;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
   }
 
-  .reply-item {
+  :global(.reply-item) {
     background: var(--wa-paper);
     border: 1px solid #ede8e0;
     border-radius: 10px;
@@ -1115,7 +1121,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     font-size: 0.9rem;
   }
 
-  .reply-btn {
+  :global(.reply-btn) {
     margin-top: 0.65rem;
     appearance: none;
     background: #f5f0e8;
@@ -1129,12 +1135,12 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     transition: background 0.15s ease, color 0.15s ease;
   }
 
-  .reply-btn:hover {
+  :global(.reply-btn:hover) {
     background: #ede8e0;
     color: var(--wa-ink);
   }
 
-  .reply-form {
+  :global(.reply-form) {
     margin-top: 0.75rem;
     padding: 0.85rem;
     background: #f9f6f1;
@@ -1145,7 +1151,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     gap: 0.6rem;
   }
 
-  .reply-form textarea {
+  :global(.reply-form textarea) {
     width: 100%;
     padding: 0.7rem 0.85rem;
     border: 1px solid #d3ccc3;
@@ -1157,9 +1163,9 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     box-sizing: border-box;
   }
 
-  .reply-form textarea:focus { outline: none; border-color: var(--wa-mustard); }
+  :global(.reply-form textarea:focus) { outline: none; border-color: var(--wa-mustard); }
 
-  .reply-form-footer {
+  :global(.reply-form-footer) {
     display: flex;
     gap: 0.45rem;
     align-items: center;
@@ -1167,7 +1173,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     justify-content: flex-end;
   }
 
-  .reply-name {
+  :global(.reply-name) {
     flex: 1;
     min-width: 0;
     max-width: 180px;
@@ -1179,9 +1185,9 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     background: #fff;
   }
 
-  .reply-name:focus { outline: none; border-color: var(--wa-mustard); }
+  :global(.reply-name:focus) { outline: none; border-color: var(--wa-mustard); }
 
-  .btn-submit, .btn-cancel {
+  :global(.btn-submit), :global(.btn-cancel) {
     padding: 0.45rem 0.9rem;
     font-family: inherit;
     font-size: 0.82rem;
@@ -1190,21 +1196,21 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     cursor: pointer;
   }
 
-  .btn-submit {
+  :global(.btn-submit) {
     background: var(--wa-ink);
     color: #fff;
     transition: opacity 0.15s ease;
   }
 
-  .btn-submit:hover { opacity: 0.85; }
-  .btn-submit:disabled { opacity: 0.5; cursor: default; }
+  :global(.btn-submit:hover) { opacity: 0.85; }
+  :global(.btn-submit:disabled) { opacity: 0.5; cursor: default; }
 
-  .btn-cancel {
+  :global(.btn-cancel) {
     background: transparent;
     color: var(--muted);
   }
 
-  .btn-cancel:hover { color: var(--wa-ink); }
+  :global(.btn-cancel:hover) { color: var(--wa-ink); }
 
   /* コメント投稿フォーム */
   .comment-form {
