@@ -529,28 +529,43 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
       return div;
     }
 
-    async function getNextAnonNumber(): Promise<number> {
-      const res = await fetch(
-        `${SB_URL}/rest/v1/note_comments?slug=eq.${encodeURIComponent(slug)}&select=id`,
-        { headers: { ...sbHeaders, Prefer: 'count=exact' } }
-      );
-      const range = res.headers.get('Content-Range') ?? '';
-      return parseInt(range.split('/')[1] ?? '0') + 1;
+    // localStorage 2段階レート制限（UX用・突破可だがサーバー側でも制限）
+    function checkLocalRateLimit(): string | null {
+      const now = Date.now();
+      const stored = localStorage.getItem('commentTs');
+      const timestamps: number[] = stored ? JSON.parse(stored) : [];
+      const recent = timestamps.filter(t => t > now - 600_000); // 直近10分
+      const lastMin = recent.filter(t => t > now - 60_000);
+      if (lastMin.length >= 3) return '1分間に3回まで送信できます。少し待ってください。';
+      if (recent.length >= 5) return '10分間に5回まで送信できます。少し待ってください。';
+      return null;
+    }
+
+    function recordLocalComment() {
+      const now = Date.now();
+      const stored = localStorage.getItem('commentTs');
+      const timestamps: number[] = stored ? JSON.parse(stored) : [];
+      const recent = timestamps.filter(t => t > now - 600_000);
+      recent.push(now);
+      localStorage.setItem('commentTs', JSON.stringify(recent));
     }
 
     async function postComment(body: string, authorName: string, parentId: string | null = null): Promise<boolean> {
-      const lastPost = parseInt(localStorage.getItem('lastCommentAt') ?? '0');
-      if (Date.now() - lastPost < 30000) {
-        alert('送信が早すぎます。30秒後にもう一度お試しください。');
+      const limitMsg = checkLocalRateLimit();
+      if (limitMsg) { alert(limitMsg); return false; }
+
+      const res = await fetch(`${SB_URL}/functions/v1/post-comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, body, author_name: authorName, parent_id: parentId }),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({})) as { message?: string };
+        alert(data.message ?? '送信が多すぎます。しばらく待ってから再試行してください。');
         return false;
       }
-      const anonNumber = await getNextAnonNumber();
-      const res = await fetch(`${SB_URL}/rest/v1/note_comments`, {
-        method: 'POST',
-        headers: { ...sbHeaders, Prefer: 'return=representation' },
-        body: JSON.stringify({ slug, body, anon_number: anonNumber, parent_id: parentId, author_name: authorName || null }),
-      });
-      if (res.ok) { localStorage.setItem('lastCommentAt', String(Date.now())); return true; }
+      if (res.ok) { recordLocalComment(); return true; }
       return false;
     }
 
