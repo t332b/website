@@ -20,6 +20,10 @@ on:
         required: true
       FTP_REMOTE_DIR:
         required: true
+      PUBLIC_SUPABASE_URL:
+        required: false
+      PUBLIC_SUPABASE_ANON_KEY:
+        required: false
 
 concurrency:
   group: deploy-${{ inputs.ref }}
@@ -63,6 +67,8 @@ jobs:
         env:
           NODE_ENV: production
           ASTRO_BASE_PATH: ${{ inputs.base_path }}
+          PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+          PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
       - name: Verify build output
         run: |
