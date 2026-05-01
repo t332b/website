@@ -23,6 +23,8 @@ jobs:
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
       FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
 
   deploy-tetetest:
     if: github.ref == 'refs/heads/develop'
@@ -35,3 +37,5 @@ jobs:
       FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
       FTP_REMOTE_DIR: ${{ endsWith(secrets.FTP_REMOTE_DIR, '/') && format('{0}tetetest/', secrets.FTP_REMOTE_DIR) || format('{0}/tetetest/', secrets.FTP_REMOTE_DIR) }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}

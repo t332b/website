@@ -70,14 +70,29 @@ const { Content } = await post.render();
 const body = post.body ?? "";
 const musicUrls = extractMusicUrls(body);
 const musicLinks = musicUrls.length > 0 ? await fetchMusicLinksForUrls(musicUrls, post.slug) : {};
+
+const ogDescription = body
+  .replace(/^---[\s\S]*?---\n/, '')
+  .replace(/#{1,6}\s+/g, '')
+  .replace(/\*\*(.*?)\*\*/g, '$1')
+  .replace(/\*(.*?)\*/g, '$1')
+  .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+  .replace(/`[^`]*`/g, '')
+  .replace(/<[^>]+>/g, '')
+  .replace(/\n+/g, ' ')
+  .trim()
+  .slice(0, 120) || post.data.title;
 ---
 
-<NotePost 
+<NotePost
   title={post.data.title}
   date={post.data.date}
   author={post.data.author}
   tags={post.data.tags}
+  image={post.data.image}
+  description={ogDescription}
   musicLinks={musicLinks}
+  slug={post.slug}
 >
   <Content components={{ a: NoteEmbedLink, img: NoteImage }} />
 </NotePost>

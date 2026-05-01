@@ -7,6 +7,24 @@ import AudioPlayer from "../components/AudioPlayer.astro";
 import Navigation from "../components/Navigation.astro";
 import Piano from "../components/Piano.astro";
 
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+}
+
+const SITE_URL = "https://pr0p0se.com";
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/ogp-notes-default.png`;
+
+const {
+  title = "PR0P0SE",
+  description = "PR0P0SE Official Website",
+  ogImage = DEFAULT_OG_IMAGE,
+} = Astro.props;
+
+const pageTitle = title === "PR0P0SE" ? "PR0P0SE" : `${title} | PR0P0SE`;
+const ogImageUrl = ogImage.startsWith("http") ? ogImage : `${SITE_URL}${ogImage}`;
+
 const members = await getCollection("member");
 const memberById = (id: string) => members.find((m) => m.data.id === id)?.data ?? null;
 const daijinMember = memberById("onomatopedaijin");
@@ -27,8 +45,17 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>PR0P0SE</title>
-    <meta name="description" content="PR0P0SE Official Website" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PR0P0SE" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
 
     <!-- イラストキャプション用手書き風フォント -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

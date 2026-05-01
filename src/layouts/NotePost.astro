@@ -7,11 +7,17 @@ export interface Props {
   date: Date;
   author: string;
   tags?: string[];
+  image?: string;
+  description?: string;
   /** ビルド時に取得した song.link の linksByPlatform（key: 音楽URL）。渡されていればクライアントの API 呼び出し不要 */
   musicLinks?: Record<string, { linksByPlatform?: Record<string, { url?: string }> }>;
+  slug?: string;
 }
 
-const { title, date, author, tags, musicLinks = {} } = Astro.props;
+const { title, date, author, tags, image, description, musicLinks = {}, slug = '' } = Astro.props;
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 // メンバー情報を取得
 const members = await getCollection("member");
@@ -40,9 +46,15 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
 ---
 
-<Base title={title}>
+<Base title={title} description={description} ogImage={image}>
   <article class="note-post">
 
+
+    {image && (
+      <div class="post-hero">
+        <img src={image} alt="" class="post-hero-img" />
+      </div>
+    )}
 
     <header class="post-header">
       <h1 class="post-title">{title}</h1>
@@ -77,32 +89,152 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
       <slot />
     </div>
 
-    <!-- 戻るリンク -->
+    <!-- フッター -->
     <div class="post-footer">
       <a href="/notes/" class="back-link" aria-label="Back to notes list">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          width="20"
-          height="20"
-          aria-hidden="true"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
           <path d="M19 12H5M12 19l-7-7 7-7"></path>
         </svg>
         Back
       </a>
+
+      <div class="share-wrap">
+        <button class="share-btn" aria-label="シェア" aria-expanded="false" aria-controls="share-menu">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+            <polyline points="16 6 12 2 8 6"/>
+            <line x1="12" y1="2" x2="12" y2="15"/>
+          </svg>
+        </button>
+
+        <div class="share-menu" id="share-menu" role="menu" aria-hidden="true">
+          <button class="share-item" id="copy-link-btn" role="menuitem" data-url={`https://pr0p0se.com${Astro.url.pathname}`}>
+            <span class="share-item-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </span>
+            リンクをコピー
+          </button>
+          <div class="share-menu-divider"></div>
+          <a class="share-item" href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(`https://pr0p0se.com${Astro.url.pathname}`)}`} target="_blank" rel="noopener noreferrer" role="menuitem">
+            <span class="share-item-icon share-item-icon--x">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.741l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </span>
+            X
+          </a>
+          <a class="share-item" href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(`https://pr0p0se.com${Astro.url.pathname}`)}`} target="_blank" rel="noopener noreferrer" role="menuitem">
+            <span class="share-item-icon share-item-icon--line">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="16" height="16"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+            </span>
+            LINE
+          </a>
+          <a class="share-item" href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`https://pr0p0se.com${Astro.url.pathname}`)}`} target="_blank" rel="noopener noreferrer" role="menuitem">
+            <span class="share-item-icon share-item-icon--fb">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="16" height="16"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </span>
+            Facebook
+          </a>
+          <a class="share-item" href={`https://www.threads.net/intent/post?text=${encodeURIComponent(`${title} https://pr0p0se.com${Astro.url.pathname}`)}`} target="_blank" rel="noopener noreferrer" role="menuitem">
+            <span class="share-item-icon share-item-icon--threads">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" fill="white" width="14" height="14"><path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.986 0-27.449 6.396-35.12 18.036l13.779 9.452c5.73-8.695 14.724-10.548 21.348-10.548h.229c8.249.053 14.474 2.452 18.503 7.129 2.932 3.405 4.893 8.111 5.864 14.05-7.314-1.243-15.224-1.626-23.68-1.14-23.82 1.371-39.134 15.264-38.105 34.568.522 9.792 5.4 18.216 13.735 23.719 7.047 4.652 16.124 6.927 25.557 6.412 12.458-.683 22.231-5.436 29.049-14.127 5.178-6.6 8.453-15.153 9.899-25.93 5.937 3.583 10.337 8.298 12.767 13.966 4.132 9.635 4.373 25.468-8.546 38.376-11.319 11.308-24.925 16.185-45.488 16.338-22.809-.169-40.06-7.484-51.275-21.742C35.236 139.966 29.808 120.682 29.605 96c.203-24.682 5.63-43.966 16.133-57.317C56.954 24.425 74.205 17.11 97.014 16.941c22.975.17 40.526 7.52 52.171 21.847 5.71 7.026 10.015 15.86 12.853 26.162l16.147-4.308c-3.44-12.68-8.853-23.606-16.219-32.668C147.036 9.607 125.202.195 97.07 0h-.113C68.956.195 47.387 9.577 32.874 27.913 19.684 44.482 12.996 67.316 12.794 96c.202 28.684 6.89 51.518 20.08 68.087 14.513 18.336 36.082 27.718 64.113 27.913h.113c24.882-.168 42.308-6.71 56.7-21.084 18.934-18.921 18.352-42.554 12.137-57.045-4.557-10.622-13.193-19.283-24.4-24.883zM98.44 129.507c-10.44.587-21.286-4.098-21.82-14.135-.397-7.442 5.296-15.746 22.461-16.735 1.966-.113 3.895-.169 5.79-.169 6.235 0 12.068.606 17.371 1.765-1.978 24.702-13.574 28.733-23.802 29.274z"/></svg>
+            </span>
+            Threads
+          </a>
+        </div>
+        <span class="copy-toast" aria-live="polite"></span>
+      </div>
     </div>
+    <!-- いいね -->
+    <div class="reactions">
+      <button class="like-toggle" id="like-btn" aria-pressed="false" aria-label="いいね">
+        <svg class="heart-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <svg class="heart-filled" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+        </svg>
+        <span class="like-count" id="like-count">…</span>
+      </button>
+    </div>
+
+    <!-- コメント -->
+    <section class="comments-section" id="comments">
+      <h2 class="comments-heading">コメント</h2>
+      <ul class="comment-list" id="comment-list">
+        <li class="comment-empty">読み込み中…</li>
+      </ul>
+      <form class="comment-form" id="comment-form">
+        <textarea name="body" placeholder="コメントを書く…" rows="3" maxlength="500" required></textarea>
+        <div class="comment-form-footer">
+          <input type="text" name="author_name" placeholder="名前（省略可）" maxlength="50" autocomplete="off">
+          <button type="submit">送信</button>
+        </div>
+        <p class="form-msg" id="form-msg"></p>
+      </form>
+    </section>
   </article>
 </Base>
 
 <script is:inline set:html={`window.__NOTE_MUSIC_LINKS__ = ${JSON.stringify(musicLinks).replace(/</g, "\\u003c")};`} />
+<script is:inline set:html={`
+window.__SB_URL__   = ${JSON.stringify(supabaseUrl)};
+window.__SB_KEY__   = ${JSON.stringify(supabaseAnonKey)};
+window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
+`} />
 
 <script>
+  // シェアメニュー
+  let shareAbort: AbortController | null = null;
+
+  function setupShareMenu() {
+    shareAbort?.abort();
+    shareAbort = new AbortController();
+    const { signal } = shareAbort;
+
+    const btn = document.querySelector<HTMLButtonElement>(".share-btn");
+    const menu = document.querySelector<HTMLElement>(".share-menu");
+    const copyBtn = document.querySelector<HTMLButtonElement>("#copy-link-btn");
+    const toast = document.querySelector<HTMLElement>(".copy-toast");
+    if (!btn || !menu) return;
+
+    const open = () => {
+      menu.classList.add("open");
+      btn.setAttribute("aria-expanded", "true");
+      menu.setAttribute("aria-hidden", "false");
+    };
+    const close = () => {
+      menu.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+      menu.setAttribute("aria-hidden", "true");
+    };
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      menu.classList.contains("open") ? close() : open();
+    }, { signal });
+
+    document.addEventListener("click", (e) => {
+      if (!menu.contains(e.target as Node) && e.target !== btn) close();
+    }, { signal });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close();
+    }, { signal });
+
+    copyBtn?.addEventListener("click", async () => {
+      const url = copyBtn.dataset.url ?? location.href;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      close();
+      if (toast) {
+        toast.textContent = "コピーしました";
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
+      }
+    }, { signal });
+  }
+
+  document.addEventListener("astro:page-load", setupShareMenu);
+  setupShareMenu();
+
   // タブ用データはビルド時にのみ取得（ブラウザから api.song.link は CORS で取得不可のためクライアント fetch は行わない）
   function pageUrlToEmbedUrl(pageUrl, service) {
     if (!pageUrl || typeof pageUrl !== "string") return null;
@@ -209,6 +341,265 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
   document.addEventListener("astro:page-load", run);
 </script>
 
+<script>
+  // いいね・コメント
+  declare global {
+    interface Window {
+      __SB_URL__: string;
+      __SB_KEY__: string;
+      __NOTE_SLUG__: string;
+    }
+  }
+
+  let reactionsAbort: AbortController | null = null;
+
+  function setupReactions() {
+    reactionsAbort?.abort();
+    reactionsAbort = new AbortController();
+    const { signal } = reactionsAbort;
+    const SB_URL  = window.__SB_URL__;
+    const SB_KEY  = window.__SB_KEY__;
+    const slug    = window.__NOTE_SLUG__;
+
+    if (!SB_URL || !SB_KEY || !slug) return;
+
+    const sbHeaders: Record<string, string> = {
+      apikey: SB_KEY,
+      Authorization: `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json',
+    };
+
+    // ── user_key ────────────────────────────────────────────
+    function getUserKey(): string {
+      let key = localStorage.getItem('noteUserKey');
+      if (!key) {
+        key = crypto.randomUUID();
+        localStorage.setItem('noteUserKey', key);
+      }
+      return key;
+    }
+
+    // ── いいね ───────────────────────────────────────────────
+    async function loadLikes() {
+      const userKey = getUserKey();
+
+      const countRes = await fetch(
+        `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&select=id`,
+        { headers: { ...sbHeaders, Prefer: 'count=exact' } }
+      );
+      const range = countRes.headers.get('Content-Range') ?? '';
+      const count = parseInt(range.split('/')[1] ?? '0') || 0;
+
+      const likedRes = await fetch(
+        `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}&select=id`,
+        { headers: sbHeaders }
+      );
+      const likedData = await likedRes.json();
+      const isLiked = Array.isArray(likedData) && likedData.length > 0;
+
+      applyLikeState(isLiked, count);
+    }
+
+    function applyLikeState(isLiked: boolean, count: number) {
+      const btn = document.getElementById('like-btn') as HTMLButtonElement | null;
+      const countEl = document.getElementById('like-count');
+      if (!btn || !countEl) return;
+      btn.setAttribute('aria-pressed', String(isLiked));
+      countEl.textContent = String(count);
+    }
+
+    const likeBtn = document.getElementById('like-btn');
+    likeBtn?.addEventListener('click', async () => {
+      const userKey = getUserKey();
+      const btn = document.getElementById('like-btn') as HTMLButtonElement;
+      const countEl = document.getElementById('like-count')!;
+      const isLiked = btn.getAttribute('aria-pressed') === 'true';
+      const currentCount = parseInt(countEl.textContent ?? '0') || 0;
+
+      // 楽観的更新
+      applyLikeState(!isLiked, !isLiked ? currentCount + 1 : Math.max(0, currentCount - 1));
+
+      if (!isLiked) {
+        await fetch(`${SB_URL}/rest/v1/note_likes`, {
+          method: 'POST',
+          headers: sbHeaders,
+          body: JSON.stringify({ slug, user_key: userKey }),
+        });
+      } else {
+        await fetch(
+          `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}`,
+          { method: 'DELETE', headers: sbHeaders }
+        );
+      }
+      await loadLikes();
+    }, { signal });
+
+    // ── コメント ─────────────────────────────────────────────
+    function esc(s: string) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmtDate(iso: string) {
+      const d = new Date(iso);
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    async function loadComments() {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/note_comments?slug=eq.${encodeURIComponent(slug)}&order=created_at.asc&select=id,body,author_name,anon_number,created_at,parent_id`,
+        { headers: sbHeaders }
+      );
+      const all = await res.json() as Array<{id:string;body:string;author_name:string|null;anon_number:number;created_at:string;parent_id:string|null}>;
+      const list = document.getElementById('comment-list')!;
+      list.innerHTML = '';
+
+      if (!Array.isArray(all) || all.length === 0) {
+        list.innerHTML = '<li class="comment-empty">まだコメントはありません</li>';
+        return;
+      }
+
+      const tops = all.filter(c => !c.parent_id);
+      const repliesMap: Record<string, typeof all> = {};
+      all.filter(c => c.parent_id).forEach(r => {
+        (repliesMap[r.parent_id!] ??= []).push(r);
+      });
+      tops.forEach(c => list.appendChild(renderComment(c, repliesMap[c.id] ?? [])));
+    }
+
+    function buildAuthor(anon: number, name: string | null) {
+      return name ? `${esc(String(anon))}. <strong>${esc(name)}</strong>` : esc(String(anon));
+    }
+
+    function renderComment(c: {id:string;body:string;author_name:string|null;anon_number:number;created_at:string}, replies: Array<{id:string;body:string;author_name:string|null;anon_number:number;created_at:string}>) {
+      const li = document.createElement('li');
+      li.className = 'comment-item';
+      li.innerHTML = `
+        <div class="comment-meta">
+          <span class="comment-author">${buildAuthor(c.anon_number, c.author_name)}</span>
+          <span class="comment-date">${esc(fmtDate(c.created_at))}</span>
+        </div>
+        <div class="comment-body">${esc(c.body)}</div>
+        <div class="comment-replies"></div>
+        <button class="reply-btn" type="button">返信</button>
+      `;
+      const repliesEl = li.querySelector('.comment-replies')!;
+      replies.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'reply-item';
+        div.innerHTML = `
+          <div class="comment-meta">
+            <span class="comment-author">${buildAuthor(r.anon_number, r.author_name)}</span>
+            <span class="comment-date">${esc(fmtDate(r.created_at))}</span>
+          </div>
+          <div class="comment-body">${esc(r.body)}</div>
+        `;
+        repliesEl.appendChild(div);
+      });
+      li.querySelector('.reply-btn')!.addEventListener('click', () => {
+        if (li.querySelector('.reply-form')) return;
+        const form = buildReplyForm(c.id);
+        li.querySelector('.reply-btn')!.insertAdjacentElement('afterend', form);
+        (form.querySelector('textarea') as HTMLTextAreaElement).focus();
+      });
+      return li;
+    }
+
+    function buildReplyForm(parentId: string) {
+      const div = document.createElement('div');
+      div.className = 'reply-form';
+      div.innerHTML = `
+        <textarea placeholder="返信を書く…" rows="3" maxlength="500"></textarea>
+        <div class="reply-form-footer">
+          <input type="text" class="reply-name" placeholder="名前（省略可）" maxlength="50" autocomplete="off">
+          <button class="btn-cancel" type="button">キャンセル</button>
+          <button class="btn-submit" type="button">送信</button>
+        </div>
+      `;
+      div.querySelector('.btn-cancel')!.addEventListener('click', () => div.remove());
+      (div.querySelector('.btn-submit') as HTMLButtonElement).addEventListener('click', async () => {
+        const text = (div.querySelector('textarea') as HTMLTextAreaElement).value.trim();
+        if (!text) return;
+        const name = (div.querySelector('.reply-name') as HTMLInputElement).value.trim();
+        const btn = div.querySelector('.btn-submit') as HTMLButtonElement;
+        btn.disabled = true;
+        const ok = await postComment(text, name, parentId);
+        if (ok) { loadComments(); div.remove(); }
+        else btn.disabled = false;
+      });
+      return div;
+    }
+
+    // localStorage 2段階レート制限（UX用・突破可だがサーバー側でも制限）
+    function checkLocalRateLimit(): string | null {
+      const now = Date.now();
+      const stored = localStorage.getItem('commentTs');
+      const timestamps: number[] = stored ? JSON.parse(stored) : [];
+      const recent = timestamps.filter(t => t > now - 600_000); // 直近10分
+      const lastMin = recent.filter(t => t > now - 60_000);
+      if (lastMin.length >= 3) return '1分間に3回まで送信できます。少し待ってください。';
+      if (recent.length >= 5) return '10分間に5回まで送信できます。少し待ってください。';
+      return null;
+    }
+
+    function recordLocalComment() {
+      const now = Date.now();
+      const stored = localStorage.getItem('commentTs');
+      const timestamps: number[] = stored ? JSON.parse(stored) : [];
+      const recent = timestamps.filter(t => t > now - 600_000);
+      recent.push(now);
+      localStorage.setItem('commentTs', JSON.stringify(recent));
+    }
+
+    async function postComment(body: string, authorName: string, parentId: string | null = null): Promise<boolean> {
+      const limitMsg = checkLocalRateLimit();
+      if (limitMsg) { alert(limitMsg); return false; }
+
+      const res = await fetch(`${SB_URL}/functions/v1/post-comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, body, author_name: authorName, parent_id: parentId }),
+      });
+
+      if (res.status === 429) {
+        const data = await res.json().catch(() => ({})) as { message?: string };
+        alert(data.message ?? '送信が多すぎます。しばらく待ってから再試行してください。');
+        return false;
+      }
+      if (res.ok) { recordLocalComment(); return true; }
+      return false;
+    }
+
+    const commentForm = document.getElementById('comment-form') as HTMLFormElement | null;
+    commentForm?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const msg = document.getElementById('form-msg')!;
+      const btn = form.querySelector('button[type=submit]') as HTMLButtonElement;
+      const body = (form.elements.namedItem('body') as HTMLTextAreaElement).value.trim();
+      const authorName = ((form.elements.namedItem('author_name') as HTMLInputElement)?.value ?? '').trim();
+      btn.disabled = true;
+      msg.textContent = '送信中…';
+      const ok = await postComment(body, authorName);
+      if (ok) {
+        (form.elements.namedItem('body') as HTMLTextAreaElement).value = '';
+        (form.elements.namedItem('author_name') as HTMLInputElement).value = '';
+        msg.textContent = '送信しました';
+        await loadComments();
+        setTimeout(() => { msg.textContent = ''; }, 3000);
+      } else {
+        msg.textContent = '送信に失敗しました';
+      }
+      btn.disabled = false;
+    }, { signal });
+
+    loadLikes();
+    loadComments();
+  }
+
+  document.addEventListener('astro:page-load', setupReactions);
+  setupReactions();
+</script>
+
 <style>
   .note-post {
     max-width: 500px;
@@ -246,6 +637,21 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
   .nav-home {
     margin-left: auto;
+  }
+
+  .post-hero {
+    margin: 0 -1rem 1.5rem;
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+    line-height: 0;
+  }
+
+  .post-hero-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+    aspect-ratio: 1200 / 630;
   }
 
   .post-header {
@@ -456,6 +862,119 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     margin-top: 3rem;
     padding-top: 2rem;
     border-top: 2px solid var(--wa-butter);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* シェアボタン */
+  .share-wrap {
+    position: relative;
+  }
+
+  .share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: none;
+    color: var(--wa-ink);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .share-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  /* シェアメニュー */
+  .share-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
+    min-width: 200px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 100;
+  }
+
+  .share-menu.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+
+  .share-menu-divider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 0;
+  }
+
+  .share-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    font-size: 0.9375rem;
+    color: #1a1a1a;
+    text-decoration: none;
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.1s ease;
+  }
+
+  .share-item:hover {
+    background: #f5f5f5;
+  }
+
+  .share-item-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #e8e8e8;
+    flex-shrink: 0;
+    color: #444;
+  }
+
+  .share-item-icon--x   { background: #000; }
+  .share-item-icon--line   { background: #06C755; }
+  .share-item-icon--fb     { background: #1877F2; }
+  .share-item-icon--threads { background: #000; }
+
+  /* コピー完了トースト */
+  .copy-toast {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    background: #1a1a1a;
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .copy-toast.show {
+    opacity: 1;
   }
 
   .back-link {
@@ -493,5 +1012,279 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     .post-content {
       font-size: 16px;
     }
+  }
+
+  /* ── いいね ───────────────────────────────────── */
+  .reactions {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--wa-butter);
+    display: flex;
+    align-items: center;
+  }
+
+  .like-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: none;
+    border: none;
+    padding: 0.3rem 0.5rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    color: var(--muted);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .like-toggle:hover {
+    color: #e05;
+    background: rgba(238, 0, 85, 0.06);
+  }
+
+  .like-toggle[aria-pressed="true"] {
+    color: #e05;
+  }
+
+  .heart-outline { display: block; }
+  .heart-filled  { display: none; }
+
+  .like-toggle[aria-pressed="true"] .heart-outline { display: none; }
+  .like-toggle[aria-pressed="true"] .heart-filled  { display: block; }
+
+  .like-count {
+    font-size: 0.85rem;
+    min-width: 1ch;
+  }
+
+  /* ── コメント ─────────────────────────────────── */
+  .comments-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--wa-butter);
+  }
+
+  .comments-heading {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--wa-ink);
+    margin-bottom: 1rem;
+  }
+
+  .comment-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  :global(.comment-empty) {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  /* JS で動的生成される要素は :global() が必要 */
+  :global(.comment-item) {
+    background: #fff;
+    border: 1px solid #ede8e0;
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+  }
+
+  :global(.comment-meta) {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.78rem;
+    margin-bottom: 0.45rem;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  :global(.comment-author) {
+    font-weight: 600;
+    color: var(--wa-ink);
+  }
+
+  :global(.comment-date) {
+    color: #9ca3af;
+  }
+
+  :global(.comment-body) {
+    font-size: 0.94rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.75;
+    color: var(--fg);
+  }
+
+  :global(.comment-replies) {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  :global(.reply-item) {
+    background: var(--wa-paper);
+    border: 1px solid #ede8e0;
+    border-radius: 10px;
+    padding: 0.7rem 0.85rem;
+    margin-left: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  :global(.reply-btn) {
+    margin-top: 0.65rem;
+    appearance: none;
+    background: #f5f0e8;
+    border: 1px solid #ddd5c8;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.25rem 0.8rem;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  :global(.reply-btn:hover) {
+    background: #ede8e0;
+    color: var(--wa-ink);
+  }
+
+  :global(.reply-form) {
+    margin-top: 0.75rem;
+    padding: 0.85rem;
+    background: #f9f6f1;
+    border: 1px solid #ddd5c8;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  :global(.reply-form textarea) {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid #d3ccc3;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    resize: vertical;
+    background: #fff;
+    box-sizing: border-box;
+  }
+
+  :global(.reply-form textarea:focus) { outline: none; border-color: var(--wa-mustard); }
+
+  :global(.reply-form-footer) {
+    display: flex;
+    gap: 0.45rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  :global(.reply-name) {
+    flex: 1;
+    min-width: 0;
+    max-width: 180px;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid #d3ccc3;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    background: #fff;
+  }
+
+  :global(.reply-name:focus) { outline: none; border-color: var(--wa-mustard); }
+
+  :global(.btn-submit), :global(.btn-cancel) {
+    padding: 0.45rem 0.9rem;
+    font-family: inherit;
+    font-size: 0.82rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+  }
+
+  :global(.btn-submit) {
+    background: var(--wa-ink);
+    color: #fff;
+    transition: opacity 0.15s ease;
+  }
+
+  :global(.btn-submit:hover) { opacity: 0.85; }
+  :global(.btn-submit:disabled) { opacity: 0.5; cursor: default; }
+
+  :global(.btn-cancel) {
+    background: transparent;
+    color: var(--muted);
+  }
+
+  :global(.btn-cancel:hover) { color: var(--wa-ink); }
+
+  /* コメント投稿フォーム */
+  .comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .comment-form textarea {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ddd5c8;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    background: #fff;
+    box-sizing: border-box;
+  }
+
+  .comment-form textarea:focus { outline: none; border-color: var(--wa-mustard); }
+
+  .comment-form-footer {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .comment-form-footer input {
+    flex: 1;
+    max-width: 200px;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid #ddd5c8;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    background: #fff;
+  }
+
+  .comment-form-footer input:focus { outline: none; border-color: var(--wa-mustard); }
+
+  .comment-form-footer button[type=submit] {
+    padding: 0.55rem 1.3rem;
+    background: var(--wa-ink);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  .comment-form-footer button[type=submit]:hover { opacity: 0.85; }
+  .comment-form-footer button[type=submit]:disabled { opacity: 0.5; cursor: default; }
+
+  .form-msg {
+    font-size: 0.82rem;
+    color: var(--muted);
+    min-height: 1.2em;
   }
 </style>
