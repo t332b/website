@@ -16,6 +16,7 @@ display_url: https://pr0p0se.com
 # Sveltia は media_libraries で Cloudinary をネイティブ対応（API secret は不要）
 media_libraries:
   cloudinary:
+    output_filename_only: true
     config:
       cloud_name: djzxpyzu3
       api_key: 719521938943924
