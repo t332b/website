@@ -83,14 +83,6 @@ collections:
         widget: "image"
         required: false
         hint: "記事のヘッダー画像（OGP にも使用）。Cloudinary から選択してください。設定しない場合はデフォルト画像が使われます。"
-        media_libraries:
-          cloudinary:
-            config:
-              default_transformations:
-                - - fetch_format: auto
-                    quality: auto
-                    width: 1200
-                    crop: limit
       - label: "本文"
         name: "body"
         widget: "markdown"
