@@ -743,14 +743,17 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
   }
 
   .post-content {
-    line-height: 1.7;
+    line-height: 1.9;
     font-size: 1rem;
     color: var(--fg);
   }
 
   .post-content :global(p) {
-    margin: 0 0 1em;
-    white-space: pre-wrap;
+    margin-bottom: 1em;
+  }
+
+  .post-content :global(p:last-child) {
+    margin-bottom: 0;
   }
 
   .post-content :global(h1),
