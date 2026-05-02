@@ -391,16 +391,21 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
     const likedKey = `liked_${slug}`;
 
     async function loadLikes() {
-      const countRes = await fetch(
-        `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&select=id`,
-        { headers: { ...sbHeaders, Prefer: 'count=exact' } }
-      );
-      const range = countRes.headers.get('Content-Range') ?? '';
-      const count = parseInt(range.split('/')[1] ?? '0') || 0;
+      try {
+        const countRes = await fetch(
+          `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&select=id`,
+          { headers: { ...sbHeaders, Prefer: 'count=exact' }, signal }
+        );
+        const range = countRes.headers.get('Content-Range') ?? '';
+        const count = parseInt(range.split('/')[1] ?? '0') || 0;
 
-      // いいね済みかどうかはlocalStorageのみで判定（Supabaseは参照しない）
-      const isLiked = localStorage.getItem(likedKey) === 'true';
-      applyLikeState(isLiked, count);
+        // いいね済みかどうかはlocalStorageのみで判定（Supabaseは参照しない）
+        const isLiked = localStorage.getItem(likedKey) === 'true';
+        applyLikeState(isLiked, count);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
+        throw e;
+      }
     }
 
     function applyLikeState(isLiked: boolean, count: number) {
@@ -428,6 +433,7 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
           method: 'POST',
           headers: sbHeaders,
           body: JSON.stringify({ slug, user_key: userKey }),
+          signal,
         });
       } else {
         // いいね取消し
@@ -435,7 +441,7 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
         localStorage.removeItem(likedKey);
         await fetch(
           `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}`,
-          { method: 'DELETE', headers: sbHeaders }
+          { method: 'DELETE', headers: sbHeaders, signal }
         );
       }
       await loadLikes();
@@ -455,7 +461,7 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
     async function loadComments() {
       const res = await fetch(
         `${SB_URL}/rest/v1/note_comments?slug=eq.${encodeURIComponent(slug)}&order=created_at.asc&select=id,body,author_name,anon_number,created_at,parent_id`,
-        { headers: sbHeaders }
+        { headers: sbHeaders, signal }
       );
       const all = await res.json() as Array<{id:string;body:string;author_name:string|null;anon_number:number;created_at:string;parent_id:string|null}>;
       const list = document.getElementById('comment-list')!;
