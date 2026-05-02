@@ -376,20 +376,10 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
       'Content-Type': 'application/json',
     };
 
-    // ── user_key ────────────────────────────────────────────
-    function getUserKey(): string {
-      let key = localStorage.getItem('noteUserKey');
-      if (!key) {
-        key = crypto.randomUUID();
-        localStorage.setItem('noteUserKey', key);
-      }
-      return key;
-    }
-
     // ── いいね ───────────────────────────────────────────────
-    async function loadLikes() {
-      const userKey = getUserKey();
+    const likedKey = `liked_${slug}`;
 
+    async function loadLikes() {
       const countRes = await fetch(
         `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&select=id`,
         { headers: { ...sbHeaders, Prefer: 'count=exact' } }
@@ -397,13 +387,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
       const range = countRes.headers.get('Content-Range') ?? '';
       const count = parseInt(range.split('/')[1] ?? '0') || 0;
 
-      const likedRes = await fetch(
-        `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}&select=id`,
-        { headers: sbHeaders }
-      );
-      const likedData = await likedRes.json();
-      const isLiked = Array.isArray(likedData) && likedData.length > 0;
-
+      const isLiked = localStorage.getItem(likedKey) === 'true';
       applyLikeState(isLiked, count);
     }
 
@@ -417,28 +401,25 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
 
     const likeBtn = document.getElementById('like-btn');
     likeBtn?.addEventListener('click', async () => {
-      const userKey = getUserKey();
       const btn = document.getElementById('like-btn') as HTMLButtonElement;
       const countEl = document.getElementById('like-count')!;
       const isLiked = btn.getAttribute('aria-pressed') === 'true';
+      if (isLiked) return;
+
       const currentCount = parseInt(countEl.textContent ?? '0') || 0;
+      btn.disabled = true;
 
       // 楽観的更新
-      applyLikeState(!isLiked, !isLiked ? currentCount + 1 : Math.max(0, currentCount - 1));
+      applyLikeState(true, currentCount + 1);
+      localStorage.setItem(likedKey, 'true');
 
-      if (!isLiked) {
-        await fetch(`${SB_URL}/rest/v1/note_likes`, {
-          method: 'POST',
-          headers: sbHeaders,
-          body: JSON.stringify({ slug, user_key: userKey }),
-        });
-      } else {
-        await fetch(
-          `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}`,
-          { method: 'DELETE', headers: sbHeaders }
-        );
-      }
+      await fetch(`${SB_URL}/rest/v1/note_likes`, {
+        method: 'POST',
+        headers: sbHeaders,
+        body: JSON.stringify({ slug, user_key: crypto.randomUUID() }),
+      });
       await loadLikes();
+      btn.disabled = false;
     }, { signal });
 
     // ── コメント ─────────────────────────────────────────────
@@ -1059,6 +1040,12 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
 
   .like-toggle[aria-pressed="true"] {
     color: #e05;
+  }
+
+  .like-toggle:disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
   }
 
   .heart-outline { display: block; }
