@@ -14,7 +14,8 @@
   </head>
   <body>
     <div id="nc-root"></div>
-    <script src="https://unpkg.com/@sveltia/cms@latest/dist/sveltia-cms.js"></script>
+    <!-- Pinned to 0.156.3: @latest (0.156.4+) broke Cloudinary login (noopener blocks window.opener) -->
+    <script src="https://unpkg.com/@sveltia/cms@0.156.3/dist/sveltia-cms.js"></script>
     <link href="mobile-overrides.css" rel="stylesheet" />
   </body>
 </html>
