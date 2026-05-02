@@ -152,7 +152,7 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     </div>
     <!-- いいね -->
     <div class="reactions">
-      <button class="like-toggle" id="like-btn" aria-pressed="false" aria-label="いいね">
+      <button class="like-toggle" id="like-btn" data-slug={slug} aria-pressed="false" aria-label="いいね">
         <svg class="heart-outline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true">
           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
         </svg>
@@ -183,9 +183,8 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
 <script is:inline set:html={`window.__NOTE_MUSIC_LINKS__ = ${JSON.stringify(musicLinks).replace(/</g, "\\u003c")};`} />
 <script is:inline set:html={`
-window.__SB_URL__   = ${JSON.stringify(supabaseUrl)};
-window.__SB_KEY__   = ${JSON.stringify(supabaseAnonKey)};
-window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
+window.__SB_URL__ = ${JSON.stringify(supabaseUrl)};
+window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
 `} />
 
 <script>
@@ -354,7 +353,6 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     interface Window {
       __SB_URL__: string;
       __SB_KEY__: string;
-      __NOTE_SLUG__: string;
     }
   }
 
@@ -364,9 +362,12 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     reactionsAbort?.abort();
     reactionsAbort = new AbortController();
     const { signal } = reactionsAbort;
-    const SB_URL  = window.__SB_URL__;
-    const SB_KEY  = window.__SB_KEY__;
-    const slug    = window.__NOTE_SLUG__;
+    const SB_URL = window.__SB_URL__;
+    const SB_KEY = window.__SB_KEY__;
+
+    // slugはDOMのdata属性から読む（window変数はView Transitionsで更新タイミングがズレるため）
+    const likeBtn = document.getElementById('like-btn') as HTMLButtonElement | null;
+    const slug = likeBtn?.dataset.slug ?? '';
 
     if (!SB_URL || !SB_KEY || !slug) return;
 
@@ -377,6 +378,16 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
     };
 
     // ── いいね ───────────────────────────────────────────────
+    // ブラウザごとの識別子をlocalStorageに保持（DELETE時に対象行を特定するために必要）
+    function getUserKey(): string {
+      let key = localStorage.getItem('noteUserKey');
+      if (!key) {
+        key = crypto.randomUUID();
+        localStorage.setItem('noteUserKey', key);
+      }
+      return key;
+    }
+
     const likedKey = `liked_${slug}`;
 
     async function loadLikes() {
@@ -387,6 +398,7 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
       const range = countRes.headers.get('Content-Range') ?? '';
       const count = parseInt(range.split('/')[1] ?? '0') || 0;
 
+      // いいね済みかどうかはlocalStorageのみで判定（Supabaseは参照しない）
       const isLiked = localStorage.getItem(likedKey) === 'true';
       applyLikeState(isLiked, count);
     }
@@ -399,25 +411,33 @@ window.__NOTE_SLUG__ = ${JSON.stringify(slug)};
       countEl.textContent = String(count);
     }
 
-    const likeBtn = document.getElementById('like-btn');
     likeBtn?.addEventListener('click', async () => {
-      const btn = document.getElementById('like-btn') as HTMLButtonElement;
+      const btn = likeBtn;
       const countEl = document.getElementById('like-count')!;
       const isLiked = btn.getAttribute('aria-pressed') === 'true';
-      if (isLiked) return;
-
       const currentCount = parseInt(countEl.textContent ?? '0') || 0;
+      const userKey = getUserKey();
+
       btn.disabled = true;
 
-      // 楽観的更新
-      applyLikeState(true, currentCount + 1);
-      localStorage.setItem(likedKey, 'true');
-
-      await fetch(`${SB_URL}/rest/v1/note_likes`, {
-        method: 'POST',
-        headers: sbHeaders,
-        body: JSON.stringify({ slug, user_key: crypto.randomUUID() }),
-      });
+      if (!isLiked) {
+        // いいね
+        applyLikeState(true, currentCount + 1);
+        localStorage.setItem(likedKey, 'true');
+        await fetch(`${SB_URL}/rest/v1/note_likes`, {
+          method: 'POST',
+          headers: sbHeaders,
+          body: JSON.stringify({ slug, user_key: userKey }),
+        });
+      } else {
+        // いいね取消し
+        applyLikeState(false, Math.max(0, currentCount - 1));
+        localStorage.removeItem(likedKey);
+        await fetch(
+          `${SB_URL}/rest/v1/note_likes?slug=eq.${encodeURIComponent(slug)}&user_key=eq.${encodeURIComponent(userKey)}`,
+          { method: 'DELETE', headers: sbHeaders }
+        );
+      }
       await loadLikes();
       btn.disabled = false;
     }, { signal });
