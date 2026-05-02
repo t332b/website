@@ -50,6 +50,7 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:url" content={`${SITE_URL}${Astro.url.pathname}`} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="PR0P0SE" />
     <meta name="twitter:card" content="summary_large_image" />
