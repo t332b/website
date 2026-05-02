@@ -34,6 +34,14 @@ function getAvatarUrl(m: { avatar?: string; github?: string } | null): string {
 }
 
 const avatarUrl = getAvatarUrl(member?.data ?? null);
+
+function getHeroImageUrl(img: string | undefined): string | undefined {
+  if (!img) return undefined;
+  if (img.startsWith("http://") || img.startsWith("https://")) return img;
+  return `https://res.cloudinary.com/djzxpyzu3/image/upload/f_auto,q_auto,w_1600,c_limit/${img}`;
+}
+const heroImageUrl = getHeroImageUrl(image);
+
 const dateStr = date.toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
 const timeStr = date.toLocaleTimeString("ja-JP", {
   timeZone: "Asia/Tokyo",
@@ -46,13 +54,12 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 
 ---
 
-<Base title={title} description={description} ogImage={image}>
+<Base title={title} description={description} ogImage={heroImageUrl}>
   <article class="note-post">
 
-
-    {image && (
+    {heroImageUrl && (
       <div class="post-hero">
-        <img src={image} alt="" class="post-hero-img" />
+        <img src={heroImageUrl} alt="" class="post-hero-img" />
       </div>
     )}
 
