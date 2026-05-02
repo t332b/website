@@ -1,127 +1,209 @@
-# PR0P0SE Website 運用ガイド
+# PR0P0SE Website
 
-このREADMEは、現在のリポジトリ実装を元にした「サイト全体の管理手順」です。
+PR0P0SE のオフィシャルサイト。楽曲・作品情報、ライブ情報、メンバーによるノート記事、インタラクティブな音楽ツールを提供する静的サイト。
 
-## 運用の全体像
+**本番URL:** https://pr0p0se.com
 
-- コンテンツ編集は `Sveltia CMS`（`/admin`）で実施
-- 編集内容は GitHub リポジトリ（`main`）へコミット
-- `main` への push をトリガーに GitHub Actions がビルド
-- ビルド成果物 `dist/` を FTP で本番サーバーへデプロイ
-- `develop` への push をトリガーに STG 環境へ自動デプロイ（本番反映前の確認用）
+---
 
-## ディレクトリ責務
+## 技術スタック
 
-- `src/content/notes` : Notes記事
-- `src/content/live` : ライブ情報
-- `src/content/member` : メンバー情報
-- `src/content/tracks` : 楽曲情報
-- `src/content/works` : 作品情報
-- `public/admin` : CMS設定（`config.yml` を含む）
-- `.github/workflows` : デプロイ/同期の自動化
-- `scripts` : 同期・生成スクリプト
-- `src/data/musicList.generated.ts` : 自動生成ファイル（手編集しない）
+| 用途 | 技術 |
+|------|------|
+| フレームワーク | [Astro](https://astro.build/) (静的出力) |
+| コンテンツ | MDX (Markdown + コンポーネント) |
+| CMS | [Sveltia CMS](https://github.com/sveltia/sveltia-cms) (`/admin`) |
+| 画像ホスティング | Cloudinary |
+| Notes いいね・コメント | Supabase |
+| コンテンツ同期 | Google Sheets API |
+| デプロイ | GitHub Actions → FTP (Lolipop) |
 
-## CMS（Sveltia）運用
-
-- 管理画面: `/admin`（`public/admin/index.html` / `src/pages/admin.astro`）
-- 設定ファイル: `public/admin/config.yml`
-- backend: GitHub (`repo: t332b/website`, `branch: main`)
-- メディア: Cloudinary（リポジトリアップロードは使わない設定）
-
-## GitHub Actions
-
-### 1. 本番デプロイ
-
-- `push-deploy.yml`
-  - `main` への push（対象パス）または手動実行で起動
-  - 再利用ワークフロー `deploy.yml` を呼び出し
-- `deploy.yml`
-  - Node 20 / 依存インストール / `npm run build`
-  - `dist/` 存在確認後、`SamKirkland/FTP-Deploy-Action@v4.3.6` でFTPデプロイ
-
-### 1.5 tetetest デプロイ（develop 確認用）
-
-- `push-deploy.yml`
-  - `develop` への push（対象パス）または手動実行で起動
-  - 再利用ワークフロー `deploy.yml` を `ref: develop` で呼び出し
-  - ビルド時の `base_path` を `/tetetest/` に設定（CSS/JS を `/tetetest/assets/...` 参照にする）
-  - 本番と同じ FTP Secrets を使い、`FTP_REMOTE_DIR + tetetest/` に配置
-
-### 2. song.link API チェック（Notes 埋め込み）
-
-- `check-songlink.yml`
-  - 毎日 cron または手動（workflow_dispatch）で song.link API に疎通確認
-  - 失敗時に GitHub Issue を自動作成（ラベル `songlink-check`）。既に同種の Open Issue があればそこにコメント追加
-  - 本番のノート記事では音楽リンク取得をクライアントで行っているため、API 落ちを GitHub 上で把握する用途
-
-### 3. Google Sheets 同期
-
-- `sync-content.yml`（手動実行）
-  - `npm run sync:content` で Sheets から `works` と `tracks` を同期
-  - 差分があればコミットして push
-  - その後 `deploy.yml` を呼び出してデプロイ
-
-## 必要な GitHub Secrets
-
-### デプロイ用
-
-- `FTP_HOST`
-- `FTP_USERNAME`
-- `FTP_PASSWORD`
-- `FTP_REMOTE_DIR`
-
-- `develop` の tetetest 反映は同じ Secrets を利用し、配置先のみ `.../tetetest/` に切り替え
-
-### オプション（Notes 埋め込みの失敗通知）
-
-- `PUBLIC_NOTE_MUSIC_LINK_REPORT_URL`  
-  ノート記事で song.link 取得に失敗したときに POST する Webhook URL。未設定なら送信しない。  
-  （例: サーバレス関数の URL で受け取り、GitHub API で Issue 作成する運用）
-
-### Google Sheets 同期用
-
-- `GOOGLE_SERVICE_ACCOUNT`（サービスアカウントJSON）
-- `GOOGLE_SHEETS_ID`（シートID）
+---
 
 ## ローカル開発
 
 ```bash
 npm install
-npm run dev
+npm run dev       # http://localhost:4321
 ```
 
 ### 主なコマンド
 
-- `npm run dev` : 開発サーバー起動
-- `npm run build` : 本番ビルド
-- `npm run preview` : ビルド確認
-- `npm run sync:content` : Sheetsから `works`/`tracks` を同期
-- `npm run test:sheets` : Sheets接続確認
+| コマンド | 内容 |
+|---------|------|
+| `npm run dev` | 開発サーバー起動 |
+| `npm run build` | 本番ビルド → `dist/` |
+| `npm run preview` | ビルド結果の確認 |
+| `npm run sync:content` | Google Sheets から works / tracks を同期 |
+| `npm run test:sheets` | Google Sheets 接続確認 |
+| `npm run generate:music` | 音楽リストの手動再生成 |
 
-### 重要な注意
+> `dev` / `build` 実行前に `scripts/generate-music-list.mjs` が自動実行され、`src/data/musicList.generated.ts` が生成されます。このファイルは手動編集しないでください。
 
-- `npm run dev` / `npm run build` の前に `predev` / `prebuild` で `scripts/generate-music-list.mjs` が実行されます
-- 生成先は `src/data/musicList.generated.ts` のため、基本は手動編集しないでください
+---
 
-## Google Sheets 同期のローカル実行（任意）
+## ディレクトリ構成
+
+```
+src/
+├── content/
+│   ├── config.ts       # コレクションスキーマ定義
+│   ├── notes/          # ノート記事 (MDX)
+│   ├── tracks/         # 楽曲 (MDX)
+│   ├── works/          # 作品・リリース (MDX)
+│   ├── live/           # ライブ情報 (MDX)
+│   └── member/         # メンバー情報 (MDX)
+├── pages/              # ルーティング
+├── layouts/            # ページレイアウト
+├── components/         # UIコンポーネント
+├── data/
+│   └── musicList.generated.ts  # 自動生成（手編集禁止）
+└── styles/
+
+public/
+├── admin/
+│   └── config.yml      # Sveltia CMS 設定
+└── images/
+
+scripts/
+├── generate-music-list.mjs         # 音楽リスト生成
+├── sync-content-from-sheets.mjs    # Google Sheets 同期
+├── test-sheets-access.mjs          # Sheets 接続確認
+└── vite-notes-mdx-autolink.mjs     # ノート用 Vite プラグイン
+
+supabase/
+├── functions/post-comment/         # コメント投稿 Edge Function
+└── migrations/                     # DBマイグレーション
+
+.github/workflows/
+├── deploy.yml              # ビルド＆FTPデプロイ（再利用可能）
+├── push-deploy.yml         # main / develop push トリガー
+├── sync-content.yml        # Google Sheets 同期（手動）
+└── check-songlink.yml      # song.link API 死活監視（毎日）
+```
+
+---
+
+## コンテンツ管理
+
+### CMS (Sveltia)
+
+- 管理画面: `/admin`
+- GitHub バックエンド: `t332b/website` の `main` ブランチへ直接コミット
+- 画像: Cloudinary（リポジトリへの直接アップロードは使わない設定）
+- Notes の公開/非公開は `is_public` フィールドで管理
+
+### コンテンツコレクション
+
+| コレクション | 主なフィールド |
+|-------------|---------------|
+| `notes` | `title`, `date`, `author`（member ID）, `tags`, `image`（Cloudinary）, `is_public` |
+| `works` | `title`, `release_type`, `release_date`, `cover_url_list`, 各種配信リンク |
+| `tracks` | `title`, `works_id`, `track_number`, `duration`, `lyrics_by`, `music_by` |
+| `live` | `title`, `startDate`, `venue`, `city`, `ticketUrl`, `flyer` |
+| `member` | `id`, `name`, `bio`, `avatar` |
+
+### Google Sheets 同期
+
+`works` と `tracks` は Google Sheets を正とし、手動または CI から同期します。
 
 ```bash
-export GOOGLE_SERVICE_ACCOUNT='{"type":"service_account", ... }'
+export GOOGLE_SERVICE_ACCOUNT='{"type":"service_account", ...}'
 export GOOGLE_SHEETS_ID='your-sheet-id'
 npm run sync:content
 ```
 
-仕様（`scripts/sync-content-from-sheets.mjs`）:
+対象シート: `Works`（必須カラム: `id`, `title`）、`Tracks`（必須カラム: `id`, `title`, `works_id`）
 
-- 対象シート: `Works`, `Tracks`
-- 必須カラム:
-  - Works: `id`, `title`（`slug` は任意）
-  - Tracks: `id`, `title`, `works_id`（または後方互換で `release_id`）
-- 既存ファイルがあり、シート側 `body` が空の場合は既存本文を保持
+---
+
+## Supabase（Notes いいね・コメント）
+
+Notes ページのいいね・コメント機能で使用。
+
+- いいね: `note_likes` テーブル（`slug`, `user_key`）
+- コメント: `note_comments` テーブル / Edge Function `post-comment`
+- いいね済み判定はブラウザの localStorage で管理（同じブラウザでは重複しない、シークレット窓では再度押せる）
+
+マイグレーションは `supabase/migrations/` を Supabase ダッシュボードの SQL Editor で実行してください。
+
+---
+
+## デプロイ
+
+### フロー
+
+```
+コード変更 / CMS編集
+    ↓
+GitHub push
+    ↓
+GitHub Actions (push-deploy.yml)
+    ↓
+npm run build → dist/
+    ↓
+FTP デプロイ (Lolipop)
+```
+
+### ブランチ別の挙動
+
+| ブランチ | デプロイ先 | BASE_PATH |
+|---------|-----------|-----------|
+| `main` | 本番 (`FTP_REMOTE_DIR`) | `/` |
+| `develop` | ステージング (`FTP_REMOTE_DIR/tetetest/`) | `/tetetest/` |
+
+---
+
+## GitHub Secrets
+
+### デプロイ（必須）
+
+| Secret | 内容 |
+|--------|------|
+| `FTP_HOST` | FTP ホスト名 |
+| `FTP_USERNAME` | FTP ユーザー名 |
+| `FTP_PASSWORD` | FTP パスワード |
+| `FTP_REMOTE_DIR` | FTP リモートディレクトリ |
+
+### Notes 機能（任意）
+
+| Secret / 変数 | 内容 |
+|--------------|------|
+| `PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
+| `PUBLIC_SUPABASE_ANON_KEY` | Supabase anon キー |
+
+### Google Sheets 同期（任意）
+
+| Secret | 内容 |
+|--------|------|
+| `GOOGLE_SERVICE_ACCOUNT` | サービスアカウント JSON |
+| `GOOGLE_SHEETS_ID` | 対象スプレッドシート ID |
+
+### その他（任意）
+
+| Secret | 内容 |
+|--------|------|
+| `PUBLIC_NOTE_MUSIC_LINK_REPORT_URL` | song.link 取得失敗時の通知 Webhook URL |
+
+---
+
+## GitHub Actions
+
+| ワークフロー | トリガー | 内容 |
+|------------|---------|------|
+| `push-deploy.yml` | `main` / `develop` への push | ビルド＆FTPデプロイ |
+| `sync-content.yml` | 手動 (workflow_dispatch) | Sheets 同期→デプロイ |
+| `check-songlink.yml` | 毎日 cron / 手動 | song.link API 死活確認・Issue 通知 |
+
+---
 
 ## トラブルシュート
 
-- `astro: command not found`
-  - 依存未インストールの可能性が高いです
-  - `npm install` 後に `npm run dev` を実行してください
+**`astro: command not found`**
+→ `npm install` を実行してください。
+
+**ビルド時に `src/data/musicList.generated.ts` がない**
+→ `npm run generate:music` で手動生成できます。
+
+**CMS でログインできない**
+→ GitHub OAuth の認可が必要です。`/admin` の設定（`public/admin/config.yml`）の `base_url` を確認してください。
