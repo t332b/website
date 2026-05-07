@@ -14,7 +14,10 @@ interface Props {
 }
 
 const SITE_URL = "https://pr0p0se.com";
-const DEFAULT_OG_IMAGE = `${SITE_URL}/images/ogp-default.png`;
+// Twitter(X) は og:image を強くキャッシュするため、更新時は URL を変える
+// （クエリ付きURLでも取得される）
+const DEFAULT_OG_IMAGE_VERSION = "2026-05-07";
+const DEFAULT_OG_IMAGE = `${SITE_URL}/images/ogp-default.png?v=${DEFAULT_OG_IMAGE_VERSION}`;
 
 const {
   title = "PR0P0SE",
