@@ -15,7 +15,12 @@ if (base && href.startsWith("/notes")) {
 const embed = href ? getEmbedInfoFromUrl(href) : null;
 ---
 
-{embed ? (
+{embed && (embed.service === "spotify" || embed.service === "apple") ? (
+  // Apple Music / Spotify は記事上部の専用プレーヤーで表示するため、本文内リンクは通常リンクにする
+  <a href={href} title={title} target="_blank" rel="noopener noreferrer">
+    {href}
+  </a>
+) : embed ? (
   <div class="note-embed">
     {embed.service === "youtube" && (
       <div class="note-embed-video">
@@ -57,47 +62,6 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
           allowfullscreen
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
         />
-      </div>
-    )}
-    {(embed.service === "spotify" || embed.service === "apple") && (
-      <div
-        class="note-embed-music-tabs"
-        data-music-url={href}
-        data-default-service={embed.service}
-      >
-        <div class="note-embed-music-tabs-inner">
-          <div class="note-embed-music-frames">
-            <div
-              class="note-embed-music-frame active"
-              data-service={embed.service}
-              aria-hidden="false"
-            >
-              <iframe
-                src={embed.embedUrl}
-                title={title || embed.service}
-                width="100%"
-                height={embed.service === "spotify" ? "152" : "150"}
-                frameborder="0"
-                allowfullscreen
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              />
-            </div>
-          </div>
-          <div class="note-embed-music-tablist" role="tablist" aria-label="再生サービス">
-            <button
-              type="button"
-              class="note-embed-music-tab active"
-              role="tab"
-              aria-selected="true"
-              data-service={embed.service}
-              aria-controls={`note-embed-frame-${embed.service}`}
-            >
-              <span class="note-embed-music-tab-label">
-                {embed.service === "spotify" ? "Spotify" : "Apple Music"}
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
     )}
   </div>
