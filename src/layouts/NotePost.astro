@@ -9,12 +9,9 @@ export interface Props {
   tags?: string[];
   image?: string;
   description?: string;
+  /** ビルド時に取得した song.link の linksByPlatform（key: 音楽URL）。渡されていればクライアントの API 呼び出し不要 */
+  musicLinks?: Record<string, { linksByPlatform?: Record<string, { url?: string }> }>;
   slug?: string;
-  musicPlayer?: {
-    defaultService: "apple" | "spotify";
-    appleEmbedUrl?: string;
-    spotifyEmbedUrl?: string;
-  };
   prevPost?: {
     slug: string;
     title: string;
@@ -33,7 +30,7 @@ export interface Props {
   };
 }
 
-const { title, date, author, tags, image, description, slug = '', musicPlayer, prevPost, nextPost } =
+const { title, date, author, tags, image, description, musicLinks = {}, slug = '', prevPost, nextPost } =
   Astro.props as Props;
 
 const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? '';
@@ -127,72 +124,6 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
         )
       }
     </header>
-
-    {(musicPlayer?.appleEmbedUrl || musicPlayer?.spotifyEmbedUrl) && (
-      <section class="note-music-player" aria-label="音楽プレーヤー">
-        <div class="note-music-tabs" data-default={musicPlayer.defaultService}>
-          {/* CSSタブ切替用（JSなし） */}
-          <input
-            type="radio"
-            name={`music-${slug}`}
-            id="music-apple"
-            class="note-music-radio"
-            checked={musicPlayer.defaultService === "apple"}
-            disabled={!musicPlayer.appleEmbedUrl}
-          />
-          <input
-            type="radio"
-            name={`music-${slug}`}
-            id="music-spotify"
-            class="note-music-radio"
-            checked={musicPlayer.defaultService === "spotify"}
-            disabled={!musicPlayer.spotifyEmbedUrl}
-          />
-
-          <div class="note-music-tablist" role="tablist" aria-label="再生サービス">
-            {musicPlayer.appleEmbedUrl && (
-              <label class="note-music-tab" for="music-apple" role="tab">
-                Apple Music
-              </label>
-            )}
-            {musicPlayer.spotifyEmbedUrl && (
-              <label class="note-music-tab" for="music-spotify" role="tab">
-                Spotify
-              </label>
-            )}
-          </div>
-
-          <div class="note-music-frames">
-            {musicPlayer.appleEmbedUrl && (
-              <div class="note-music-frame note-music-frame--apple" role="tabpanel">
-                <iframe
-                  src={musicPlayer.appleEmbedUrl}
-                  title="Apple Music"
-                  width="100%"
-                  height="150"
-                  frameborder="0"
-                  allowfullscreen
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                />
-              </div>
-            )}
-            {musicPlayer.spotifyEmbedUrl && (
-              <div class="note-music-frame note-music-frame--spotify" role="tabpanel">
-                <iframe
-                  src={musicPlayer.spotifyEmbedUrl}
-                  title="Spotify"
-                  width="100%"
-                  height="152"
-                  frameborder="0"
-                  allowfullscreen
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-    )}
 
     <!-- 本文 -->
     <div class="post-content content">
@@ -319,6 +250,7 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
     </section>
   </article>
 </Base>
+<script is:inline set:html={`window.__NOTE_MUSIC_LINKS__ = ${JSON.stringify(musicLinks).replace(/</g, "\\u003c")};`} />
 <script is:inline set:html={`
 window.__SB_URL__ = ${JSON.stringify(supabaseUrl)};
 window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
@@ -377,6 +309,118 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
 
   document.addEventListener("astro:page-load", setupShareMenu);
   setupShareMenu();
+
+  // タブ用データはビルド時にのみ取得（ブラウザから api.song.link は CORS で取得不可のためクライアント fetch は行わない）
+  declare global {
+    interface Window {
+      __NOTE_MUSIC_LINKS__?: Record<string, { linksByPlatform?: Record<string, { url?: string }> }>;
+    }
+  }
+
+  function pageUrlToEmbedUrl(pageUrl: string | null, service: string) {
+    if (!pageUrl || typeof pageUrl !== "string") return null;
+    const u = pageUrl.trim();
+    try {
+      if (service === "spotify" && /spotify\.com/i.test(u)) {
+        const m = u.match(/spotify\.com\/(?:intl-[^/]+\/)?(track|album|playlist)\/([a-zA-Z0-9]+)(?:\?|&|$)/);
+        if (m) return `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator`;
+      }
+      if ((service === "apple" || service === "appleMusic") && /music\.apple\.com|geo\.music\.apple\.com/i.test(u)) {
+        return u.replace(/^https?:\/\/(?:geo\.)?music\.apple\.com/i, "https://embed.music.apple.com");
+      }
+    } catch (e) {}
+    return null;
+  }
+
+  function getServiceLabel(service: string) {
+    return service === "appleMusic" || service === "apple" ? "Apple Music" : "Spotify";
+  }
+
+  function setupTabsSwitch(container: Element) {
+    const frames = container.querySelectorAll<HTMLElement>(".note-embed-music-frame");
+    const tabs = container.querySelectorAll<HTMLElement>(".note-embed-music-tab");
+    function activate(service: string) {
+      frames.forEach((f) => {
+        const on = f.dataset.service === service;
+        f.classList.toggle("active", on);
+        f.setAttribute("aria-hidden", on ? "false" : "true");
+      });
+      tabs.forEach((t) => {
+        const on = t.dataset.service === service;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+    }
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", (e: Event) => {
+        e.preventDefault();
+        const s = (e.currentTarget as HTMLElement | null)?.dataset?.service;
+        if (s) activate(s);
+      });
+    });
+  }
+
+  function run() {
+    const containers = document.querySelectorAll(".note-embed-music-tabs[data-music-url]");
+    containers.forEach((container) => {
+      const url = container.getAttribute("data-music-url");
+      if (!url) return;
+
+      const existingServices = new Set(
+        Array.from(container.querySelectorAll<HTMLElement>(".note-embed-music-frame"))
+          .map((f) => f.dataset?.service)
+          .filter(Boolean)
+      );
+
+      const preloaded =
+        typeof window !== "undefined" ? window.__NOTE_MUSIC_LINKS__?.[url] : undefined;
+      const linksByPlatform = preloaded?.linksByPlatform ?? {};
+
+      const framesWrap = container.querySelector(".note-embed-music-frames");
+      const tablist = container.querySelector(".note-embed-music-tablist");
+      if (!framesWrap || !tablist) {
+        setupTabsSwitch(container);
+        return;
+      }
+
+      const order = [
+        { key: "spotify", service: "spotify" },
+        { key: "appleMusic", service: "apple" },
+      ];
+      for (const { key, service } of order) {
+        const plat = (linksByPlatform as Record<string, { url?: string } | undefined>)[key];
+        const pageUrl = plat?.url ?? null;
+        if (!pageUrl || existingServices.has(service)) continue;
+        const embedUrl = pageUrlToEmbedUrl(pageUrl, key === "appleMusic" ? "apple" : key);
+        if (!embedUrl) continue;
+
+        const frame = document.createElement("div");
+        frame.className = "note-embed-music-frame";
+        frame.dataset.service = service;
+        frame.setAttribute("aria-hidden", "true");
+        const esc = (s: string) =>
+          s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        frame.innerHTML = `<iframe src="${esc(embedUrl)}" title="${esc(getServiceLabel(service))}" width="100%" height="152" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+        framesWrap.appendChild(frame);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "note-embed-music-tab";
+        btn.role = "tab";
+        btn.setAttribute("aria-selected", "false");
+        btn.dataset.service = service;
+        btn.textContent = getServiceLabel(service);
+        tablist.appendChild(btn);
+
+        existingServices.add(service);
+      }
+
+      setupTabsSwitch(container);
+    });
+  }
+
+  document.addEventListener("astro:page-load", run);
+  run();
 </script>
 
 <script>
@@ -909,75 +953,6 @@ window.__SB_KEY__ = ${JSON.stringify(supabaseAnonKey)};
     border-color: rgba(255, 255, 255, 0.95);
   }
 
-  /* notes: 音楽プレーヤー（記事上部・JSなし） */
-  .note-music-player {
-    margin: 1.25rem 0 1.75rem;
-  }
-  .note-music-tabs {
-    border-radius: 14px;
-    overflow: hidden;
-    background: #000;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-  }
-  .note-music-radio {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
-  .note-music-tablist {
-    display: flex;
-    gap: 0.35rem;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    padding: 0.75rem 0.75rem 0;
-    background: #000;
-  }
-  .note-music-tab {
-    appearance: none;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    padding: 0.4rem 0.75rem;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
-  }
-  .note-music-tab:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.4);
-  }
-
-  .note-music-frames {
-    padding: 0.6rem 0.75rem 0.9rem;
-  }
-  .note-music-frame {
-    display: none;
-  }
-  .note-music-frame iframe {
-    width: 100%;
-    display: block;
-    border: none;
-    border-radius: 12px;
-  }
-
-  /* 初期表示 */
-  .note-music-frame:first-child {
-    display: block;
-  }
-
-  /* タブ切替（radio -> frame） */
-  #music-apple:checked ~ .note-music-frames .note-music-frame--apple { display: block; }
-  #music-spotify:checked ~ .note-music-frames .note-music-frame--spotify { display: block; }
-
-  #music-apple:checked ~ .note-music-tablist label[for="music-apple"],
-  #music-spotify:checked ~ .note-music-tablist label[for="music-spotify"] {
-    background: rgba(255, 255, 255, 0.95);
-    color: #000;
-    border-color: rgba(255, 255, 255, 0.95);
-  }
 
   /* 前へ・次へ */
   .post-nav {

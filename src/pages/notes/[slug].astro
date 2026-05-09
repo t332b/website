@@ -4,7 +4,6 @@ import type { GetStaticPaths } from 'astro';
 import NotePost from '../../layouts/NotePost.astro';
 import NoteEmbedLink from '../../components/NoteEmbedLink.astro';
 import NoteImage from '../../components/NoteImage.astro';
-import { getEmbedInfoFromUrl } from '../../utils/embedUrl';
 
 const SONG_LINK_API = "https://api.song.link/v1-alpha.1/links";
 
@@ -15,12 +14,6 @@ type NavPost = {
   author: string;
   image?: string;
   description: string;
-};
-
-type MusicPlayer = {
-  defaultService: "apple" | "spotify";
-  appleEmbedUrl?: string;
-  spotifyEmbedUrl?: string;
 };
 
 // ビルド中の song.link 結果をメモリキャッシュ（notes の各ページ生成で重複呼び出しを減らす）
@@ -148,36 +141,6 @@ const body = post.body ?? "";
 const musicUrls = extractMusicUrls(body);
 const musicLinks = musicUrls.length > 0 ? await fetchMusicLinksForUrls(musicUrls, post.slug) : {};
 
-function buildMusicPlayer(): MusicPlayer | null {
-  if (musicUrls.length === 0) return null;
-  const firstUrl = musicUrls[0];
-  const first = getEmbedInfoFromUrl(firstUrl);
-  if (!first || (first.service !== "apple" && first.service !== "spotify")) return null;
-
-  const player: MusicPlayer = {
-    defaultService: first.service,
-    appleEmbedUrl: first.service === "apple" ? first.embedUrl : undefined,
-    spotifyEmbedUrl: first.service === "spotify" ? first.embedUrl : undefined,
-  };
-
-  const other = musicLinks[firstUrl]?.linksByPlatform ?? {};
-  const spotifyUrl = other.spotify?.url;
-  const appleUrl = (other.appleMusic?.url ?? other.apple?.url) as string | undefined;
-
-  if (!player.spotifyEmbedUrl && spotifyUrl) {
-    const e = getEmbedInfoFromUrl(spotifyUrl);
-    if (e?.service === "spotify") player.spotifyEmbedUrl = e.embedUrl;
-  }
-  if (!player.appleEmbedUrl && appleUrl) {
-    const e = getEmbedInfoFromUrl(appleUrl);
-    if (e?.service === "apple") player.appleEmbedUrl = e.embedUrl;
-  }
-
-  return player;
-}
-
-const musicPlayer = buildMusicPlayer();
-
 const ogDescription = bodyToOgDescription(body, post.data.title);
 
 // prev/next（投稿日時で単純ソート。getStaticPaths と同じフィルタ条件で揃える）
@@ -211,7 +174,7 @@ const nextPost: NavPost | null = idx >= 0 && idx < allPosts.length - 1 ? toNavPo
   tags={post.data.tags}
   image={post.data.image}
   description={ogDescription}
-  musicPlayer={musicPlayer ?? undefined}
+  musicLinks={musicLinks}
   slug={currentSlug}
   prevPost={prevPost ?? undefined}
   nextPost={nextPost ?? undefined}
