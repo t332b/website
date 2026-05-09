@@ -121,7 +121,7 @@ npm run sync:content
 
 Notes ページのいいね・コメント機能で使用。
 
-- いいね: `note_likes` テーブル（`slug`, `user_key`）
+- いいね: `note_likes` テーブル（`slug`, `like_count`）※更新は RPC `note_like(slug, delta)` 経由
 - コメント: `note_comments` テーブル / Edge Function `post-comment`
 - いいね済み判定はブラウザの localStorage で管理（同じブラウザでは重複しない、シークレット窓では再度押せる）
 

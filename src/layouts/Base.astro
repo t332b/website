@@ -11,6 +11,7 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  twitterCard?: "summary" | "summary_large_image";
 }
 
 const SITE_URL = "https://pr0p0se.com";
@@ -23,6 +24,7 @@ const {
   title = "PR0P0SE",
   description = "PR0P0SE Official Website",
   ogImage = DEFAULT_OG_IMAGE,
+  twitterCard = "summary_large_image",
 } = Astro.props;
 
 const pageTitle = title === "PR0P0SE" ? "PR0P0SE" : `${title} | PR0P0SE`;
@@ -56,7 +58,7 @@ function avatarUrl(m: { avatar?: string; github?: string } | null): string {
     <meta property="og:url" content={`${SITE_URL}${Astro.url.pathname}`} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="PR0P0SE" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:card" content={twitterCard} />
     <meta name="twitter:title" content={pageTitle} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImageUrl} />

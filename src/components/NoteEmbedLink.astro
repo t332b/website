@@ -90,7 +90,6 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
               role="tab"
               aria-selected="true"
               data-service={embed.service}
-              aria-controls={`note-embed-frame-${embed.service}`}
             >
               <span class="note-embed-music-tab-label">
                 {embed.service === "spotify" ? "Spotify" : "Apple Music"}

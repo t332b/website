@@ -7,6 +7,18 @@ import NoteImage from '../../components/NoteImage.astro';
 
 const SONG_LINK_API = "https://api.song.link/v1-alpha.1/links";
 
+type NavPost = {
+  slug: string;
+  title: string;
+  date: Date;
+  author: string;
+  image?: string;
+  description: string;
+};
+
+// ビルド中の song.link 結果をメモリキャッシュ（notes の各ページ生成で重複呼び出しを減らす）
+const SONG_LINK_CACHE = new Map<string, { linksByPlatform?: Record<string, { url?: string }> }>();
+
 /** 本文から Spotify / Apple Music の URL を抽出（重複除く・順序保持） */
 function extractMusicUrls(body: string): string[] {
   const re = /https?:\/\/(?:open\.)?spotify\.com\/[^\s\)\]"']+|https?:\/\/(?:music|geo\.music)\.apple\.com\/[^\s\)\]"']+/gi;
@@ -22,6 +34,59 @@ function extractMusicUrls(body: string): string[] {
   return urls;
 }
 
+function bodyToOgDescription(body: string, fallbackTitle: string): string {
+  return (
+    body
+      .replace(/^---[\s\S]*?---\n/, "")
+      .replace(/#{1,6}\s+/g, "")
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+      .replace(/`[^`]*`/g, "")
+      .replace(/<[^>]+>/g, "")
+      .replace(/\n+/g, " ")
+      .trim()
+      .slice(0, 120) || fallbackTitle
+  );
+}
+
+async function sleep(ms: number) {
+  await new Promise((r) => setTimeout(r, ms));
+}
+
+async function fetchJsonWithRetry<T>(url: string, opts?: { timeoutMs?: number; retries?: number }): Promise<T> {
+  const timeoutMs = opts?.timeoutMs ?? 4000;
+  const retries = opts?.retries ?? 2;
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, {
+        signal: ac.signal,
+        headers: {
+          // 一部の環境で弾かれにくいように UA を付与
+          "User-Agent": "pr0p0se-build/1.0 (+https://pr0p0se.com)",
+          Accept: "application/json",
+        },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) as T;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        // 0.2s, 0.5s, 1.0s ... 程度
+        await sleep(200 * Math.pow(2, attempt));
+        continue;
+      }
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
+}
+
 /** ビルド時に song.link API で他サービス URL を取得（CORS 回避）。結果をログ出力。 */
 async function fetchMusicLinksForUrls(
   urls: string[],
@@ -31,14 +96,18 @@ async function fetchMusicLinksForUrls(
   if (urls.length === 0) return out;
   console.log(`[notes/${slug}] 音楽 URL を ${urls.length} 件検出。song.link を呼び出します。`);
   for (const url of urls) {
+    const cached = SONG_LINK_CACHE.get(url);
+    if (cached) {
+      out[url] = { linksByPlatform: cached.linksByPlatform ?? {} };
+      continue;
+    }
     try {
-      const res = await fetch(`${SONG_LINK_API}?url=${encodeURIComponent(url)}`);
-      if (!res.ok) {
-        console.warn(`[notes/${slug}] song.link 失敗: ${url.slice(0, 50)}... → HTTP ${res.status}`);
-        continue;
-      }
-      const data = (await res.json()) as { linksByPlatform?: Record<string, { url?: string }> };
+      const data = await fetchJsonWithRetry<{ linksByPlatform?: Record<string, { url?: string }> }>(
+        `${SONG_LINK_API}?url=${encodeURIComponent(url)}`,
+        { timeoutMs: 4500, retries: 2 },
+      );
       out[url] = { linksByPlatform: data?.linksByPlatform ?? {} };
+      SONG_LINK_CACHE.set(url, { linksByPlatform: out[url].linksByPlatform ?? {} });
       const platforms = Object.keys(out[url].linksByPlatform ?? {}).filter((k) => out[url].linksByPlatform![k]?.url);
       console.log(`[notes/${slug}] song.link 成功: ${url.slice(0, 50)}... → ${platforms.length} プラットフォーム`);
     } catch (err) {
@@ -65,23 +134,37 @@ interface Props {
 }
 
 const { post } = Astro.props as Props;
+const currentSlug = Astro.params.slug ?? post.slug;
 const { Content } = await post.render();
 
 const body = post.body ?? "";
 const musicUrls = extractMusicUrls(body);
 const musicLinks = musicUrls.length > 0 ? await fetchMusicLinksForUrls(musicUrls, post.slug) : {};
 
-const ogDescription = body
-  .replace(/^---[\s\S]*?---\n/, '')
-  .replace(/#{1,6}\s+/g, '')
-  .replace(/\*\*(.*?)\*\*/g, '$1')
-  .replace(/\*(.*?)\*/g, '$1')
-  .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-  .replace(/`[^`]*`/g, '')
-  .replace(/<[^>]+>/g, '')
-  .replace(/\n+/g, ' ')
-  .trim()
-  .slice(0, 120) || post.data.title;
+const ogDescription = bodyToOgDescription(body, post.data.title);
+
+// prev/next（投稿日時で単純ソート。getStaticPaths と同じフィルタ条件で揃える）
+const isStg = (import.meta.env.BASE_URL ?? "/").startsWith("/tetetest");
+const noteFilter = isStg ? () => true : ({ data }: { data: { is_public?: boolean } }) => data.is_public !== false;
+const allPosts = (await getCollection("notes", noteFilter)).sort(
+  (a, b) => a.data.date.getTime() - b.data.date.getTime(),
+);
+const idx = allPosts.findIndex((p) => p.slug === currentSlug);
+
+function toNavPost(p: CollectionEntry<"notes">): NavPost {
+  const b = p.body ?? "";
+  return {
+    slug: p.slug,
+    title: p.data.title,
+    date: p.data.date,
+    author: p.data.author,
+    image: p.data.image,
+    description: bodyToOgDescription(b, p.data.title),
+  };
+}
+
+const prevPost: NavPost | null = idx > 0 ? toNavPost(allPosts[idx - 1]) : null;
+const nextPost: NavPost | null = idx >= 0 && idx < allPosts.length - 1 ? toNavPost(allPosts[idx + 1]) : null;
 ---
 
 <NotePost
@@ -92,7 +175,9 @@ const ogDescription = body
   image={post.data.image}
   description={ogDescription}
   musicLinks={musicLinks}
-  slug={post.slug}
+  slug={currentSlug}
+  prevPost={prevPost ?? undefined}
+  nextPost={nextPost ?? undefined}
 >
   <Content components={{ a: NoteEmbedLink, img: NoteImage }} />
 </NotePost>
