@@ -81,9 +81,9 @@ collections:
         hint: "OFF にすると記事は非公開になります"
       - label: "ヘッダー画像"
         name: "image"
-        widget: "image"
+        widget: "ai-image"
         required: false
-        hint: "記事のヘッダー画像（OGP にも使用）。Cloudinary から選択してください。設定しない場合はデフォルト画像が使われます。"
+        hint: "「AIで画像生成」でタイトル・本文をもとに自動生成します。設定しない場合はデフォルト画像が使われます。"
       - label: "本文"
         name: "body"
         widget: "markdown"
