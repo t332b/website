@@ -5,15 +5,6 @@
   var UPLOAD_PRESET = 'pr0p0se';
   var FOLDER = 'pr0p0se-website';
 
-  function waitForCMS(cb, attempts) {
-    attempts = attempts || 0;
-    if (window.CMS && window.createClass && window.h) {
-      cb();
-    } else if (attempts < 80) {
-      setTimeout(function () { waitForCMS(cb, attempts + 1); }, 100);
-    }
-  }
-
   function getEntryValue(entry, field) {
     if (!entry) return '';
     if (typeof entry.getIn === 'function') return entry.getIn(['data', field]) || '';
@@ -78,8 +69,8 @@
     },
   };
 
-  waitForCMS(function () {
-    var AIImageControl = window.createClass({
+  // window.CMS_MANUAL_INIT=true のため、ここで同期的に登録して CMS.init() を呼ぶ
+  var AIImageControl = window.createClass({
       displayName: 'AIImageControl',
 
       getInitialState: function () {
@@ -250,6 +241,6 @@
         : null;
     };
 
-    window.CMS.registerWidget('ai-image', AIImageControl, AIImagePreview);
-  });
+  window.CMS.registerWidget('ai-image', AIImageControl, AIImagePreview);
+  window.CMS.init();
 })();

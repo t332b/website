@@ -15,6 +15,8 @@
   <body>
     <div id="nc-root"></div>
     <!-- Pinned to 0.156.3: @latest (0.156.4+) broke Cloudinary login (noopener blocks window.opener) -->
+    <!-- CMS_MANUAL_INIT: ウィジェット登録後に手動でinitするため自動initを無効化 -->
+    <script>window.CMS_MANUAL_INIT = true;</script>
     <script src="https://unpkg.com/@sveltia/cms@0.156.3/dist/sveltia-cms.js"></script>
     <script src="custom-widgets.js"></script>
     <link href="mobile-overrides.css" rel="stylesheet" />
