@@ -52,8 +52,10 @@ function getAvatarUrl(m: { avatar?: string; github?: string } | null): string {
 
 const avatarUrl = getAvatarUrl(member?.data ?? null);
 
-function getHeroImageUrl(img: string | undefined): string | undefined {
-  if (!img) return undefined;
+const DEFAULT_HERO = '/images/ogp-default.png';
+
+function getHeroImageUrl(img: string | undefined): string {
+  if (!img) return DEFAULT_HERO;
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
   return `https://res.cloudinary.com/djzxpyzu3/image/upload/f_auto,q_auto,w_1600,c_limit/${img}`;
 }
@@ -91,11 +93,9 @@ const dateTimeDisplay = `${dateStr} ${timeStr}`;
 <Base title={title} description={description} ogImage={heroImageUrl} twitterCard="summary">
   <article class="note-post">
 
-    {heroImageUrl && (
-      <div class="post-hero">
-        <img src={heroImageUrl} alt="" class="post-hero-img" />
-      </div>
-    )}
+    <div class="post-hero">
+      <img src={heroImageUrl} alt="" class="post-hero-img" />
+    </div>
 
     <header class="post-header">
       <h1 class="post-title">{title}</h1>
