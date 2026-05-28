@@ -22,6 +22,13 @@
       .trim();
   }
 
+  function fetchImageAsBlob(url) {
+    return fetch(url).then(function(res) {
+      if (!res.ok) throw new Error('画像取得失敗: ' + res.status);
+      return res.blob();
+    });
+  }
+
   function uploadToCloudinary(fileOrUrl) {
     var fd = new FormData();
     fd.append('file', fileOrUrl);
@@ -98,7 +105,11 @@
           encodeURIComponent(self.buildPrompt()) +
           '?width=1280&height=720&nologo=true&seed=' + Date.now();
 
-        uploadToCloudinary(url)
+        fetchImageAsBlob(url)
+          .then(function(blob) {
+            self.setState({ mode: 'uploading' });
+            return uploadToCloudinary(blob);
+          })
           .then(function (secureUrl) {
             self.setState({ mode: 'previewing', candidate: secureUrl });
           })
@@ -207,7 +218,7 @@
                 style: busy ? S.primaryDisabled : S.primary,
               },
                 generating ? '⏳ AI生成中…（30〜60秒）'
-                : uploading  ? '⏳ アップロード中…'
+                : uploading  ? '⏳ Cloudinaryに保存中…'
                 : '✨ AIで画像生成'
               ),
               window.h('button', {
