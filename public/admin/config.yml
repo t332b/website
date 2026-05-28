@@ -81,9 +81,9 @@ collections:
         hint: "OFF にすると記事は非公開になります"
       - label: "ヘッダー画像"
         name: "image"
-        widget: "string"
+        widget: "image"
         required: false
-        hint: "/lab/note-header でAI生成 → 表示されるIDをここにペースト。設定しない場合はデフォルト画像が使われます。"
+        hint: '<a href="https://pr0p0se.com/lab/ai-image-gen/" target="_blank" class="ai-img-link">AI画像生成ページ</a>でAI生成 → Cloudinaryに保存後、ここでその画像を選択。未設定時はデフォルト画像。'
       - label: "本文"
         name: "body"
         widget: "markdown"

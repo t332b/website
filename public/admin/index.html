@@ -19,6 +19,32 @@
     <script>window.CMS_MANUAL_INIT = true;</script>
     <script src="https://unpkg.com/@sveltia/cms@0.156.3/dist/sveltia-cms.js"></script>
     <script src="custom-widgets.js"></script>
+    <script>
+      // ヘッダー画像ヒントの「AI画像生成ページ」リンクをクリックしたとき、
+      // CMS フォームからタイトルを読み取って URL パラメータとして渡す（ベストエフォート）
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest('.ai-img-link');
+        if (!link) return;
+        e.preventDefault();
+
+        var title = '';
+        // タイトルフィールドの input を探す
+        var inputs = document.querySelectorAll('input[type="text"], input:not([type])');
+        inputs.forEach(function(input) {
+          if (title) return;
+          var container = input.closest('[class*="field"], [class*="control"], [class*="widget"]');
+          if (!container) return;
+          var label = container.querySelector('label') || container.previousElementSibling;
+          if (label && label.textContent && label.textContent.trim().startsWith('タイトル')) {
+            title = input.value;
+          }
+        });
+
+        var url = link.getAttribute('href');
+        if (title) url += (url.indexOf('?') === -1 ? '?' : '&') + 'title=' + encodeURIComponent(title);
+        window.open(url, '_blank');
+      });
+    </script>
     <link href="mobile-overrides.css" rel="stylesheet" />
   </body>
 </html>

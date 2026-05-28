@@ -5,7 +5,7 @@ const baseUrl = import.meta.env.BASE_URL;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Note Header Generator — Lab</title>
+    <title>AI Image Generator — Lab</title>
     <meta name="robots" content="noindex, nofollow" />
     <link rel="icon" type="image/x-icon" href={`${baseUrl}images/favicon.ico`} />
     <style>
@@ -161,10 +161,10 @@ const baseUrl = import.meta.env.BASE_URL;
   <body>
     <div class="wrap">
       <a class="back" href={`${baseUrl}lab/`}>← Lab</a>
-      <h1>Note Header Generator</h1>
+      <h1>AI Image Generator</h1>
       <p class="desc">
         タイトルと本文からノート用ヘッダー画像をAI生成し、Cloudinaryに保存します。<br>
-        生成後に表示される <strong>ID</strong> をコピーして、CMSの「ヘッダー画像」フィールドに貼り付けてください。
+        生成後はCMSの「ヘッダー画像」フィールドでCloudinaryを開き、保存された画像を選択してください。
       </p>
 
       <div class="field">
@@ -184,12 +184,12 @@ const baseUrl = import.meta.env.BASE_URL;
       <div id="result-el" style="display:none;" class="result">
         <img id="preview-img" class="preview-img" alt="生成されたヘッダー画像" />
         <div class="id-section">
-          <span class="label">CMSの「ヘッダー画像」フィールドに貼り付けるID</span>
+          <span class="label">Cloudinaryに保存されたファイル名</span>
           <div class="id-box">
             <code id="id-display" class="id-display"></code>
             <button type="button" id="copy-btn" class="btn-copy">コピー</button>
           </div>
-          <p class="hint">CMSを開いて Notes の編集画面 →「ヘッダー画像」フィールドにこのIDをペースト → 保存。</p>
+          <p class="hint">CMSの「ヘッダー画像」→ Cloudinary を開く → このファイルを探して選択してください。</p>
         </div>
         <button type="button" id="regen-btn" class="btn-regen">🔄 再生成</button>
       </div>
@@ -198,7 +198,8 @@ const baseUrl = import.meta.env.BASE_URL;
     <script>
       const CLOUD_NAME = 'djzxpyzu3';
       const UPLOAD_PRESET = 'pr0p0se';
-      const FOLDER = 'pr0p0se-website';
+      // フォルダ指定なし（Cloudinary root にアップロード）
+      // output_filename_only: true との一貫性のため
 
       function stripMarkdown(text) {
         return (text || '')
@@ -227,14 +228,15 @@ const baseUrl = import.meta.env.BASE_URL;
         const fd = new FormData();
         fd.append('file', blob);
         fd.append('upload_preset', UPLOAD_PRESET);
-        fd.append('folder', FOLDER);
+        // フォルダ指定なし → root にアップロード
         const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
           method: 'POST',
           body: fd,
         });
         const data = await res.json();
         if (!res.ok) throw new Error((data.error && data.error.message) || 'アップロード失敗');
-        return data.public_id;
+        // public_id はルートの場合ファイル名のみ（例: "abc123xyz"）
+        return { publicId: data.public_id, secureUrl: data.secure_url };
       }
 
       const titleInput = document.getElementById('title-input');
@@ -246,6 +248,15 @@ const baseUrl = import.meta.env.BASE_URL;
       const previewImg = document.getElementById('preview-img');
       const idDisplay = document.getElementById('id-display');
       const copyBtn = document.getElementById('copy-btn');
+
+      // URL パラメータからタイトル・本文を自動入力
+      (function() {
+        const params = new URLSearchParams(location.search);
+        const t = params.get('title');
+        const b = params.get('body');
+        if (t) titleInput.value = t;
+        if (b) bodyInput.value = b;
+      })();
 
       function setStatus(msg, isError = false) {
         statusEl.style.display = 'block';
@@ -286,13 +297,14 @@ const baseUrl = import.meta.env.BASE_URL;
           const blob = await fetchImageAsBlob(pollinationsUrl);
 
           setStatus('⏳ Cloudinaryに保存中…');
-          const publicId = await uploadToCloudinary(blob);
+          const { publicId, secureUrl } = await uploadToCloudinary(blob);
 
           hideStatus();
 
-          const previewUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/f_auto,q_auto,w_1280/${publicId}`;
-          previewImg.src = previewUrl;
-          idDisplay.textContent = publicId;
+          previewImg.src = secureUrl;
+          // public_id がフォルダなしの場合もあるので、ファイル名部分だけ表示
+          const filename = publicId.includes('/') ? publicId.split('/').pop() : publicId;
+          idDisplay.textContent = filename;
           copyBtn.textContent = 'コピー';
           copyBtn.className = 'btn-copy';
           resultEl.style.display = 'block';
