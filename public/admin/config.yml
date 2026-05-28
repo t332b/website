@@ -81,9 +81,9 @@ collections:
         hint: "OFF にすると記事は非公開になります"
       - label: "ヘッダー画像"
         name: "image"
-        widget: "ai-image"
+        widget: "string"
         required: false
-        hint: "「AIで画像生成」でタイトル・本文をもとに自動生成します。設定しない場合はデフォルト画像が使われます。"
+        hint: "/lab/note-header でAI生成 → 表示されるIDをここにペースト。設定しない場合はデフォルト画像が使われます。"
       - label: "本文"
         name: "body"
         widget: "markdown"
