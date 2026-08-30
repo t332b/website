@@ -78,7 +78,7 @@ collections:
         widget: "boolean"
         default: true
         required: false
-        hint: "OFF にすると記事は非公開になります"
+        hint: 'OFF にすると記事は非公開になります。<br>非公開の記事は <a href="https://pr0p0se.com/tetetest/" target="_blank">pr0p0se.com/tetetest</a> で確認できます。'
       - label: "ヘッダー画像"
         name: "image"
         widget: "image"
@@ -88,7 +88,7 @@ collections:
         name: "body"
         widget: "markdown"
         required: true
-        hint: "画像は「メディアを追加」で Cloudinary から選択。<br>動画や音声は、Cloudinaryのウェブサイトを開いて直接アップロードしてリンクを貼り付ける。<br>空白行を入れたい場合は、Enterを2回以上押してください（2回以上の空行が視覚的な間隔として反映されます）。"
+        hint: "画像は「メディアを追加」で Cloudinary から選択。<br>動画や音声は、Cloudinaryのウェブサイトを開いて直接アップロードしてリンクを貼り付ける。<br>空白行を入れたい場合は、Enterを2回以上押してください（2回以上の空行が視覚的な間隔として反映されます）。<br>Apple MusicとSpotifyの両方を貼ると、1つのプレーヤーで両方切り替えて聴けます。2つのURLを、間に他の文章を挟まず連続する行に貼ってください。"
 
   # ライブ
   - name: "live"
