@@ -4,15 +4,25 @@ import { getEmbedInfoFromUrl } from "../utils/embedUrl";
 interface Props {
   href?: string;
   title?: string;
+  /** Spotify / Apple Music のペア埋め込み用: もう一方のサービスのURL（本文で連続する2つの音楽URLから自動生成される） */
+  href2?: string;
 }
 
-let { href = "", title } = Astro.props;
+let { href = "", title, href2 = "" } = Astro.props;
 // tetetest（base /tetetest/）では同一サイトの /notes/ リンクを base 付きにする
 const base = (import.meta.env.BASE_URL ?? "/").replace(/\/$/, "") || "";
 if (base && href.startsWith("/notes")) {
   href = base + href;
 }
 const embed = href ? getEmbedInfoFromUrl(href) : null;
+const embed2Raw = href2 ? getEmbedInfoFromUrl(href2) : null;
+// ペアとして意味があるのは Spotify/Apple の組み合わせで、かつサービスが異なる場合のみ
+const embed2 =
+  embed2Raw &&
+  (embed2Raw.service === "spotify" || embed2Raw.service === "apple") &&
+  embed2Raw.service !== embed?.service
+    ? embed2Raw
+    : null;
 ---
 
 {embed ? (
@@ -82,6 +92,23 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               />
             </div>
+            {embed2 && (
+              <div
+                class="note-embed-music-frame"
+                data-service={embed2.service}
+                aria-hidden="true"
+              >
+                <iframe
+                  src={embed2.embedUrl}
+                  title={title || embed2.service}
+                  width="100%"
+                  height={embed2.service === "spotify" ? "152" : "150"}
+                  frameborder="0"
+                  allowfullscreen
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                />
+              </div>
+            )}
           </div>
           <div class="note-embed-music-tablist" role="tablist" aria-label="再生サービス">
             <button
@@ -95,6 +122,19 @@ const embed = href ? getEmbedInfoFromUrl(href) : null;
                 {embed.service === "spotify" ? "Spotify" : "Apple Music"}
               </span>
             </button>
+            {embed2 && (
+              <button
+                type="button"
+                class="note-embed-music-tab"
+                role="tab"
+                aria-selected="false"
+                data-service={embed2.service}
+              >
+                <span class="note-embed-music-tab-label">
+                  {embed2.service === "spotify" ? "Spotify" : "Apple Music"}
+                </span>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -26,32 +26,58 @@ function transformAngleBracketUrls(source) {
   return source.replace(/<(https?:\/\/[^>]+)>/g, (_, url) => `[${url}](${url})`);
 }
 
+/** Spotify / Apple Music の URL かどうかを判定する */
+function detectMusicService(url) {
+  if (/spotify\.com/i.test(url)) return "spotify";
+  if (/music\.apple\.com/i.test(url)) return "apple";
+  return null;
+}
+
 /**
  * 1行にURLだけが書かれている / 自動リンクだけが書かれている場合に、
  * NoteEmbedLink コンポーネントへ変換する（プレーヤー埋め込み等）
+ *
+ * Spotify と Apple Music の単独URL行が（間に空行を挟んでいてもよい）連続している場合は、
+ * song.link の自動検索に頼らず、両方のリンクを持つ1つの再生プレーヤー（タブ切り替え）にまとめる。
  */
 function transformStandaloneLinksToEmbeds(source) {
   const urlOnlyRe = /^https?:\/\/\S+$/;
   const mdAutolinkRe = /^\[(https?:\/\/[^\]\s]+)\]\(\1\)$/;
 
+  // 箇条書き・引用の中などは変換しない（意図しない崩れを防ぐ）
+  function extractUrl(trimmed) {
+    if (!trimmed || /^[-*+]\s+/.test(trimmed) || /^>\s+/.test(trimmed)) return null;
+    const m = trimmed.match(mdAutolinkRe);
+    if (m) return m[1];
+    if (urlOnlyRe.test(trimmed)) return trimmed;
+    return null;
+  }
+
   const lines = source.split(/\r?\n/);
   let changed = false;
 
   for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    const trimmed = raw.trim();
+    const trimmed = lines[i].trim();
     if (!trimmed) continue;
 
-    let url = null;
-    const m = trimmed.match(mdAutolinkRe);
-    if (m) url = m[1];
-    else if (urlOnlyRe.test(trimmed)) url = trimmed;
-
+    const url = extractUrl(trimmed);
     if (!url) continue;
 
-    // 箇条書きの中などは変換しない（意図しない崩れを防ぐ）
-    if (/^[-*+]\s+/.test(trimmed)) continue;
-    if (/^>\s+/.test(trimmed)) continue;
+    const service = detectMusicService(url);
+    if (service) {
+      let j = i + 1;
+      while (j < lines.length && lines[j].trim() === "") j++;
+      const nextUrl = j < lines.length ? extractUrl(lines[j].trim()) : null;
+      const nextService = nextUrl ? detectMusicService(nextUrl) : null;
+
+      if (nextUrl && nextService && nextService !== service) {
+        lines[i] = `<NoteEmbedLink href="${url}" href2="${nextUrl}">${url}</NoteEmbedLink>`;
+        for (let k = i + 1; k <= j; k++) lines[k] = "";
+        changed = true;
+        i = j;
+        continue;
+      }
+    }
 
     lines[i] = `<NoteEmbedLink href="${url}">${url}</NoteEmbedLink>`;
     changed = true;
