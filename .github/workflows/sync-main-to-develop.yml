@@ -25,3 +25,19 @@ jobs:
           git checkout develop
           git merge origin/main --no-edit
           git push origin develop
+
+  # 上の push は GITHUB_TOKEN によるものなので push-deploy.yml の on:push を連鎖起動しない。
+  # そのため tetetest 向けのビルド・デプロイをここで明示的に呼び出す。
+  deploy-tetetest:
+    needs: sync
+    uses: ./.github/workflows/deploy.yml
+    with:
+      ref: "develop"
+      base_path: "/tetetest/"
+    secrets:
+      FTP_HOST: ${{ secrets.FTP_HOST }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_REMOTE_DIR: ${{ endsWith(secrets.FTP_REMOTE_DIR, '/') && format('{0}tetetest/', secrets.FTP_REMOTE_DIR) || format('{0}/tetetest/', secrets.FTP_REMOTE_DIR) }}
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY }}
