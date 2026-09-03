@@ -1,5 +1,10 @@
 import { defineCollection, z } from "astro:content";
 
+// CMS の datetime ウィジェットは未入力時に空文字列 '' を書き込むため、
+// z.coerce.date() に渡す前に undefined へ正規化する
+const optionalDate = () =>
+  z.preprocess((val) => (val === "" ? undefined : val), z.coerce.date().optional());
+
 const member = defineCollection({
   type: "content",
   schema: z.object({
@@ -77,9 +82,9 @@ const live = defineCollection({
   type: "content",
   schema: z.object({
     title: z.string(), // イベント名（必須）
-    startDate: z.coerce.date().optional(), // 開始日
+    startDate: optionalDate(), // 開始日
     startTime: z.string().optional(), // 開始時刻（例: 19:00）
-    endDate: z.coerce.date().optional(), // 終了日（日をまたぐ場合）
+    endDate: optionalDate(), // 終了日（日をまたぐ場合）
     endTime: z.string().optional(), // 終了時刻
     venue: z.string().optional(),
     city: z.string().optional(),
