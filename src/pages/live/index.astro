@@ -121,7 +121,7 @@ const withContent = await Promise.all(
                   rel="noopener noreferrer"
                   class="live-ticket-btn"
                 >
-                  チケット
+                  {entry.data.ticketUrl}
                 </a>
               )}
               <div class="live-body content">
@@ -209,6 +209,7 @@ const withContent = await Promise.all(
       text-underline-offset: 0.2em;
       margin-bottom: 1rem;
       transition: opacity 0.2s;
+      word-break: break-all;
     }
     .live-ticket-btn:hover {
       opacity: 0.8;
