@@ -1,6 +1,6 @@
 :root{
   --wa-cream: #F7E9D7;
-  --wa-butter: #F5D19A;
+  --wa-butter: #FAE5C7;
   --wa-mustard: #D7A449;
   --wa-pink: #EFC3C5;
   --wa-rose: #D7A1A7;
@@ -33,7 +33,7 @@ input[type="reset"],
 html,body{
   /* background: var(--bg); */
   /* background: #f9c99b; */
-  background: #f9e4d2;
+  background: #ffe5ce;
   color: var(--fg);
   font-family: "Menlo", "PT Mono", "Courier New", monospace;
   line-height: 1.7;
