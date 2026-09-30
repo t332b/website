@@ -1,20 +1,15 @@
 ---
 import Base from "../../layouts/Base.astro";
+
+// 一時対応: Spotify 認証のためメールアドレスをテキストで表示中。認証後にこのコミットを revert して canvas 表示に戻す。
+const emailAddress = "contact@pr0p0se.com";
 ---
 
 <Base title="PR0P0SE CONTACT">
   <section class="contact-page">
     <div class="mail-card">
       <div class="mail-row">
-        <canvas
-          id="contact-mail-image"
-          class="mail-image"
-          width="520"
-          height="64"
-          role="img"
-          aria-label="連絡先メールアドレス画像"
-        >
-        </canvas>
+        <a id="contact-mail-link" class="mail-text" href={`mailto:${emailAddress}`}>{emailAddress}</a>
 
         <button
           id="copy-mail-button"
@@ -30,28 +25,6 @@ import Base from "../../layouts/Base.astro";
   </section>
 
   <script>
-    const MAIL_CHAR_CODES = [99, 111, 110, 116, 97, 99, 116, 64, 112, 114, 48, 112, 48, 115, 101, 46, 99, 111, 109];
-    const emailAddress = String.fromCharCode(...MAIL_CHAR_CODES);
-
-    function drawMailImage(canvas: HTMLCanvasElement, text: string) {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#fff9f1";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = "#f5d19a";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, canvas.width - 2, canvas.height - 2);
-
-      ctx.font = "600 34px Menlo, 'PT Mono', 'Courier New', monospace";
-      ctx.fillStyle = "#2f2a28";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
-    }
-
     async function copyMailAddress(text: string, copyButton: HTMLButtonElement) {
       const defaultLabel = copyButton.getAttribute("data-default-label") || "copy";
       try {
@@ -70,13 +43,12 @@ import Base from "../../layouts/Base.astro";
     }
 
     function setupContactPage() {
-      /** @type {HTMLCanvasElement | null} */
-      const canvas = document.getElementById("contact-mail-image");
+      /** @type {HTMLAnchorElement | null} */
+      const mailLink = document.getElementById("contact-mail-link");
       /** @type {HTMLButtonElement | null} */
       const copyButton = document.getElementById("copy-mail-button");
-      if (!canvas || !copyButton) return;
-
-      drawMailImage(canvas, emailAddress);
+      const emailAddress = mailLink?.textContent?.trim();
+      if (!emailAddress || !copyButton) return;
 
       copyButton.onclick = () => {
         copyMailAddress(emailAddress, copyButton);
@@ -110,11 +82,21 @@ import Base from "../../layouts/Base.astro";
       gap: 0.65rem;
     }
 
-    .mail-image {
-      width: min(100%, 250px);
-      height: auto;
+    .mail-text {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0.4rem 0.5rem;
+      border: 1px solid #f5d19a;
       border-radius: 2px;
-      image-rendering: auto;
+      background: #fff9f1;
+      color: #2f2a28;
+      font-family: Menlo, "PT Mono", "Courier New", monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      line-height: 1.2;
+      text-align: center;
+      text-decoration: none;
+      overflow-wrap: anywhere;
     }
 
     .copy-button {
